@@ -1,5 +1,5 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import customUint8Array from "./types/customUint8Array";
+import { customUint8Array } from "./types/customUint8Array";
 import { customIsoDate } from "./types/customIsoDate";
 
 export const UsersTable = sqliteTable("users", {

@@ -1,7 +1,7 @@
 import { customType } from "drizzle-orm/sqlite-core";
 import { Buffer } from "node:buffer";
 
-const customUint8Array = customType<{ data: Uint8Array }>({
+export const customUint8Array = customType<{ data: Uint8Array }>({
   dataType() {
     return "blob";
   },
@@ -13,5 +13,3 @@ const customUint8Array = customType<{ data: Uint8Array }>({
     return Buffer.from(value);
   },
 });
-
-export default customUint8Array;
