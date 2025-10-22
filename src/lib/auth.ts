@@ -1,6 +1,7 @@
+import { db } from "@/db"; // your drizzle instance
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/db"; // your drizzle instance
+import { reactStartCookies } from "better-auth/react-start";
 
 // Note: src/lib/auth.ts is a magic location found automatically by better-auth.
 export const auth = betterAuth({
@@ -16,4 +17,8 @@ export const auth = betterAuth({
     //         clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     //     },
     // },
+    plugins: [
+        // make sure this is the last plugin in the array
+        reactStartCookies(),
+    ],
 });
