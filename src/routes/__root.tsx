@@ -50,8 +50,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Header />
+        {/* TODO: adjust the header to my own liking! */}
+        {/* <Header /> */}
+
+        {/* Children rendered by routes*/}
         {children}
+
         <TanStackDevtools
           config={{
             position: 'bottom-right',
