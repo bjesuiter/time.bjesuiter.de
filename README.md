@@ -38,6 +38,4 @@ bun create @tanstack/start@latest
 Use the following commands to start your app:
 % cd time.bjesuiter.de
 % bun --bun run dev
-
-Please read the README.md for information on testing, styling, adding routes, etc.
 ```
