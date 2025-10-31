@@ -18,8 +18,8 @@ When a user opens the time tracking dashboard, we need to determine:
 
 ## Decision
 
-**Display current month plus the week before the month starts, with pagination for
-historical access.**
+**Display current month plus the week before the month starts, with pagination
+for historical access.**
 
 ### Default View
 
@@ -53,25 +53,25 @@ Total: Approximately 5-6 weeks displayed
 
 ```typescript
 function getDefaultDateRange(
-  currentDate: Date,
-  weekStart: "MONDAY" | "SUNDAY"
+    currentDate: Date,
+    weekStart: "MONDAY" | "SUNDAY",
 ): { startDate: Date; endDate: Date; weeks: Date[] } {
-  // Get first day of current month
-  const monthStart = startOfMonth(currentDate);
+    // Get first day of current month
+    const monthStart = startOfMonth(currentDate);
 
-  // Get the week containing the first day of the month
-  const weekContainingMonthStart = getWeekStart(monthStart, weekStart);
+    // Get the week containing the first day of the month
+    const weekContainingMonthStart = getWeekStart(monthStart, weekStart);
 
-  // Get the week before that
-  const startDate = subDays(weekContainingMonthStart, 7);
+    // Get the week before that
+    const startDate = subDays(weekContainingMonthStart, 7);
 
-  // Get the week containing current date (end of view)
-  const endDate = getWeekEnd(currentDate, weekStart);
+    // Get the week containing current date (end of view)
+    const endDate = getWeekEnd(currentDate, weekStart);
 
-  // Generate list of week start dates
-  const weeks = generateWeekStarts(startDate, endDate);
+    // Generate list of week start dates
+    const weeks = generateWeekStarts(startDate, endDate);
 
-  return { startDate, endDate, weeks };
+    return { startDate, endDate, weeks };
 }
 ```
 
@@ -100,18 +100,18 @@ weeks = [
 
 ```typescript
 async function loadDefaultView(userId: string) {
-  const config = await getUserConfig(userId);
-  const currentDate = new Date();
+    const config = await getUserConfig(userId);
+    const currentDate = new Date();
 
-  // Calculate default date range
-  const { weeks } = getDefaultDateRange(currentDate, config.weekStart);
+    // Calculate default date range
+    const { weeks } = getDefaultDateRange(currentDate, config.weekStart);
 
-  // Fetch weekly data for each week
-  const weeklyData = await Promise.all(
-    weeks.map((weekStart) => getWeeklyBreakdown(userId, weekStart))
-  );
+    // Fetch weekly data for each week
+    const weeklyData = await Promise.all(
+        weeks.map((weekStart) => getWeeklyBreakdown(userId, weekStart)),
+    );
 
-  return weeklyData;
+    return weeklyData;
 }
 ```
 
@@ -136,18 +136,18 @@ Or:
 
 ```typescript
 async function navigateToMonth(userId: string, year: number, month: number) {
-  const firstDayOfMonth = new Date(year, month - 1, 1);
-  const config = await getUserConfig(userId);
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const config = await getUserConfig(userId);
 
-  // Calculate date range for this month
-  const { weeks } = getDefaultDateRange(firstDayOfMonth, config.weekStart);
+    // Calculate date range for this month
+    const { weeks } = getDefaultDateRange(firstDayOfMonth, config.weekStart);
 
-  // Fetch and display
-  const weeklyData = await Promise.all(
-    weeks.map((weekStart) => getWeeklyBreakdown(userId, weekStart))
-  );
+    // Fetch and display
+    const weeklyData = await Promise.all(
+        weeks.map((weekStart) => getWeeklyBreakdown(userId, weekStart)),
+    );
 
-  return weeklyData;
+    return weeklyData;
 }
 ```
 
@@ -356,7 +356,8 @@ Same logic, different week boundaries.
 - If viewing October: Include this week (it started in October)
 - If viewing November: Include this week (it contains November days)
 
-**Implementation**: Week is included in a month if it intersects with that month.
+**Implementation**: Week is included in a month if it intersects with that
+month.
 
 ### First Day of Month is First Day of Week
 
@@ -378,8 +379,8 @@ Oct 8-14
 ...
 ```
 
-**Implementation**: `weekContainingMonthStart` should be the week that starts on or
-before the first day of the month.
+**Implementation**: `weekContainingMonthStart` should be the week that starts on
+or before the first day of the month.
 
 ### Historical Months (No Current Week)
 
@@ -429,22 +430,22 @@ User can navigate back to any month since `cumulativeOvertimeStartDate`.
 
 ```typescript
 function canNavigateToMonth(
-  userId: string,
-  year: number,
-  month: number
+    userId: string,
+    year: number,
+    month: number,
 ): boolean {
-  const config = await getUserConfig(userId);
+    const config = await getUserConfig(userId);
 
-  if (!config.cumulativeOvertimeStartDate) {
-    // No start date set, allow any month
-    return true;
-  }
+    if (!config.cumulativeOvertimeStartDate) {
+        // No start date set, allow any month
+        return true;
+    }
 
-  const targetDate = new Date(year, month - 1, 1);
-  const startDate = new Date(config.cumulativeOvertimeStartDate);
+    const targetDate = new Date(year, month - 1, 1);
+    const startDate = new Date(config.cumulativeOvertimeStartDate);
 
-  // Can navigate if target month is on or after start month
-  return targetDate >= startOfMonth(startDate);
+    // Can navigate if target month is on or after start month
+    return targetDate >= startOfMonth(startDate);
 }
 ```
 
@@ -473,11 +474,11 @@ Store weekly summaries in `cached_weekly_sums` (already planned):
 ```typescript
 // Fast path: Load weekly summaries
 const weeklySums = await db.query.cachedWeeklySums.findMany({
-  where: and(
-    eq(cachedWeeklySums.userId, userId),
-    gte(cachedWeeklySums.weekStart, startDate),
-    lte(cachedWeeklySums.weekStart, endDate)
-  ),
+    where: and(
+        eq(cachedWeeklySums.userId, userId),
+        gte(cachedWeeklySums.weekStart, startDate),
+        lte(cachedWeeklySums.weekStart, endDate),
+    ),
 });
 
 // For pending weeks, refresh as needed
@@ -631,4 +632,3 @@ Test cases needed:
 - [Decision: Timezone and Week Boundaries](2025_10_31_timezone_and_week_boundaries.md)
 - [Decision: Cumulative Overtime Tracking](2025_10_31_cumulative_overtime_tracking.md)
 - [Decision: Weekly Table Layout](2025_10_31_weekly_table_layout.md)
-

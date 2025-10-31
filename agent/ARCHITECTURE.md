@@ -54,9 +54,16 @@ Better-auth automatically manages these core authentication tables (see [Decisio
 {
   id: string (primary key)
   userId: string (foreign key -> user.id, unique)
-  clockifyApiKey: string (encrypted)
+  clockifyApiKey: string                         // Plain text (personal project)
   clockifyWorkspaceId: string
   clockifyUserId: string
+  timeZone: string                               // From Clockify user settings
+  weekStart: string                              // "MONDAY" | "SUNDAY"
+  selectedClientId: string | null                // Single client filter
+  selectedClientName: string | null
+  regularHoursPerWeek: number                    // e.g., 25 or 40
+  workingDaysPerWeek: number                     // e.g., 5 (Mon-Fri)
+  cumulativeOvertimeStartDate: date | null       // e.g., "2025-10-01"
   createdAt: timestamp
   updatedAt: timestamp
 }
@@ -70,64 +77,75 @@ Stores both current and historical configurations with temporal validity.
 {
   id: string (primary key)
   userId: string (foreign key -> user.id)
-  configType: enum('tracked_projects', 'regular_hours', 'client_filter')
-  value: json
-  validFrom: timestamp      // When this config became active
-  validUntil: timestamp | null  // null = current config
+  configType: enum('tracked_projects')           // Only tracked projects versioned
+  value: json                                     // { projectIds: string[], projectNames: string[] }
+  validFrom: timestamp                            // When this config became active
+  validUntil: timestamp | null                    // null = current config
   createdAt: timestamp
 }
 ```
 
 **Config Type Values:**
-- `tracked_projects`: `{ projectIds: string[] }` - Projects shown in daily columns
-- `regular_hours`: `{ hoursPerWeek: number }` - Baseline for overtime calculation
-- `client_filter`: `{ clientId: string, clientName: string }` - Client for weekly totals
+- `tracked_projects`: `{ projectIds: string[], projectNames: string[] }` - Projects shown in detail in weekly breakdown
 
-**7. `cached_daily_project_sums`** - Pre-calculated daily totals
+**Note:** Regular hours and client filter are NOT versioned - stored in `user_clockify_config` instead.
 
-```typescript
-{
-  id: string (primary key)
-  userId: string (foreign key -> user.id)
-  date: date (YYYY-MM-DD)
-  projectIds: json (array)
-  totalSeconds: number
-  configSnapshotId: string
-  calculatedAt: timestamp
-  invalidatedAt: timestamp | null
-}
-```
-
-**8. `cached_daily_client_sums`** - Pre-calculated client totals
+**7. `cached_daily_project_sums`** - Pre-calculated daily project totals
 
 ```typescript
 {
   id: string (primary key)
   userId: string (foreign key -> user.id)
   date: date (YYYY-MM-DD)
+  projectId: string                               // Individual project
+  projectName: string
+  seconds: number
   clientId: string
-  totalSeconds: number
   calculatedAt: timestamp
   invalidatedAt: timestamp | null
 }
 ```
 
-**9. `cached_weekly_sums`** - Pre-calculated weekly totals and overtime
+**Note:** Daily sums are stored per-project for flexible breakdown. Weekly aggregation happens on-demand.
+
+**8. `cached_weekly_sums`** - Pre-calculated weekly totals and overtime
 
 ```typescript
 {
   id: string (primary key)
   userId: string (foreign key -> user.id)
-  weekStart: date (Monday)
-  weekEnd: date (Sunday)
+  weekStart: date (Monday or Sunday, per user setting)
+  weekEnd: date (Sunday or Saturday)
   clientId: string
   totalSeconds: number
   regularHoursBaseline: number
   overtimeSeconds: number
   cumulativeOvertimeSeconds: number
   configSnapshotId: string
+  status: enum('pending', 'committed')            // Week commitment status
+  committedAt: timestamp | null
   calculatedAt: timestamp
   invalidatedAt: timestamp | null
+}
+```
+
+**9. `weekly_discrepancies`** - Tracks changes to committed weeks
+
+```typescript
+{
+  id: string (primary key)
+  userId: string (foreign key -> user.id)
+  weekStart: date
+  weekEnd: date
+  detectedAt: timestamp
+  oldTotalSeconds: number
+  newTotalSeconds: number
+  oldOvertimeSeconds: number
+  newOvertimeSeconds: number
+  differenceTotalSeconds: number
+  differenceOvertimeSeconds: number
+  acknowledged: boolean
+  acknowledgedAt: timestamp | null
 }
 ```
 
@@ -169,25 +187,45 @@ WHERE userId = ?
 
 ## Cache Invalidation Strategy
 
-**Decision**: Timestamp-based invalidation (NOT event sourcing). See [Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
+**Decision**: Week commitment system with status-based refresh. See [Decision: Cache Invalidation and Week Commitment](decisions/2025_10_31_cache_invalidation_and_week_commitment.md)
 
-### When to Invalidate
+### Week Commitment Model
 
-**Trigger Events:**
-1. **Configuration Change** - Invalidate all cached data from `validFrom` date forward
-2. **Manual Refresh** - User requests fresh data from Clockify
-3. **New Time Entries** - Invalidate recent dates (last 7-14 days) periodically
+Each week has a status:
+- **Pending**: Active, auto-refreshes on page load
+- **Committed**: Frozen, never auto-refreshes (manual only)
+
+### When to Refresh
+
+| Week Status | Page Load | Manual Refresh | Discrepancy Tracking |
+|-------------|-----------|----------------|---------------------|
+| Pending     | ✅ Yes    | ✅ Yes         | ❌ No               |
+| Committed   | ❌ No     | ✅ Yes         | ✅ Yes              |
+
+**Refresh Triggers:**
+1. **Page Load** - Refresh all pending (uncommitted) weeks
+2. **Manual Per-Week** - "Refetch & Recalculate" button for any week
+3. **Annual Refresh** - Settings button to refresh from January 1st
+4. **Configuration Change** - Invalidate all weeks from `validFrom` date forward
+
+### Discrepancy Tracking
+
+When a committed week is manually refreshed:
+- If data changed → Log to `weekly_discrepancies` table
+- Show warning to user (already reported to work systems!)
+- User must acknowledge the discrepancy
 
 ### Cache Lookup Flow
 
 ```
-1. Check cached_daily_project_sums for date
-   ├─ Found & not invalidated? → Use cached value
-   └─ Not found or invalidated? → Fetch from Clockify, recalculate, cache
+1. Check cached_weekly_sums for week
+   ├─ Found & status='pending'? → Refresh from Clockify
+   ├─ Found & status='committed'? → Use cached (don't refresh)
+   └─ Not found? → Fetch from Clockify, cache as 'pending'
 
-2. Check cached_weekly_sums for week
+2. Check cached_daily_project_sums for breakdown
    ├─ Found & not invalidated? → Use cached value
-   └─ Not found or invalidated? → Aggregate daily_client_sums, cache
+   └─ Not found or invalidated? → Fetch from Clockify, cache
 ```
 
 ---
@@ -289,10 +327,11 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 - ✅ CSRF protection built into TanStack Start
 
 ### API Key Storage (Clockify)
-- ✅ Encrypt at rest using AES-256-GCM
-- ✅ Store encryption key in environment variable
-- ✅ Never expose API keys in client-side code
+- ✅ **Plain text storage** (personal project, simplified approach)
+- ✅ Server-side only access (never exposed to client)
 - ✅ All Clockify API calls happen server-side
+- ⚠️ Database file protected by filesystem permissions
+- 📝 See [Decision: Clockify API Key Storage](decisions/2025_10_31_clockify_api_key_storage.md)
 
 ### Data Access & Isolation
 - ✅ All queries must filter by `userId`
@@ -315,43 +354,58 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 - [ ] Build user registration/login UI
 - [ ] Create `user_clockify_config` table schema
 - [ ] Create setup wizard for Clockify integration
-- [ ] Implement Clockify API key encryption
+- [ ] Fetch timezone and weekStart from Clockify `/v1/user` endpoint
 
 ### Phase 2: Clockify Integration & Basic Display
 
 - [ ] Implement Clockify API client
-- [ ] Create weekly table component
-- [ ] Fetch and display raw data (no caching yet)
-- [ ] Basic date navigation
+- [ ] Fetch daily summaries (grouped by DATE and PROJECT)
+- [ ] Create multi-row weekly table component (tracked projects + extra work + total)
+- [ ] Month-based navigation (current month + previous week)
 - [ ] Display daily sums for tracked projects
-- [ ] Display weekly sum for all client projects
-- [ ] Basic overtime calculation
+- [ ] Display "Extra Work" row for untracked projects
+- [ ] Display total row for all client projects
+- [ ] Daily-based overtime calculation (working days vs. weekends)
 
 ### Phase 3: Configuration Management & Versioning
 
-- [ ] Build config_chronic table and logic
-- [ ] Create configuration UI (edit tracked projects, regular hours, client filter)
-- [ ] Implement temporal queries
+- [ ] Build config_chronic table and logic (tracked projects only)
+- [ ] Create configuration UI:
+  - [ ] Select client (single, stored in user_clockify_config)
+  - [ ] Select tracked projects (multiple, versioned in config_chronic)
+  - [ ] Set regular hours per week
+  - [ ] Set working days per week
+  - [ ] Set cumulative overtime start date
+- [ ] Implement temporal queries for tracked projects
 - [ ] Show configuration history to user
 - [ ] Handle config changes (close old, create new records)
+- [ ] Manual refresh button for Clockify settings (timezone, weekStart)
 
 ### Phase 4: Caching Layer & Optimization
 
-- [ ] Implement caching tables
+- [ ] Implement caching tables (cached_daily_project_sums, cached_weekly_sums)
 - [ ] Build cache calculation logic
-- [ ] Implement cache invalidation
-- [ ] Background job for cache warming
-- [ ] Handle bulk historical recalculations
+- [ ] Implement week commitment system:
+  - [ ] Commit/uncommit week actions
+  - [ ] Status-based refresh logic
+  - [ ] Per-week "Refetch & Recalculate" button
+- [ ] Implement discrepancy tracking:
+  - [ ] weekly_discrepancies table
+  - [ ] Detect changes to committed weeks
+  - [ ] Show warnings in UI
+- [ ] Settings page: "Refresh from January 1st" button
+- [ ] Handle configuration change invalidation
 
 ### Phase 5: Polish & Features
 
-- [ ] Cumulative overtime tracking
-- [ ] Multiple week views (monthly view)
+- [ ] Cumulative overtime display
+- [ ] Extra work tooltip/expandable detail (show which projects)
 - [ ] Export capabilities (CSV, PDF)
 - [ ] Data visualization (charts, graphs)
 - [ ] Mobile responsive design
 - [ ] Error handling & retry logic
 - [ ] Loading states & skeleton screens
+- [ ] Discrepancy UI (warning banner, detailed view)
 
 ---
 
@@ -442,6 +496,13 @@ Types: feat, fix, refactor, docs, test, chore
 ### Decisions
 - [EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
 - [Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)
+- [Clockify API Key Storage](decisions/2025_10_31_clockify_api_key_storage.md)
+- [Timezone and Week Boundaries](decisions/2025_10_31_timezone_and_week_boundaries.md)
+- [Cumulative Overtime Tracking](decisions/2025_10_31_cumulative_overtime_tracking.md)
+- [Cache Invalidation and Week Commitment](decisions/2025_10_31_cache_invalidation_and_week_commitment.md)
+- [Client Filter and Tracked Projects](decisions/2025_10_31_client_filter_and_tracked_projects.md)
+- [Weekly Table Layout](decisions/2025_10_31_weekly_table_layout.md)
+- [Initial Data Fetch Scope](decisions/2025_10_31_initial_data_fetch_scope.md)
 
 ### Documentation
 - [Better-auth Docs](https://www.better-auth.com/docs)
