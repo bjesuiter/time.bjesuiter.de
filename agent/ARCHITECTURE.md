@@ -303,90 +303,85 @@ WHERE accountId = ?
 
 ### 1. Configuration Versioning Approaches
 
-**Status**: 🔍 Research Phase
+**Status**: ✅ **DECIDED** - Temporal Tables
 
-**Options to Evaluate:**
+**Decision**: Use temporal tables with `validFrom`/`validUntil` timestamps in SQLite.
 
-- ✅ **Temporal Tables** (current plan): Simple, SQL-native, good for this use
-  case
-- **Event Sourcing**: More complex, might be overkill
-- **Simple Versioning**: Just store history without validity ranges
+**Rationale:**
 
-**Questions:**
+- ✅ Perfect fit for configuration versioning needs
+- ✅ Simple SQL queries to get config at any point in time
+- ✅ Well-known pattern (Slowly Changing Dimension Type 2)
+- ✅ No additional infrastructure required
+- ✅ Works seamlessly with Drizzle ORM
+- ✅ Excellent query performance with proper indexing
 
-- Is the temporal table approach sufficient for our needs?
-- Do we need more sophisticated querying capabilities?
-- How do we handle bulk historical recalculations?
+**Alternatives Considered:**
 
-**Decision Criteria:**
+- ❌ **Event Sourcing / EventSourcingDB**: Overkill for this use case (see research)
+- ❌ **Simple Versioning**: Less powerful than temporal tables
+- ✅ **Temporal Tables**: **SELECTED** - Simple, efficient, proven
 
-- Query performance for historical lookups
-- Ease of implementation
-- Data integrity guarantees
+**Research**: See `RESEARCH-EventSourcingDB-vs-SQLite.md` for detailed analysis
 
 ---
 
 ### 2. Event Sourcing Pattern for Calculation Management
 
-**Status**: 🔍 Research Phase
+**Status**: ✅ **DECIDED** - NOT Using Event Sourcing
 
-**Hypothesis**: Event Sourcing might be ideal for:
+**Decision**: Use timestamp-based cache invalidation with regular tables.
 
-- Tracking all calculation events
-- Rebuilding state from scratch if needed
-- Audit trail of when calculations occurred
+**Rationale:**
 
-**Questions:**
+- ❌ Application doesn't generate domain events
+- ❌ Data comes from external API (Clockify), not internal commands
+- ❌ Cache invalidation is computational, not event-driven
+- ❌ No need to replay events or rebuild state
+- ❌ Event sourcing adds significant complexity without benefits
+- ✅ Simple `invalidatedAt` timestamp approach is sufficient
+- ✅ Standard cache tables with indexes provide excellent performance
 
-- Does Event Sourcing provide enough value vs complexity?
-- Would it help with cache invalidation?
-- Can we query materialized views efficiently?
+**Why Event Sourcing Doesn't Fit:**
 
-**Potential Events:**
+- No event-driven workflows or sagas
+- No complex domain logic requiring state reconstruction
+- Calculations are deterministic from Clockify API data
+- No audit requirements for calculation history
 
-- `ConfigurationChanged`
-- `DailySumCalculated`
-- `WeeklySumCalculated`
-- `CacheInvalidated`
-
-**Exploration Tasks:**
-
-- Build proof-of-concept with simple Event Store
-- Compare query performance vs traditional caching
-- Evaluate debugging/auditability benefits
+**Research**: See `RESEARCH-EventSourcingDB-vs-SQLite.md` for detailed analysis
 
 ---
 
 ### 3. EventSourcingDB from Thenativeweb
 
-**Status**: 🔍 Research Phase
+**Status**: ✅ **DECIDED** - NOT Using EventSourcingDB
 
 **Product**: https://docs.eventsourcingdb.io/
 
-**Why Consider It?**
+**Decision**: Continue with SQLite + Drizzle ORM. Do NOT adopt EventSourcingDB.
 
-- Purpose-built for Event Sourcing
-- TypeScript support
-- Snapshot capabilities
-- Replay functionality
+**Research Findings:**
 
-**Questions:**
+- ❌ **Separate database server** - Requires Docker, HTTP API, operational overhead
+- ❌ **Wrong abstraction** - Application doesn't fit event sourcing patterns
+- ❌ **Very new product** - Released 2025, v1.5.0, only 26 GitHub stars
+- ❌ **No integration** - Incompatible with Better-auth and Drizzle ORM
+- ❌ **Unnecessary complexity** - Would require complete data layer rewrite
+- ❌ **Operational overhead** - Additional service to monitor, backup, maintain
 
-- Is it production-ready and maintained?
-- Can it work with SQLite or requires PostgreSQL?
-- Does it integrate well with Drizzle ORM?
-- Licensing and deployment considerations?
-- Is the complexity justified for our scale?
+**Why SQLite is Better for This Application:**
 
-**Evaluation Criteria:**
+- ✅ Embedded (no separate service)
+- ✅ Zero operational overhead
+- ✅ Perfect integration with existing stack
+- ✅ Mature and battle-tested (23+ years)
+- ✅ Temporal tables handle versioning perfectly
+- ✅ Fast local queries vs HTTP API calls
 
-- Documentation quality
-- Community support
-- Performance benchmarks
-- Learning curve
-- Operational complexity
+**Conclusion**: EventSourcingDB solves problems we don't have. SQLite + temporal tables is the correct choice.
 
-**Alternative**: Build simple event store using Drizzle + SQLite
+**Research**: See `RESEARCH-EventSourcingDB-vs-SQLite.md` for comprehensive 40-page analysis
 
 ---
 
@@ -504,7 +499,7 @@ WHERE accountId = ?
 - [ ] Performance monitoring
 - [ ] Handle bulk historical recalculations
 
-**Research Integration Point**: Apply findings from Event Sourcing research
+**Research Decision Applied**: Using timestamp-based cache invalidation with `invalidatedAt` field (NOT event sourcing)
 
 **Deliverable**: Fast dashboard with minimal API calls
 
