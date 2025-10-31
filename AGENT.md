@@ -4,6 +4,23 @@ This document contains guidelines for AI agents working on this codebase.
 
 ---
 
+## Communication Guidelines
+
+### Be Concise by Default
+
+**Always summarize your work in one sentence unless asked for more details.**
+
+After completing a task:
+
+- ✅ **Do**: "Created 3 decision documents and updated ARCHITECTURE.md."
+- ❌ **Don't**: List every file change, explain each decision in detail, show
+  code snippets unprompted.
+
+If the user wants more information, they will ask. Keep responses focused and
+brief.
+
+---
+
 ## Development Workflow
 
 ### Use Package.json Scripts
