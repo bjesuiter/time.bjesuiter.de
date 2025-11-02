@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { authClient } from '@/client/auth-client'
+import { auth } from '@/lib/auth/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +15,17 @@ import {
 } from '@/components/ui/card'
 
 export const Route = createFileRoute('/signup')({
+  beforeLoad: async ({ request }) => {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (session?.user) {
+      throw redirect({
+        to: '/',
+      })
+    }
+  },
   component: RouteComponent,
 })
 
@@ -26,14 +38,6 @@ function RouteComponent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
-
-  // Check if already authenticated
-  const { data: session } = authClient.useSession()
-  useEffect(() => {
-    if (session?.user) {
-      navigate({ to: '/' })
-    }
-  }, [session, navigate])
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
