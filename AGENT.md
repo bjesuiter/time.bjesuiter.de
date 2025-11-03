@@ -62,6 +62,12 @@ commands:
 - `bun run dbstudio` - Open Drizzle Studio for database management
 - `bun run auth-schema` - Generate Better-auth schema file
 
+### Check for Running Dev Server
+
+Before starting a new dev server with `bun run dev`, check if one is already
+running on localhost port 3000. This prevents multiple instances and port
+conflicts.
+
 ---
 
 ## Architecture Decision Records
