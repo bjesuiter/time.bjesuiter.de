@@ -1,10 +1,53 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { authClient } from '@/client/auth-client'
+import { auth } from '@/lib/auth/auth'
+import { envStore } from '@/lib/env/envStore'
 import { useState } from 'react'
 import { Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react'
 
+// Server function to get the ALLOW_USER_SIGNUP environment variable isomorphically 
+const isUserSignupAllowed = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    return envStore.ALLOW_USER_SIGNUP
+  })
+
+// Server function to handle signup with environment variable check
+const signUpUser = createServerFn({ method: 'POST' })
+  .inputValidator((data: {
+    email: string
+    password: string
+    name?: string
+  }) => data)
+  .handler(async ({ data }: { data: { email: string; password: string; name?: string } }) => {
+    // Check if user signup is allowed
+    if (!envStore.ALLOW_USER_SIGNUP) {
+      throw new Error('User registration is currently disabled')
+    }
+
+    // Use Better-auth server-side to create the user
+    const result = await auth.api.signUpEmail({
+      body: {
+        email: data.email,
+        password: data.password,
+        name: data.name || '',
+      },
+    })
+
+    if (!result) {
+      throw new Error('Failed to create account')
+    }
+
+    return { success: true }
+  })
+
 export const Route = createFileRoute('/signup')({
   component: SignUpPage,
+  loader: async () => {
+    return {
+      isUserSignupAllowed: await isUserSignupAllowed()
+    }
+  },
 })
 
 function SignUpPage() {
@@ -23,6 +66,11 @@ function SignUpPage() {
     general?: string
   }>({})
   const [isLoading, setIsLoading] = useState(false)
+  const { isUserSignupAllowed } = Route.useLoaderData() as { isUserSignupAllowed: boolean };
+
+  if (!isUserSignupAllowed) {
+    return <div>User registration is currently disabled</div>;
+  }
 
   const validateForm = () => {
     const newErrors: typeof errors = {}
@@ -63,23 +111,36 @@ function SignUpPage() {
     setIsLoading(true)
 
     try {
-      const result = await authClient.signUp.email({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name || undefined,
+      // Call server function which checks ALLOW_USER_SIGNUP env var
+      await signUpUser({
+        data: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+        },
       })
 
-      if (result.error) {
+      // After successful server-side signup, sign in on the client
+      const signInResult = await authClient.signIn.email({
+        email: formData.email,
+        password: formData.password,
+      })
+
+      if (signInResult.error) {
         setErrors({
-          general: result.error.message || 'Failed to create account. Please try again.',
+          general: 'Account created but sign in failed. Please try signing in manually.',
         })
       } else {
-        // Successfully signed up, redirect to home
+        // Successfully signed up and signed in, redirect to home
         navigate({ to: '/' })
       }
     } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred. Please try again.'
+      
       setErrors({
-        general: 'An unexpected error occurred. Please try again.',
+        general: errorMessage,
       })
       console.error('Signup error:', error)
     } finally {
@@ -98,7 +159,7 @@ function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -112,7 +173,7 @@ function SignUpPage() {
             {/* General Error */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-800">{errors.general}</p>
               </div>
             )}
