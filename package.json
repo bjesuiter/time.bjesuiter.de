@@ -7,8 +7,8 @@
     "build": "bunx --bun vite build",
     "serve": "bunx --bun vite preview",
     "test": "bunx --bun vitest run",
-    "dbpush": "bunx --bun drizzle-kit push",
-    "dbstudio": "bunx --bun drizzle-kit studio",
+    "dbpush": "bunx drizzle-kit push",
+    "dbstudio": "bunx drizzle-kit studio",
     "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts"
   },
   "dependencies": {
