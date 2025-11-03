@@ -7,4 +7,8 @@ export const envStore = z.object({
         .enum(["true", "false"])
         .default("false")
         .transform((val) => val === "true"),
+    // Admin user credentials for initial registration & basic permission checks
+    ADMIN_EMAIL: z.email(),
+    ADMIN_LABEL: z.string(),
+    ADMIN_PASSWORD: z.string(),
 }).parse(process.env);
