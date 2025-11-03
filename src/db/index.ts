@@ -1,13 +1,14 @@
-import { drizzle } from "drizzle-orm/bun-sql";
-import { SQL } from "bun";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
 import { envStore } from "@/lib/env/envStore";
 import { betterAuthSchemas } from "./schema/better-auth";
 
-const client = new SQL(envStore.DATABASE_URL);
+// Remove 'file:' prefix from DATABASE_URL if present
+const dbPath = envStore.DATABASE_URL.replace(/^file:/, "");
 
-// You can specify any property from the bun sql connection options
-export const db = drizzle({
-    client,
+const sqlite = new Database(dbPath);
+
+export const db = drizzle(sqlite, {
     schema: {
         ...betterAuthSchemas,
     },
