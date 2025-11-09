@@ -55,7 +55,7 @@ function SettingsPage() {
   const { data: configHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['config-history', 'tracked_projects'],
     queryFn: () => getConfigHistory({ data: { configType: 'tracked_projects' } }),
-    enabled: !!session?.user && !!setupStatus?.hasSetup && showHistory,
+    enabled: !!session?.user && !!setupStatus?.hasSetup,
   })
 
   // Initialize selected projects when data loads
@@ -72,6 +72,7 @@ function SettingsPage() {
       setTrackedProjects({ data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tracked-projects'] })
+      queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
       setHasChanges(false)
     },
   })
