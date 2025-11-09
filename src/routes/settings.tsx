@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
-import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, History, ChevronDown, ChevronUp, Trash2, AlertTriangle } from 'lucide-react'
-import { checkClockifySetup, getClockifyDetails, getClockifyProjects } from '@/server/clockifyServerFns'
-import { getTrackedProjects, setTrackedProjects, getConfigHistory, deleteConfigHistory, deleteConfigEntry } from '@/server/configServerFns'
+import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, History, ChevronDown, ChevronUp, Trash2, AlertTriangle, Plus, Edit2 } from 'lucide-react'
+import { checkClockifySetup, getClockifyDetails } from '@/server/clockifyServerFns'
+import { getConfigHistory, deleteConfigHistory, deleteConfigEntry, updateConfig, getCurrentConfig } from '@/server/configServerFns'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Toolbar } from '@/components/Toolbar'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/settings')({ component: SettingsPage })
 
@@ -27,30 +27,19 @@ function SettingsPage() {
     enabled: !!session?.user && !!setupStatus?.hasSetup,
   })
 
-  // Get available projects from Clockify
-  const { data: availableProjects, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['clockify-projects', clockifyDetails?.config?.clockifyWorkspaceId, clockifyDetails?.config?.selectedClientId],
-    queryFn: () => getClockifyProjects({
-      data: {
-        workspaceId: clockifyDetails!.config.clockifyWorkspaceId,
-        clientId: clockifyDetails!.config.selectedClientId || undefined,
-      },
-    }),
-    enabled: !!clockifyDetails?.success && !!clockifyDetails.config.clockifyWorkspaceId,
-  })
 
-  // State for tracked projects selection
-  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
-  const [hasChanges, setHasChanges] = useState(false)
+  // State for configuration chronicle
   const [showHistory, setShowHistory] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [useCustomDate, setUseCustomDate] = useState(false)
-  const [customValidFrom, setCustomValidFrom] = useState('')
+  const [editingConfigId, setEditingConfigId] = useState<string | null>(null)
+  const [editValidFrom, setEditValidFrom] = useState('')
+  const [editValidUntil, setEditValidUntil] = useState<string | null>(null)
 
-  // Get current tracked projects configuration
-  const { data: trackedProjectsConfig, isLoading: isLoadingTrackedProjects } = useQuery({
-    queryKey: ['tracked-projects'],
-    queryFn: () => getTrackedProjects({ data: undefined }),
+
+  // Get current config for display
+  const { data: currentConfig } = useQuery({
+    queryKey: ['current-config'],
+    queryFn: () => getCurrentConfig({ data: undefined }),
     enabled: !!session?.user && !!setupStatus?.hasSetup,
   })
 
@@ -61,24 +50,17 @@ function SettingsPage() {
     enabled: !!session?.user && !!setupStatus?.hasSetup,
   })
 
-  // Initialize selected projects when data loads
-  useEffect(() => {
-    if (trackedProjectsConfig?.success && trackedProjectsConfig.config) {
-      setSelectedProjectIds(trackedProjectsConfig.config.value.projectIds)
-      setHasChanges(false)
-    }
-  }, [trackedProjectsConfig])
-
-  // Mutation to save tracked projects
-  const saveTrackedProjectsMutation = useMutation({
-    mutationFn: (data: { projectIds: string[]; projectNames: string[]; validFrom?: string }) => 
-      setTrackedProjects({ data }),
+  // Mutation to update config dates
+  const updateConfigMutation = useMutation({
+    mutationFn: (data: { configId: string; validFrom?: string; validUntil?: string | null }) =>
+      updateConfig({ data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tracked-projects'] })
       queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
-      setHasChanges(false)
-      setUseCustomDate(false)
-      setCustomValidFrom('')
+      queryClient.invalidateQueries({ queryKey: ['current-config'] })
+      setEditingConfigId(null)
+      setEditValidFrom('')
+      setEditValidUntil(null)
     },
   })
 
@@ -100,29 +82,43 @@ function SettingsPage() {
     },
   })
 
-  // Handle project selection toggle
-  const toggleProjectSelection = (projectId: string) => {
-    setSelectedProjectIds(prev => {
-      const newSelection = prev.includes(projectId)
-        ? prev.filter(id => id !== projectId)
-        : [...prev, projectId]
-      setHasChanges(true)
-      return newSelection
-    })
+  // Handle edit config
+  const handleStartEdit = (entry: any) => {
+    setEditingConfigId(entry.id)
+    const validFrom = new Date(entry.validFrom)
+    const year = validFrom.getFullYear()
+    const month = String(validFrom.getMonth() + 1).padStart(2, '0')
+    const day = String(validFrom.getDate()).padStart(2, '0')
+    const hours = String(validFrom.getHours()).padStart(2, '0')
+    const minutes = String(validFrom.getMinutes()).padStart(2, '0')
+    setEditValidFrom(`${year}-${month}-${day}T${hours}:${minutes}`)
+    
+    if (entry.validUntil) {
+      const validUntil = new Date(entry.validUntil)
+      const year2 = validUntil.getFullYear()
+      const month2 = String(validUntil.getMonth() + 1).padStart(2, '0')
+      const day2 = String(validUntil.getDate()).padStart(2, '0')
+      const hours2 = String(validUntil.getHours()).padStart(2, '0')
+      const minutes2 = String(validUntil.getMinutes()).padStart(2, '0')
+      setEditValidUntil(`${year2}-${month2}-${day2}T${hours2}:${minutes2}`)
+    } else {
+      setEditValidUntil(null)
+    }
   }
 
-  // Handle save tracked projects
-  const handleSaveTrackedProjects = () => {
-    if (!availableProjects?.success || !availableProjects.projects) return
+  const handleCancelEdit = () => {
+    setEditingConfigId(null)
+    setEditValidFrom('')
+    setEditValidUntil(null)
+  }
 
-    const selectedProjects = availableProjects.projects.filter(p => 
-      selectedProjectIds.includes(p.id)
-    )
-
-    saveTrackedProjectsMutation.mutate({
-      projectIds: selectedProjects.map(p => p.id),
-      projectNames: selectedProjects.map(p => p.name),
-      validFrom: useCustomDate && customValidFrom ? customValidFrom : undefined,
+  const handleSaveEdit = () => {
+    if (!editingConfigId) return
+    
+    updateConfigMutation.mutate({
+      configId: editingConfigId,
+      validFrom: editValidFrom ? new Date(editValidFrom).toISOString() : undefined,
+      validUntil: editValidUntil === null ? null : (editValidUntil ? new Date(editValidUntil).toISOString() : undefined),
     })
   }
 
@@ -320,374 +316,338 @@ function SettingsPage() {
                 )}
               </div>
 
-              {/* Tracked Projects Configuration Card */}
+              {/* Configuration Chronicle Card */}
               {setupStatus?.hasSetup && (
                 <div className="bg-white rounded-lg shadow-lg p-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <FolderKanban className="w-6 h-6 text-indigo-600" />
-                    <h3 className="text-xl font-bold text-gray-900">Tracked Projects</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <FolderKanban className="w-6 h-6 text-indigo-600" />
+                      <h3 className="text-xl font-bold text-gray-900">Configuration Chronicle</h3>
+                    </div>
+                    <Link
+                      to="/setup/tracked-projects"
+                      className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Configuration
+                    </Link>
                   </div>
                   
                   <p className="text-gray-600 mb-6">
-                    Select which projects should be displayed in detail in your weekly time breakdown. 
-                    Other projects will be grouped under "Extra Work".
+                    Manage your tracked projects configurations over time. Each configuration defines which projects should be displayed in detail in your weekly time breakdown.
                   </p>
 
-                  {isLoadingProjects || isLoadingTrackedProjects ? (
-                    <div className="flex items-center justify-center py-8 text-gray-600">
-                      <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                      Loading projects...
-                    </div>
-                  ) : availableProjects?.success && availableProjects.projects ? (
-                    <div className="space-y-6">
-                      {/* Projects List */}
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700 mb-3">
-                          Select projects to track ({selectedProjectIds.length} selected):
-                        </p>
-                        
-                        <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
-                          {availableProjects.projects.length === 0 ? (
-                            <div className="p-4 text-center text-gray-500">
-                              No projects found. Create some projects in Clockify first.
-                            </div>
-                          ) : (
-                            availableProjects.projects.map((project) => (
-                              <label
-                                key={project.id}
-                                className={`flex items-start gap-3 p-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                  selectedProjectIds.includes(project.id) ? 'bg-indigo-50' : ''
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedProjectIds.includes(project.id)}
-                                  onChange={() => toggleProjectSelection(project.id)}
-                                  className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
-                                />
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-3 h-3 rounded-full"
-                                      style={{ backgroundColor: project.color }}
-                                    />
-                                    <p className="font-medium text-gray-900">{project.name}</p>
-                                  </div>
-                                  {project.clientName && (
-                                    <p className="text-sm text-gray-600 mt-1">
-                                      Client: {project.clientName}
-                                    </p>
-                                  )}
-                                </div>
-                              </label>
-                            ))
-                          )}
-                        </div>
+                  {/* Current Configuration Display */}
+                  {currentConfig?.success && currentConfig.config && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <p className="text-sm font-medium text-gray-900">Current Configuration</p>
                       </div>
-
-                      {/* Current Configuration Display */}
-                      {trackedProjectsConfig?.success && trackedProjectsConfig.config && (
-                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                          <p className="text-sm font-medium text-gray-700 mb-2">
-                            Currently Tracked Projects:
-                          </p>
-                          {trackedProjectsConfig.config.value.projectNames.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {trackedProjectsConfig.config.value.projectNames.map((name, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"
-                                >
-                                  {name}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-600">No projects configured yet</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Effective Date Selection */}
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            id="useCustomDate"
-                            checked={useCustomDate}
-                            onChange={(e) => {
-                              setUseCustomDate(e.target.checked)
-                              if (!e.target.checked) {
-                                setCustomValidFrom('')
-                              }
-                            }}
-                            className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
-                          />
-                          <div className="flex-1">
-                            <label htmlFor="useCustomDate" className="text-sm font-medium text-gray-900 cursor-pointer">
-                              Set custom effective date
-                            </label>
-                            <p className="text-xs text-gray-600 mt-1">
-                              By default, the configuration takes effect immediately. Enable this to specify a future date.
-                            </p>
-                            {useCustomDate && (
-                              <div className="mt-3">
-                                <label htmlFor="customValidFrom" className="block text-sm font-medium text-gray-700 mb-2">
-                                  Effective from:
-                                </label>
-                                <input
-                                  type="datetime-local"
-                                  id="customValidFrom"
-                                  value={customValidFrom}
-                                  onChange={(e) => setCustomValidFrom(e.target.value)}
-                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Save Button */}
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={handleSaveTrackedProjects}
-                          disabled={!hasChanges || saveTrackedProjectsMutation.isPending}
-                          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-                        >
-                          {saveTrackedProjectsMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="w-5 h-5" />
-                              Save Configuration
-                            </>
-                          )}
-                        </button>
-                        
-                        {hasChanges && (
-                          <p className="text-sm text-amber-600 font-medium">
-                            You have unsaved changes
-                          </p>
-                        )}
-
-                        {saveTrackedProjectsMutation.isSuccess && !hasChanges && (
-                          <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Saved successfully
-                          </p>
-                        )}
-
-                        {saveTrackedProjectsMutation.isError && (
-                          <p className="text-sm text-red-600 font-medium">
-                            Error saving configuration
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Configuration Chronic Panel */}
-                      <div className="border-t border-gray-200 pt-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <button
-                            onClick={() => setShowHistory(!showHistory)}
-                            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
-                          >
-                            <History className="w-5 h-5" />
-                            Configuration Chronic
-                            {showHistory ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </button>
-
-                          {configHistory?.success && configHistory.history && configHistory.history.length > 1 && (
-                            <button
-                              onClick={() => setShowDeleteConfirm(true)}
-                              disabled={deleteHistoryMutation.isPending}
-                              className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete History
-                            </button>
-                          )}
-                        </div>
-
-                        {showHistory && (
-                          <div className="mt-4">
-                            {isLoadingHistory ? (
-                              <div className="flex items-center justify-center py-4 text-gray-600">
-                                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                Loading history...
-                              </div>
-                            ) : configHistory?.success && configHistory.history ? (
-                              <div className="space-y-4">
-                                {configHistory.history.length === 0 ? (
-                                  <p className="text-sm text-gray-600">
-                                    No configuration history yet. Save your first configuration to start tracking changes.
-                                  </p>
-                                ) : (
-                                  configHistory.history.map((entry) => {
-                                    const now = new Date()
-                                    const validFrom = new Date(entry.validFrom)
-                                    const validUntil = entry.validUntil ? new Date(entry.validUntil) : null
-                                    const isCurrentlyActive = validFrom <= now && (validUntil === null || validUntil > now)
-                                    const isFuture = validFrom > now
-
-                                    return (
-                                    <div
-                                      key={entry.id}
-                                      className={`p-4 rounded-lg border ${
-                                        isCurrentlyActive
-                                          ? 'bg-indigo-50 border-indigo-200'
-                                          : 'bg-gray-50 border-gray-200'
-                                      }`}
-                                    >
-                                      <div className="flex items-start justify-between mb-2">
-                                        <div className="flex-1">
-                                          <p className="text-sm font-medium text-gray-900">
-                                            {isCurrentlyActive && (
-                                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">
-                                                Current
-                                              </span>
-                                            )}
-                                            {isFuture && (
-                                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                                                Scheduled
-                                              </span>
-                                            )}
-                                            {new Date(entry.validFrom).toLocaleDateString('en-US', {
-                                              year: 'numeric',
-                                              month: 'long',
-                                              day: 'numeric',
-                                              hour: '2-digit',
-                                              minute: '2-digit',
-                                            })}
-                                          </p>
-                                          <p className="text-xs text-gray-600 mt-1">
-                                            {entry.validUntil === null
-                                              ? isFuture
-                                                ? 'Will be active from this date'
-                                                : 'Active since this date'
-                                              : `Active until ${new Date(entry.validUntil).toLocaleDateString('en-US', {
-                                                  year: 'numeric',
-                                                  month: 'long',
-                                                  day: 'numeric',
-                                                  hour: '2-digit',
-                                                  minute: '2-digit',
-                                                })}`}
-                                          </p>
-                                        </div>
-                                        {(isFuture || !isCurrentlyActive) && (
-                                          <button
-                                            onClick={() => {
-                                              if (confirm(`Are you sure you want to delete this configuration entry? This action cannot be undone.`)) {
-                                                deleteEntryMutation.mutate(entry.id)
-                                              }
-                                            }}
-                                            disabled={deleteEntryMutation.isPending}
-                                            className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            title="Delete this configuration entry"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
-                                        )}
-                                      </div>
-                                      <div className="mt-3">
-                                        <p className="text-xs text-gray-600 mb-2">Tracked projects:</p>
-                                        {entry.value.projectNames.length > 0 ? (
-                                          <div className="flex flex-wrap gap-2">
-                                            {entry.value.projectNames.map((name, nameIdx) => (
-                                              <span
-                                                key={nameIdx}
-                                                className="inline-flex items-center px-2 py-1 bg-white text-gray-800 rounded text-xs border border-gray-200"
-                                              >
-                                                {name}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        ) : (
-                                          <p className="text-xs text-gray-500">No projects tracked</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    )
-                                  })
-                                )}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-red-600">
-                                Error loading configuration history
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Delete Confirmation Dialog */}
-                        {showDeleteConfirm && (
-                          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
-                              <div className="flex items-start gap-4 mb-4">
-                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="text-lg font-bold text-gray-900 mb-2">
-                                    Delete Configuration Chronic?
-                                  </h3>
-                                  <p className="text-sm text-gray-600 mb-4">
-                                    This will permanently delete all historical configuration entries and keep only the current configuration. This action cannot be undone.
-                                  </p>
-                                  {deleteHistoryMutation.isError && (
-                                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                      <p className="text-sm text-red-800">
-                                        Error deleting history. Please try again.
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex gap-3 justify-end">
-                                <button
-                                  onClick={() => setShowDeleteConfirm(false)}
-                                  disabled={deleteHistoryMutation.isPending}
-                                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => deleteHistoryMutation.mutate()}
-                                  disabled={deleteHistoryMutation.isPending}
-                                  className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                >
-                                  {deleteHistoryMutation.isPending ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Deleting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Trash2 className="w-4 h-4" />
-                                      Delete History
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <p className="text-sm text-amber-800">
-                        Unable to load projects. Please check your Clockify configuration.
+                      <p className="text-xs text-gray-600 mb-2">
+                        Active since {new Date(currentConfig.config.validFrom).toLocaleString()}
                       </p>
+                      {currentConfig.config.value.projectNames.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {currentConfig.config.value.projectNames.map((name, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600">No projects tracked</p>
+                      )}
                     </div>
                   )}
+
+                  {/* Configuration History */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
+                      >
+                        <History className="w-5 h-5" />
+                        Configuration History
+                        {showHistory ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {configHistory?.success && configHistory.history && configHistory.history.length > 1 && (
+                        <button
+                          onClick={() => setShowDeleteConfirm(true)}
+                          disabled={deleteHistoryMutation.isPending}
+                          className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete History
+                        </button>
+                      )}
+                    </div>
+
+                    {showHistory && (
+                      <div className="mt-4">
+                        {isLoadingHistory ? (
+                          <div className="flex items-center justify-center py-4 text-gray-600">
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                            Loading history...
+                          </div>
+                        ) : configHistory?.success && configHistory.history ? (
+                          <div className="space-y-4">
+                            {configHistory.history.length === 0 ? (
+                              <p className="text-sm text-gray-600">
+                                No configuration history yet. Click "Add Configuration" to create your first configuration.
+                              </p>
+                            ) : (
+                              configHistory.history.map((entry) => {
+                                const now = new Date()
+                                const validFrom = new Date(entry.validFrom)
+                                const validUntil = entry.validUntil ? new Date(entry.validUntil) : null
+                                const isCurrentlyActive = validFrom <= now && (validUntil === null || validUntil > now)
+                                const isFuture = validFrom > now
+                                const isEditing = editingConfigId === entry.id
+
+                                return (
+                                  <div
+                                    key={entry.id}
+                                    className={`p-4 rounded-lg border ${
+                                      isCurrentlyActive
+                                        ? 'bg-indigo-50 border-indigo-200'
+                                        : 'bg-gray-50 border-gray-200'
+                                    }`}
+                                  >
+                                    {isEditing ? (
+                                      <div className="space-y-4">
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Start Date
+                                          </label>
+                                          <input
+                                            type="datetime-local"
+                                            value={editValidFrom}
+                                            onChange={(e) => setEditValidFrom(e.target.value)}
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            End Date (leave empty for current)
+                                            <input
+                                              type="checkbox"
+                                              checked={editValidUntil !== null}
+                                              onChange={(e) => {
+                                                if (e.target.checked) {
+                                                  const now = new Date()
+                                                  const year = now.getFullYear()
+                                                  const month = String(now.getMonth() + 1).padStart(2, '0')
+                                                  const day = String(now.getDate()).padStart(2, '0')
+                                                  const hours = String(now.getHours()).padStart(2, '0')
+                                                  const minutes = String(now.getMinutes()).padStart(2, '0')
+                                                  setEditValidUntil(`${year}-${month}-${day}T${hours}:${minutes}`)
+                                                } else {
+                                                  setEditValidUntil(null)
+                                                }
+                                              }}
+                                              className="ml-2 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                            />
+                                          </label>
+                                          {editValidUntil !== null && (
+                                            <input
+                                              type="datetime-local"
+                                              value={editValidUntil}
+                                              onChange={(e) => setEditValidUntil(e.target.value)}
+                                              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mt-2"
+                                            />
+                                          )}
+                                        </div>
+                                        {updateConfigMutation.isError && (
+                                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                            <p className="text-sm text-red-800">
+                                              {updateConfigMutation.error?.message || 'Error updating configuration'}
+                                            </p>
+                                          </div>
+                                        )}
+                                        <div className="flex gap-3">
+                                          <button
+                                            onClick={handleSaveEdit}
+                                            disabled={updateConfigMutation.isPending}
+                                            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                                          >
+                                            {updateConfigMutation.isPending ? (
+                                              <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Saving...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Save className="w-4 h-4" />
+                                                Save
+                                              </>
+                                            )}
+                                          </button>
+                                          <button
+                                            onClick={handleCancelEdit}
+                                            disabled={updateConfigMutation.isPending}
+                                            className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="flex items-start justify-between mb-2">
+                                          <div className="flex-1">
+                                            <p className="text-sm font-medium text-gray-900">
+                                              {isCurrentlyActive && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                                  Current
+                                                </span>
+                                              )}
+                                              {isFuture && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                                  Scheduled
+                                                </span>
+                                              )}
+                                              {new Date(entry.validFrom).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                              })}
+                                            </p>
+                                            <p className="text-xs text-gray-600 mt-1">
+                                              {entry.validUntil === null
+                                                ? isFuture
+                                                  ? 'Will be active from this date'
+                                                  : 'Active since this date'
+                                                : `Active until ${new Date(entry.validUntil).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                  })}`}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={() => handleStartEdit(entry)}
+                                              className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                                              title="Edit dates"
+                                            >
+                                              <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            {(isFuture || !isCurrentlyActive) && (
+                                              <button
+                                                onClick={() => {
+                                                  if (confirm(`Are you sure you want to delete this configuration entry? This action cannot be undone.`)) {
+                                                    deleteEntryMutation.mutate(entry.id)
+                                                  }
+                                                }}
+                                                disabled={deleteEntryMutation.isPending}
+                                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title="Delete this configuration entry"
+                                              >
+                                                <Trash2 className="w-4 h-4" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="mt-3">
+                                          <p className="text-xs text-gray-600 mb-2">Tracked projects:</p>
+                                          {entry.value.projectNames.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                              {entry.value.projectNames.map((name, nameIdx) => (
+                                                <span
+                                                  key={nameIdx}
+                                                  className="inline-flex items-center px-2 py-1 bg-white text-gray-800 rounded text-xs border border-gray-200"
+                                                >
+                                                  {name}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            <p className="text-xs text-gray-500">No projects tracked</p>
+                                          )}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                )
+                              })
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-red-600">
+                            Error loading configuration history
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Delete Confirmation Dialog */}
+                    {showDeleteConfirm && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                              <AlertTriangle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                Delete Configuration History?
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-4">
+                                This will permanently delete all historical configuration entries and keep only the current configuration. This action cannot be undone.
+                              </p>
+                              {deleteHistoryMutation.isError && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                  <p className="text-sm text-red-800">
+                                    Error deleting history. Please try again.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-3 justify-end">
+                            <button
+                              onClick={() => setShowDeleteConfirm(false)}
+                              disabled={deleteHistoryMutation.isPending}
+                              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => deleteHistoryMutation.mutate()}
+                              disabled={deleteHistoryMutation.isPending}
+                              className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                              {deleteHistoryMutation.isPending ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete History
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

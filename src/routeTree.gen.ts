@@ -14,6 +14,7 @@ import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterAdminRouteImport } from './routes/registerAdmin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SetupTrackedProjectsRouteImport } from './routes/setup/tracked-projects'
 import { Route as SetupClockifyRouteImport } from './routes/setup/clockify'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
@@ -49,6 +50,11 @@ const RegisterAdminRoute = RegisterAdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupTrackedProjectsRoute = SetupTrackedProjectsRouteImport.update({
+  id: '/setup/tracked-projects',
+  path: '/setup/tracked-projects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SetupClockifyRoute = SetupClockifyRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/setup/clockify': typeof SetupClockifyRoute
+  '/setup/tracked-projects': typeof SetupTrackedProjectsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/setup/clockify': typeof SetupClockifyRoute
+  '/setup/tracked-projects': typeof SetupTrackedProjectsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/setup/clockify': typeof SetupClockifyRoute
+  '/setup/tracked-projects': typeof SetupTrackedProjectsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/demo/tanstack-query'
     | '/setup/clockify'
+    | '/setup/tracked-projects'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/demo/tanstack-query'
     | '/setup/clockify'
+    | '/setup/tracked-projects'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/demo/tanstack-query'
     | '/setup/clockify'
+    | '/setup/tracked-projects'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -227,6 +239,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
   SetupClockifyRoute: typeof SetupClockifyRoute
+  SetupTrackedProjectsRoute: typeof SetupTrackedProjectsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoApiTqTodosRoute: typeof DemoApiTqTodosRoute
@@ -273,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup/tracked-projects': {
+      id: '/setup/tracked-projects'
+      path: '/setup/tracked-projects'
+      fullPath: '/setup/tracked-projects'
+      preLoaderRoute: typeof SetupTrackedProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/setup/clockify': {
@@ -363,6 +383,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
   SetupClockifyRoute: SetupClockifyRoute,
+  SetupTrackedProjectsRoute: SetupTrackedProjectsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoApiTqTodosRoute: DemoApiTqTodosRoute,
