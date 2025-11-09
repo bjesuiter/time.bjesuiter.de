@@ -491,7 +491,7 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
 
 /**
  * Gets the configuration history for a specific config type
- * Returns all historical configurations ordered by validFrom (ascending - chronological order)
+ * Returns all historical configurations ordered by validFrom (descending - reverse chronological order)
  */
 export const getConfigHistory = createServerFn({ method: "GET" })
     .inputValidator((data: { configType: string } | undefined) => data)
@@ -505,7 +505,7 @@ export const getConfigHistory = createServerFn({ method: "GET" })
                     eq(configChronic.userId, userId),
                     eq(configChronic.configType, configType as "tracked_projects")
                 ),
-                orderBy: (configChronic, { asc }) => [asc(configChronic.validFrom)],
+                orderBy: (configChronic, { desc }) => [desc(configChronic.validFrom)],
             });
 
             return {
