@@ -1,10 +1,6 @@
-import { db } from '@/db'
-import { user } from '@/db/schema/better-auth'
-import { auth } from '@/lib/auth/auth'
-import { envStore } from '@/lib/env/envStore'
+import { registerAdminUser } from '@/server/userServerFns'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
-import { eq } from 'drizzle-orm'
 import { AlertCircle, CheckCircle, UserPlus } from 'lucide-react'
 import z from 'zod/v4'
 
@@ -16,80 +12,18 @@ export const Route = createFileRoute('/registerAdmin')({
     force: z.boolean().optional(),
   })),
   beforeLoad: async ({search}) => {
+    const result = await registerAdminUser({ data: { force: search.force === true } })
     return {
-      force: search.force === true,
+      result,
     }
-  },
-  loader: async (args) => {
-    const { force } = args.context
-    // Check if admin credentials are configured
-    if (!envStore.ADMIN_EMAIL || !envStore.ADMIN_PASSWORD) {
-      return {
-        success: false,
-        message:
-          'Admin credentials are not configured. Please set ADMIN_EMAIL, ADMIN_LABEL, and ADMIN_PASSWORD in your .env file.',
-      }
-    }
-
-    const adminEmail = envStore.ADMIN_EMAIL
-    const adminName = envStore.ADMIN_LABEL || 'Admin'
-    const adminPassword = envStore.ADMIN_PASSWORD
-
-    try {
-      // Check if user already exists
-      const existingUser = await db.query.user.findFirst({
-        where: eq(user.email, adminEmail),
-      })
-
-      if (existingUser && force) {
-        return {
-          success: false,
-          message: `User with email "${adminEmail}" is already registered.`,
-          userEmail: adminEmail,
-          canForceRegister: true,
-        }
-      }
-
-      // If force=true and user exists, delete the existing user first
-      if (existingUser && force) {
-        // Delete user (cascades to sessions and accounts)
-        await db.delete(user).where(eq(user.email, adminEmail))
-      }
-
-      // Register the admin user
-      const result = await auth.api.signUpEmail({
-        body: {
-          email: adminEmail,
-          password: adminPassword,
-          name: adminName,
-        },
-      })
-
-      if (!result) {
-        return {
-          success: false,
-          message: 'Failed to register admin user. Please check your configuration.',
-        }
-      }
-
-      return {
-        success: true,
-        message: `Admin user "${adminName}" (${adminEmail}) has been successfully ${force ? 're-' : ''}registered!`,
-        userEmail: adminEmail,
-      }
-    } catch (error) {
-      console.error('Admin registration error:', error)
-      return {
-        success: false,
-        message: `Error during registration: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
-    }
-  },
+  }, 
+  loader: async ({ context }) => {
+    return context.result;
+  }
 })
 
 function RegisterAdminPage() {
   const data = Route.useLoaderData()
-  const search = Route.useSearch()
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
@@ -188,23 +122,7 @@ function RegisterAdminPage() {
           )}
         </div>
 
-        {/* Debug Info (only in development) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-4 bg-slate-800 text-slate-200 rounded-lg text-xs font-mono">
-            <p>
-              <span className="text-slate-400">Search params:</span>{' '}
-              {JSON.stringify(search)}
-            </p>
-            <p className="mt-1">
-              <span className="text-slate-400">Admin email configured:</span>{' '}
-              {envStore.ADMIN_EMAIL ? '✓' : '✗'}
-            </p>
-            <p className="mt-1">
-              <span className="text-slate-400">Admin password configured:</span>{' '}
-              {envStore.ADMIN_PASSWORD ? '✓' : '✗'}
-            </p>
-          </div>
-        )}
+      
       </div>
     </div>
   )
