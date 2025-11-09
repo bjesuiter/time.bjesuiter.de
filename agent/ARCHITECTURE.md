@@ -488,15 +488,22 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
   - ✅ Set effective date (supports past and future dates)
   - ✅ Date validation against current config
 - ✅ Implement temporal queries for tracked projects
-- ✅ Show configuration history to user (chronological order)
+- ✅ Show configuration history to user (reverse chronological order - most
+  recent first)
 - ✅ Handle config changes (close old, create new records automatically)
 - ✅ Edit existing config dates (start/end) with constraint validation
+  - ✅ Automatic adjustment of previous config's end date when updating a
+    config's start date
+  - ✅ Error message display for validation failures (e.g., start date before
+    previous config)
 - ✅ Current config auto-determination (no "current" flag in DB)
 - ✅ Settings page with Configuration Chronicle UI:
   - ✅ "Add Configuration" button linking to setup page
-  - ✅ Current configuration display
+  - ✅ Unified configuration list (current and history combined)
   - ✅ Configuration history list with edit/delete actions
-  - ✅ Inline date editing with validation
+  - ✅ Inline date editing with validation and error display
+  - ✅ ConfirmPopover component for delete confirmations (using HTML popover
+    API)
 
 **Remaining:**
 
