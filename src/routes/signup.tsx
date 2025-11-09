@@ -1,45 +1,8 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { authClient } from '@/client/auth-client'
-import { auth } from '@/lib/auth/auth'
-import { envStore } from '@/lib/env/envStore'
+import { isUserSignupAllowed, signUpUser } from '@/server/userServerFns'
 import { useState } from 'react'
 import { Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react'
-
-// Server function to get the ALLOW_USER_SIGNUP environment variable isomorphically 
-const isUserSignupAllowed = createServerFn({ method: 'GET' })
-  .handler(async () => {
-    return envStore.ALLOW_USER_SIGNUP
-  })
-
-// Server function to handle signup with environment variable check
-const signUpUser = createServerFn({ method: 'POST' })
-  .inputValidator((data: {
-    email: string
-    password: string
-    name?: string
-  }) => data)
-  .handler(async ({ data }: { data: { email: string; password: string; name?: string } }) => {
-    // Check if user signup is allowed
-    if (!envStore.ALLOW_USER_SIGNUP) {
-      throw new Error('User registration is currently disabled')
-    }
-
-    // Use Better-auth server-side to create the user
-    const result = await auth.api.signUpEmail({
-      body: {
-        email: data.email,
-        password: data.password,
-        name: data.name || '',
-      },
-    })
-
-    if (!result) {
-      throw new Error('Failed to create account')
-    }
-
-    return { success: true }
-  })
 
 export const Route = createFileRoute('/signup')({
   component: SignUpPage,

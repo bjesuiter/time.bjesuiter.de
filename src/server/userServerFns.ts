@@ -5,6 +5,49 @@ import { eq } from "drizzle-orm";
 import { user } from "@/db/schema/better-auth";
 import { auth } from "@/lib/auth/auth";
 
+// Check if user signup is allowed via environment variable
+export const isUserSignupAllowed = createServerFn({ method: "GET" }).handler(
+    async () => {
+        return envStore.ALLOW_USER_SIGNUP;
+    },
+);
+
+// Sign up a new user with environment variable check
+export const signUpUser = createServerFn({ method: "POST" })
+    .inputValidator((data: {
+        email: string;
+        password: string;
+        name?: string;
+    }) => data)
+    .handler(
+        async ({
+            data,
+        }: {
+            data: { email: string; password: string; name?: string };
+        }) => {
+            // Check if user signup is allowed
+            if (!envStore.ALLOW_USER_SIGNUP) {
+                throw new Error("User registration is currently disabled");
+            }
+
+            // Use Better-auth server-side to create the user
+            const result = await auth.api.signUpEmail({
+                body: {
+                    email: data.email,
+                    password: data.password,
+                    name: data.name || "",
+                },
+            });
+
+            if (!result) {
+                throw new Error("Failed to create account");
+            }
+
+            return { success: true };
+        },
+    );
+
+// Register admin user with force option
 export const registerAdminUser = createServerFn({ method: "POST" })
     .inputValidator((data: { force?: boolean }) => data)
     .handler(
