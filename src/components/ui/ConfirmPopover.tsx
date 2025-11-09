@@ -1,4 +1,4 @@
-import { useRef, ReactNode, cloneElement, isValidElement } from 'react'
+import { useId, ReactNode, cloneElement, isValidElement } from 'react'
 
 interface ConfirmPopoverProps {
   trigger: ReactNode
@@ -17,55 +17,32 @@ export function ConfirmPopover({
   onConfirm,
   onCancel,
 }: ConfirmPopoverProps) {
-  const popoverRef = useRef<HTMLDivElement>(null)
+  const popoverId = useId()
 
   const handleConfirm = () => {
-    popoverRef.current?.hidePopover()
     onConfirm()
   }
 
   const handleCancel = () => {
-    popoverRef.current?.hidePopover()
     onCancel?.()
   }
 
-  const handleOpen = () => {
-    popoverRef.current?.showPopover()
-  }
-
-  // Clone the trigger element and add onClick handler
+  // Clone the trigger element and add popover attributes
   const triggerElement = isValidElement(trigger)
     ? cloneElement(trigger as React.ReactElement, {
-        onClick: (e: React.MouseEvent) => {
-          e.preventDefault()
-          e.stopPropagation()
-          handleOpen()
-          // Call original onClick if it exists
-          const originalOnClick = (trigger as React.ReactElement).props.onClick
-          if (originalOnClick) {
-            originalOnClick(e)
-          }
-        },
+        popovertarget: popoverId,
+        popovertargetaction: 'show',
       })
     : trigger
 
   return (
     <>
       {triggerElement}
-      <div
-        ref={popoverRef}
-        popover="auto"
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{
-          backdropFilter: 'blur(0px)',
-        }}
-      >
         <div
-          className="fixed inset-0 bg-black bg-opacity-50"
-          onClick={handleCancel}
-        />
-        <div
-          className="relative bg-white rounded-lg shadow-xl p-6 max-w-md mx-4 w-full"
+          id={popoverId}
+          popover="auto"
+          className="bg-white rounded-lg p-6 max-w-md w-200 inset-auto bottom-[anchor(top)] right-[anchor(right)] border-2 border-red-500/60 shadow-red-500/50 shadow-sm"
+  
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-4">
@@ -73,20 +50,24 @@ export function ConfirmPopover({
           </div>
           <div className="flex gap-3 justify-end">
             <button
+              popovertarget={popoverId}
+              popovertargetaction="hide"
               onClick={handleCancel}
               className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
             >
               {cancelLabel}
             </button>
             <button
+              popovertarget={popoverId}
+              popovertargetaction="hide"
               onClick={handleConfirm}
-              className="px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors"
+              className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg font-medium transition-colors"
             >
               {okLabel}
             </button>
           </div>
         </div>
-      </div>
+    
     </>
   )
 }
