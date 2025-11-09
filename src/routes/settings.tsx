@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
-import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, History, ChevronDown, ChevronUp, Trash2, AlertTriangle, Plus, Edit2 } from 'lucide-react'
+import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, Trash2, Plus, Edit2 } from 'lucide-react'
 import { checkClockifySetup, getClockifyDetails } from '@/server/clockifyServerFns'
-import { getConfigHistory, deleteConfigHistory, deleteConfigEntry, updateConfig, getCurrentConfig } from '@/server/configServerFns'
+import { getConfigHistory, deleteConfigEntry, updateConfig } from '@/server/configServerFns'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Toolbar } from '@/components/Toolbar'
+import { ConfirmPopover } from '@/components/ui/ConfirmPopover'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/settings')({ component: SettingsPage })
@@ -29,19 +30,11 @@ function SettingsPage() {
 
 
   // State for configuration chronicle
-  const [showHistory, setShowHistory] = useState(true)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null)
   const [editValidFrom, setEditValidFrom] = useState('')
   const [editValidUntil, setEditValidUntil] = useState<string | null>(null)
 
 
-  // Get current config for display
-  const { data: currentConfig } = useQuery({
-    queryKey: ['current-config'],
-    queryFn: () => getCurrentConfig({ data: undefined }),
-    enabled: !!session?.user && !!setupStatus?.hasSetup,
-  })
 
   // Get configuration history
   const { data: configHistory, isLoading: isLoadingHistory } = useQuery({
@@ -64,14 +57,6 @@ function SettingsPage() {
     },
   })
 
-  // Mutation to delete config history
-  const deleteHistoryMutation = useMutation({
-    mutationFn: () => deleteConfigHistory({ data: { configType: 'tracked_projects' } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
-      setShowDeleteConfirm(false)
-    },
-  })
 
   // Mutation to delete individual config entry
   const deleteEntryMutation = useMutation({
@@ -337,76 +322,21 @@ function SettingsPage() {
                     Manage your tracked projects configurations over time. Each configuration defines which projects should be displayed in detail in your weekly time breakdown.
                   </p>
 
-                  {/* Current Configuration Display */}
-                  {currentConfig?.success && currentConfig.config && (
-                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <p className="text-sm font-medium text-gray-900">Current Configuration</p>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-2">
-                        Active since {new Date(currentConfig.config.validFrom).toLocaleString()}
-                      </p>
-                      {currentConfig.config.value.projectNames.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {currentConfig.config.value.projectNames.map((name, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"
-                            >
-                              {name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-600">No projects tracked</p>
-                      )}
-                    </div>
-                  )}
-
                   {/* Configuration History */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <button
-                        onClick={() => setShowHistory(!showHistory)}
-                        className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
-                      >
-                        <History className="w-5 h-5" />
-                        Configuration History
-                        {showHistory ? (
-                          <ChevronUp className="w-4 h-4" />
+                  <div>
+                    {isLoadingHistory ? (
+                      <div className="flex items-center justify-center py-4 text-gray-600">
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Loading history...
+                      </div>
+                    ) : configHistory?.success && configHistory.history ? (
+                      <div className="space-y-4">
+                        {configHistory.history.length === 0 ? (
+                          <p className="text-sm text-gray-600">
+                            No configuration history yet. Click "Add Configuration" to create your first configuration.
+                          </p>
                         ) : (
-                          <ChevronDown className="w-4 h-4" />
-                        )}
-                      </button>
-
-                      {configHistory?.success && configHistory.history && configHistory.history.length > 1 && (
-                        <button
-                          onClick={() => setShowDeleteConfirm(true)}
-                          disabled={deleteHistoryMutation.isPending}
-                          className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete History
-                        </button>
-                      )}
-                    </div>
-
-                    {showHistory && (
-                      <div className="mt-4">
-                        {isLoadingHistory ? (
-                          <div className="flex items-center justify-center py-4 text-gray-600">
-                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                            Loading history...
-                          </div>
-                        ) : configHistory?.success && configHistory.history ? (
-                          <div className="space-y-4">
-                            {configHistory.history.length === 0 ? (
-                              <p className="text-sm text-gray-600">
-                                No configuration history yet. Click "Add Configuration" to create your first configuration.
-                              </p>
-                            ) : (
-                              configHistory.history.map((entry) => {
+                          configHistory.history.map((entry) => {
                                 const now = new Date()
                                 const validFrom = new Date(entry.validFrom)
                                 const validUntil = entry.validUntil ? new Date(entry.validUntil) : null
@@ -547,18 +477,24 @@ function SettingsPage() {
                                               <Edit2 className="w-4 h-4" />
                                             </button>
                                             {(isFuture || !isCurrentlyActive) && (
-                                              <button
-                                                onClick={() => {
-                                                  if (confirm(`Are you sure you want to delete this configuration entry? This action cannot be undone.`)) {
-                                                    deleteEntryMutation.mutate(entry.id)
-                                                  }
-                                                }}
-                                                disabled={deleteEntryMutation.isPending}
-                                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Delete this configuration entry"
+                                              <ConfirmPopover
+                                                trigger={
+                                                  <button
+                                                    disabled={deleteEntryMutation.isPending}
+                                                    className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Delete this configuration entry"
+                                                  >
+                                                    <Trash2 className="w-4 h-4" />
+                                                  </button>
+                                                }
+                                                okLabel="Delete"
+                                                cancelLabel="Cancel"
+                                                onConfirm={() => deleteEntryMutation.mutate(entry.id)}
                                               >
-                                                <Trash2 className="w-4 h-4" />
-                                              </button>
+                                                <p className="text-gray-900">
+                                                  Are you sure you want to delete this configuration entry? This action cannot be undone.
+                                                </p>
+                                              </ConfirmPopover>
                                             )}
                                           </div>
                                         </div>
@@ -591,62 +527,6 @@ function SettingsPage() {
                             Error loading configuration history
                           </p>
                         )}
-                      </div>
-                    )}
-
-                    {/* Delete Confirmation Dialog */}
-                    {showDeleteConfirm && (
-                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
-                          <div className="flex items-start gap-4 mb-4">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                              <AlertTriangle className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                                Delete Configuration History?
-                              </h3>
-                              <p className="text-sm text-gray-600 mb-4">
-                                This will permanently delete all historical configuration entries and keep only the current configuration. This action cannot be undone.
-                              </p>
-                              {deleteHistoryMutation.isError && (
-                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                  <p className="text-sm text-red-800">
-                                    Error deleting history. Please try again.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex gap-3 justify-end">
-                            <button
-                              onClick={() => setShowDeleteConfirm(false)}
-                              disabled={deleteHistoryMutation.isPending}
-                              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={() => deleteHistoryMutation.mutate()}
-                              disabled={deleteHistoryMutation.isPending}
-                              className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              {deleteHistoryMutation.isPending ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                <>
-                                  <Trash2 className="w-4 h-4" />
-                                  Delete History
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}

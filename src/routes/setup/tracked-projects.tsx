@@ -311,31 +311,38 @@ function TrackedProjectsSetup() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-4 pt-6 border-t border-gray-200">
-                  <button
-                    onClick={() => navigate({ to: "/settings" })}
-                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={createConfigMutation.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    {createConfigMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-5 h-5" />
-                        Save Configuration
-                      </>
-                    )}
-                  </button>
+                <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> You can edit this configuration's dates after saving it from the Configuration History section on the Settings page.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => navigate({ to: "/settings" })}
+                      className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={createConfigMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      {createConfigMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-5 h-5" />
+                          Save Configuration
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
