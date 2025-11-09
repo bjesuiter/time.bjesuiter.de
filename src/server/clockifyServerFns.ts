@@ -144,6 +144,41 @@ export const getClockifyConfig = createServerFn({ method: "GET" })
     });
 
 /**
+ * Gets detailed Clockify configuration including current user info from Clockify API
+ */
+export const getClockifyDetails = createServerFn({ method: "GET" })
+    .handler(async ({ request }) => {
+        const userId = await getAuthenticatedUserId(request);
+
+        const config = await db.query.userClockifyConfig.findFirst({
+            where: eq(userClockifyConfig.userId, userId),
+        });
+
+        if (!config) {
+            return { success: false, error: "No configuration found" };
+        }
+
+        // Fetch current user info from Clockify API
+        const userResult = await clockifyClient.getUserInfo(config.clockifyApiKey);
+
+        if (!userResult.success) {
+            return {
+                success: false,
+                error: "Failed to fetch Clockify user info",
+            };
+        }
+
+        // Don't send the API key to the client
+        const { clockifyApiKey, ...configWithoutApiKey } = config;
+
+        return {
+            success: true,
+            config: configWithoutApiKey,
+            clockifyUser: userResult.data,
+        };
+    });
+
+/**
  * Checks if the authenticated user has Clockify setup completed
  */
 export const checkClockifySetup = createServerFn({ method: "GET" })

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
-import { Sparkles, LogOut, User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight } from 'lucide-react'
-import { checkClockifySetup } from '@/server/clockifyServerFns'
+import { Sparkles, LogOut, User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe } from 'lucide-react'
+import { checkClockifySetup, getClockifyDetails } from '@/server/clockifyServerFns'
 import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/')({ component: App })
@@ -14,6 +14,13 @@ function App() {
     queryKey: ['clockify-setup'],
     queryFn: () => checkClockifySetup(),
     enabled: !!session?.user,
+  })
+
+  // Get detailed Clockify configuration if setup is complete
+  const { data: clockifyDetails, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ['clockify-details'],
+    queryFn: () => getClockifyDetails(),
+    enabled: !!session?.user && !!setupStatus?.hasSetup,
   })
 
   const handleSignOut = async () => {
@@ -107,7 +114,7 @@ function App() {
               
               {setupStatus?.hasSetup ? (
                 // Setup Complete
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
                     <CheckCircle2 className="w-6 h-6 text-green-600" />
                     <div>
@@ -117,6 +124,94 @@ function App() {
                       </p>
                     </div>
                   </div>
+
+                  {isLoadingDetails ? (
+                    <div className="text-center py-4 text-gray-600">
+                      Loading configuration...
+                    </div>
+                  ) : clockifyDetails?.success ? (
+                    <div className="space-y-6">
+                      {/* Clockify Account Info */}
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3">Clockify Account</h4>
+                        <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          {clockifyDetails.clockifyUser.profilePicture ? (
+                            <img
+                              src={clockifyDetails.clockifyUser.profilePicture}
+                              alt={clockifyDetails.clockifyUser.name}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-indigo-200"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center border-2 border-indigo-200">
+                              <User className="w-8 h-8 text-indigo-600" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{clockifyDetails.clockifyUser.name}</p>
+                            <p className="text-sm text-gray-600">{clockifyDetails.clockifyUser.email}</p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                {clockifyDetails.clockifyUser.settings.timeZone}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                Week starts: {clockifyDetails.clockifyUser.settings.weekStart}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Configuration Details */}
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3">Configuration</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Clock className="w-4 h-4 text-gray-600" />
+                              <p className="text-sm font-medium text-gray-600">Regular Hours/Week</p>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900">{clockifyDetails.config.regularHoursPerWeek}h</p>
+                          </div>
+                          
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Calendar className="w-4 h-4 text-gray-600" />
+                              <p className="text-sm font-medium text-gray-600">Working Days/Week</p>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900">{clockifyDetails.config.workingDaysPerWeek}</p>
+                          </div>
+
+                          {clockifyDetails.config.selectedClientName && (
+                            <div className="col-span-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Briefcase className="w-4 h-4 text-gray-600" />
+                                <p className="text-sm font-medium text-gray-600">Client Filter</p>
+                              </div>
+                              <p className="font-medium text-gray-900">{clockifyDetails.config.selectedClientName}</p>
+                            </div>
+                          )}
+
+                          {clockifyDetails.config.cumulativeOvertimeStartDate && (
+                            <div className="col-span-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Calendar className="w-4 h-4 text-gray-600" />
+                                <p className="text-sm font-medium text-gray-600">Overtime Tracking Since</p>
+                              </div>
+                              <p className="font-medium text-gray-900">
+                                {new Date(clockifyDetails.config.cumulativeOvertimeStartDate).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                   
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm text-blue-800">
