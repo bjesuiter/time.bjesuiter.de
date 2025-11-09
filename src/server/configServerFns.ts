@@ -53,8 +53,8 @@ async function getCurrentConfigInternal(userId: string) {
             lte(configChronic.validFrom, now),
             or(
                 isNull(configChronic.validUntil),
-                gt(configChronic.validUntil, now)
-            )
+                gt(configChronic.validUntil, now),
+            ),
         ),
     });
 }
@@ -105,7 +105,7 @@ async function getAllConfigsOrdered(userId: string) {
     return await db.query.configChronic.findMany({
         where: and(
             eq(configChronic.userId, userId),
-            eq(configChronic.configType, "tracked_projects")
+            eq(configChronic.configType, "tracked_projects"),
         ),
         orderBy: (configChronic, { asc }) => [asc(configChronic.validFrom)],
     });
@@ -133,8 +133,8 @@ export const getTrackedProjects = createServerFn({ method: "GET" })
                     lte(configChronic.validFrom, targetDate),
                     or(
                         isNull(configChronic.validUntil),
-                        lt(targetDate, configChronic.validUntil)
-                    )
+                        lt(targetDate, configChronic.validUntil),
+                    ),
                 ),
             });
 
@@ -193,7 +193,8 @@ export const createConfig = createServerFn({ method: "POST" })
                 if (validFromDate < currentValidFrom) {
                     return {
                         success: false,
-                        error: `Start date cannot be before the current config's start date (${currentValidFrom.toISOString()})`,
+                        error:
+                            `Start date cannot be before the current config's start date (${currentValidFrom.toISOString()})`,
                     };
                 }
             }
@@ -214,7 +215,9 @@ export const createConfig = createServerFn({ method: "POST" })
             // This handles cases where we're inserting in the past or future
             for (const config of allConfigs) {
                 const configValidFrom = new Date(config.validFrom);
-                const configValidUntil = config.validUntil ? new Date(config.validUntil) : null;
+                const configValidUntil = config.validUntil
+                    ? new Date(config.validUntil)
+                    : null;
 
                 // Skip if this is the current config (already handled above)
                 if (currentConfig && config.id === currentConfig.id) {
@@ -222,8 +225,8 @@ export const createConfig = createServerFn({ method: "POST" })
                 }
 
                 // If config overlaps with new start date, close it
-                const overlaps = 
-                    (configValidUntil === null || configValidUntil > validFromDate) &&
+                const overlaps = (configValidUntil === null ||
+                    configValidUntil > validFromDate) &&
                     configValidFrom < validFromDate;
 
                 if (overlaps) {
@@ -252,7 +255,9 @@ export const createConfig = createServerFn({ method: "POST" })
                 success: true,
                 config: {
                     id: newConfig[0].id,
-                    value: JSON.parse(newConfig[0].value) as TrackedProjectsValue,
+                    value: JSON.parse(
+                        newConfig[0].value,
+                    ) as TrackedProjectsValue,
                     validFrom: newConfig[0].validFrom,
                     validUntil: newConfig[0].validUntil,
                 },
@@ -286,7 +291,7 @@ export const updateConfig = createServerFn({ method: "POST" })
             const config = await db.query.configChronic.findFirst({
                 where: and(
                     eq(configChronic.id, data.configId),
-                    eq(configChronic.userId, userId)
+                    eq(configChronic.userId, userId),
                 ),
             });
 
@@ -299,7 +304,9 @@ export const updateConfig = createServerFn({ method: "POST" })
 
             // Get all configs ordered by validFrom
             const allConfigs = await getAllConfigsOrdered(userId);
-            const configIndex = allConfigs.findIndex(c => c.id === data.configId);
+            const configIndex = allConfigs.findIndex((c) =>
+                c.id === data.configId
+            );
 
             if (configIndex === -1) {
                 return {
@@ -309,11 +316,19 @@ export const updateConfig = createServerFn({ method: "POST" })
             }
 
             const currentValidFrom = new Date(config.validFrom);
-            const currentValidUntil = config.validUntil ? new Date(config.validUntil) : null;
+            const currentValidUntil = config.validUntil
+                ? new Date(config.validUntil)
+                : null;
 
             // Determine new values
-            const newValidFrom = data.validFrom ? new Date(data.validFrom) : currentValidFrom;
-            const newValidUntil = data.validUntil === null ? null : (data.validUntil ? new Date(data.validUntil) : currentValidUntil);
+            const newValidFrom = data.validFrom
+                ? new Date(data.validFrom)
+                : currentValidFrom;
+            const newValidUntil = data.validUntil === null
+                ? null
+                : (data.validUntil
+                    ? new Date(data.validUntil)
+                    : currentValidUntil);
 
             // Validation: StartDate can never be before startDate of previous config
             if (configIndex > 0) {
@@ -322,7 +337,8 @@ export const updateConfig = createServerFn({ method: "POST" })
                 if (newValidFrom < previousValidFrom) {
                     return {
                         success: false,
-                        error: `Start date cannot be before the previous config's start date (${previousValidFrom.toISOString()})`,
+                        error:
+                            `Start date cannot be before the previous config's start date (${previousValidFrom.toISOString()})`,
                     };
                 }
             }
@@ -330,11 +346,17 @@ export const updateConfig = createServerFn({ method: "POST" })
             // Validation: EndDate can never exceed endDate of next config
             if (configIndex < allConfigs.length - 1) {
                 const nextConfig = allConfigs[configIndex + 1];
-                const nextValidUntil = nextConfig.validUntil ? new Date(nextConfig.validUntil) : null;
-                if (newValidUntil !== null && nextValidUntil !== null && newValidUntil > nextValidUntil) {
+                const nextValidUntil = nextConfig.validUntil
+                    ? new Date(nextConfig.validUntil)
+                    : null;
+                if (
+                    newValidUntil !== null && nextValidUntil !== null &&
+                    newValidUntil > nextValidUntil
+                ) {
                     return {
                         success: false,
-                        error: `End date cannot exceed the next config's end date (${nextValidUntil.toISOString()})`,
+                        error:
+                            `End date cannot exceed the next config's end date (${nextValidUntil.toISOString()})`,
                     };
                 }
                 // Also check that newValidFrom doesn't exceed next config's validFrom
@@ -342,7 +364,8 @@ export const updateConfig = createServerFn({ method: "POST" })
                 if (newValidFrom >= nextValidFrom) {
                     return {
                         success: false,
-                        error: `Start date cannot be on or after the next config's start date (${nextValidFrom.toISOString()})`,
+                        error:
+                            `Start date cannot be on or after the next config's start date (${nextValidFrom.toISOString()})`,
                     };
                 }
             }
@@ -353,6 +376,23 @@ export const updateConfig = createServerFn({ method: "POST" })
                     success: false,
                     error: "Start date must be before end date",
                 };
+            }
+
+            // If validFrom is being changed, update the previous config's validUntil
+            if (
+                data.validFrom &&
+                newValidFrom.getTime() !== currentValidFrom.getTime()
+            ) {
+                if (configIndex > 0) {
+                    const previousConfig = allConfigs[configIndex - 1];
+                    // Update the previous config's validUntil to match the new validFrom
+                    await db
+                        .update(configChronic)
+                        .set({
+                            validUntil: newValidFrom,
+                        })
+                        .where(eq(configChronic.id, previousConfig.id));
+                }
             }
 
             // Update the config
@@ -414,7 +454,8 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
                 if (validFromDate < currentValidFrom) {
                     return {
                         success: false,
-                        error: `Start date cannot be before the current config's start date (${currentValidFrom.toISOString()})`,
+                        error:
+                            `Start date cannot be before the current config's start date (${currentValidFrom.toISOString()})`,
                     };
                 }
             }
@@ -435,7 +476,9 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
             // This handles cases where we're inserting in the past or future
             for (const config of allConfigs) {
                 const configValidFrom = new Date(config.validFrom);
-                const configValidUntil = config.validUntil ? new Date(config.validUntil) : null;
+                const configValidUntil = config.validUntil
+                    ? new Date(config.validUntil)
+                    : null;
 
                 // Skip if this is the current config (already handled above)
                 if (currentConfig && config.id === currentConfig.id) {
@@ -443,8 +486,8 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
                 }
 
                 // If config overlaps with new start date, close it
-                const overlaps = 
-                    (configValidUntil === null || configValidUntil > validFromDate) &&
+                const overlaps = (configValidUntil === null ||
+                    configValidUntil > validFromDate) &&
                     configValidFrom < validFromDate;
 
                 if (overlaps) {
@@ -473,7 +516,9 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
                 success: true,
                 config: {
                     id: newConfig[0].id,
-                    value: JSON.parse(newConfig[0].value) as TrackedProjectsValue,
+                    value: JSON.parse(
+                        newConfig[0].value,
+                    ) as TrackedProjectsValue,
                     validFrom: newConfig[0].validFrom,
                     validUntil: newConfig[0].validUntil,
                 },
@@ -503,9 +548,15 @@ export const getConfigHistory = createServerFn({ method: "GET" })
             const history = await db.query.configChronic.findMany({
                 where: and(
                     eq(configChronic.userId, userId),
-                    eq(configChronic.configType, configType as "tracked_projects")
+                    eq(
+                        configChronic.configType,
+                        configType as "tracked_projects",
+                    ),
                 ),
-                orderBy: (configChronic, { desc }) => [desc(configChronic.validFrom)],
+                orderBy: (
+                    configChronic,
+                    { desc },
+                ) => [desc(configChronic.validFrom)],
             });
 
             return {
@@ -547,10 +598,13 @@ export const deleteConfigHistory = createServerFn({ method: "POST" })
                 .where(
                     and(
                         eq(configChronic.userId, userId),
-                        eq(configChronic.configType, configType as "tracked_projects"),
+                        eq(
+                            configChronic.configType,
+                            configType as "tracked_projects",
+                        ),
                         // Only delete historical records (not the current one)
-                        not(isNull(configChronic.validUntil))
-                    )
+                        not(isNull(configChronic.validUntil)),
+                    ),
                 )
                 .returning();
 
@@ -582,7 +636,7 @@ export const deleteConfigEntry = createServerFn({ method: "POST" })
             const config = await db.query.configChronic.findFirst({
                 where: and(
                     eq(configChronic.id, data.configId),
-                    eq(configChronic.userId, userId)
+                    eq(configChronic.userId, userId),
                 ),
             });
 
@@ -613,4 +667,3 @@ export const deleteConfigEntry = createServerFn({ method: "POST" })
             };
         }
     });
-
