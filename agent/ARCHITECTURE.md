@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-**Last Updated**: 2025-10-31
+**Last Updated**: 2025-11-09
 
 ---
 
@@ -88,7 +88,7 @@ Stores both current and historical configurations with temporal validity.
   configType: enum('tracked_projects')           // Only tracked projects versioned
   value: json                                     // { projectIds: string[], projectNames: string[] }
   validFrom: timestamp                            // When this config became active
-  validUntil: timestamp | null                    // null = current config
+  validUntil: timestamp | null                    // When this config ends (null = no end date)
   createdAt: timestamp
 }
 ```
@@ -100,6 +100,13 @@ Stores both current and historical configurations with temporal validity.
 
 **Note:** Regular hours and client filter are NOT versioned - stored in
 `user_clockify_config` instead.
+
+**Current Config Determination:** The "current" config is auto-determined by
+querying which config is valid at the current date/time. There is no "current"
+flag in the database. A config is current if:
+
+- `validFrom <= now`
+- `validUntil IS NULL OR validUntil > now`
 
 **7. `cached_daily_project_sums`** - Pre-calculated daily project totals
 
@@ -174,30 +181,69 @@ aggregation happens on-demand.
 
 Using `config_chronic` table with `validFrom` and `validUntil` timestamps:
 
+**Key Principles:**
+
+1. **Current Config is Auto-Determined**: No "current" flag exists. The current
+   config is determined by querying which config is valid at the current
+   date/time.
+2. **Date Validation**: New configs cannot have a start date before the current
+   config's start date.
+3. **Edit Constraints**: When editing config dates:
+   - Start date cannot be before the previous config's start date
+   - End date cannot exceed the next config's end date
+   - Start date must be before end date (if end date is set)
+
 **Example Workflow:**
 
-1. User sets tracked projects to `["SMC 1.8"]` on 2025-10-01
+1. User creates tracked projects config `["SMC 1.8"]` effective from 2025-10-01
    ```
    configType: 'tracked_projects'
-   value: { projectIds: ["project_id_smc18"] }
+   value: { projectIds: ["project_id_smc18"], projectNames: ["SMC 1.8"] }
    validFrom: 2025-10-01T00:00:00Z
    validUntil: null
    ```
 
-2. User updates to `["SMC 1.9"]` on 2025-11-01
+2. User creates new config `["SMC 1.9"]` effective from 2025-11-01
    - Previous record updated: `validUntil: 2025-11-01T00:00:00Z`
    - New record created with `validFrom: 2025-11-01T00:00:00Z`,
      `validUntil: null`
 
+3. User can schedule future configs (e.g., effective from 2025-12-01)
+   - Current config's `validUntil` set to 2025-12-01T00:00:00Z
+   - New config created with `validFrom: 2025-12-01T00:00:00Z`,
+     `validUntil: null`
+
+4. User can edit existing config dates (with validation)
+   - Can adjust `validFrom` and `validUntil` within constraints
+   - System prevents invalid date ranges
+
 **Query Pattern:**
 
 ```sql
+-- Get current config (auto-determined by date)
+SELECT * FROM config_chronic
+WHERE userId = ?
+  AND configType = 'tracked_projects'
+  AND validFrom <= NOW()
+  AND (validUntil IS NULL OR validUntil > NOW())
+
+-- Get config valid at specific date
 SELECT * FROM config_chronic
 WHERE userId = ?
   AND configType = 'tracked_projects'
   AND validFrom <= '2025-10-15'
   AND (validUntil IS NULL OR validUntil > '2025-10-15')
 ```
+
+**Server Functions:**
+
+- `createConfig()`: Creates a new config with date validation and automatic
+  overlap handling
+- `updateConfig()`: Updates existing config start/end dates with constraint
+  validation
+- `getCurrentConfig()`: Returns the config valid at the current date/time
+- `getConfigHistory()`: Returns all configs ordered chronologically by
+  `validFrom`
 
 ---
 
@@ -397,7 +443,8 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
   - Auto-redirect after successful login
   - Links to signup and admin registration
 - ✅ Home page with authentication state
-  - Shows profile info when signed in (name, email, created date, verification status)
+  - Shows profile info when signed in (name, email, created date, verification
+    status)
   - Sign out button
   - Welcome message and next steps
   - Sign in/signup buttons when not authenticated
@@ -433,16 +480,31 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 
 ### Phase 3: Configuration Management & Versioning
 
-- [ ] Build config_chronic table and logic (tracked projects only)
-- [ ] Create configuration UI:
-  - [ ] Select client (single, stored in user_clockify_config)
-  - [ ] Select tracked projects (multiple, versioned in config_chronic)
-  - [ ] Set regular hours per week
-  - [ ] Set working days per week
-  - [ ] Set cumulative overtime start date
-- [ ] Implement temporal queries for tracked projects
-- [ ] Show configuration history to user
-- [ ] Handle config changes (close old, create new records)
+**Already Complete:**
+
+- ✅ Build config_chronic table and logic (tracked projects only)
+- ✅ Create configuration setup page (`/setup/tracked-projects`):
+  - ✅ Select tracked projects (multiple, versioned in config_chronic)
+  - ✅ Set effective date (supports past and future dates)
+  - ✅ Date validation against current config
+- ✅ Implement temporal queries for tracked projects
+- ✅ Show configuration history to user (chronological order)
+- ✅ Handle config changes (close old, create new records automatically)
+- ✅ Edit existing config dates (start/end) with constraint validation
+- ✅ Current config auto-determination (no "current" flag in DB)
+- ✅ Settings page with Configuration Chronicle UI:
+  - ✅ "Add Configuration" button linking to setup page
+  - ✅ Current configuration display
+  - ✅ Configuration history list with edit/delete actions
+  - ✅ Inline date editing with validation
+
+**Remaining:**
+
+- [ ] Select client (single, stored in user_clockify_config) - Already
+      implemented in Clockify setup
+- [ ] Set regular hours per week - Already implemented in Clockify setup
+- [ ] Set working days per week - Already implemented in Clockify setup
+- [ ] Set cumulative overtime start date - Already implemented in Clockify setup
 - [ ] Manual refresh button for Clockify settings (timezone, weekStart)
 
 ### Phase 4: Caching Layer & Optimization
@@ -522,9 +584,13 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 src/
 ├── lib/
 │   ├── auth/          # Better-auth configuration
-│   ├── clockify/      # Clockify API client and encryption
-│   ├── cache/         # Cache management logic
-│   └── config/        # Configuration versioning logic
+│   ├── clockify/       # Clockify API client and encryption
+│   ├── cache/          # Cache management logic
+│   └── config/        # Configuration versioning logic (deprecated - see server/configServerFns.ts)
+├── server/
+│   ├── clockifyServerFns.ts  # Clockify API server functions
+│   ├── configServerFns.ts    # Configuration chronicle server functions
+│   └── userServerFns.ts      # User management server functions
 ├── db/
 │   ├── index.ts       # Drizzle instance
 │   ├── schema/
@@ -537,7 +603,10 @@ src/
 │   ├── api/           # API endpoints (including auth)
 │   ├── signin.tsx     # Sign in page
 │   ├── signup.tsx     # Sign up page
-│   └── setup/         # Clockify setup wizard
+│   ├── settings.tsx   # Settings page with configuration chronicle
+│   └── setup/         # Setup wizards
+│       ├── clockify.tsx        # Clockify setup wizard
+│       └── tracked-projects.tsx # Tracked projects configuration setup
 ├── components/        # React components
 │   ├── auth/          # Auth-related components
 │   ├── setup/         # Setup wizard components
