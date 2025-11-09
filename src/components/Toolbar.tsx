@@ -37,13 +37,13 @@ export function Toolbar({ user }: ToolbarProps) {
                 Dashboard
               </Link>
               <Link
-                to="/setup/clockify"
+                to="/settings"
                 className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
                 activeProps={{
                   className: 'text-sm font-medium text-indigo-600',
                 }}
               >
-                Setup
+                Settings
               </Link>
             </nav>
           )}
