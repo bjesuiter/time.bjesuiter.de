@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { and, eq, isNull, lt, lte, or } from "drizzle-orm";
+import { and, eq, isNull, lt, lte, not, or } from "drizzle-orm";
 import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
 
@@ -197,6 +197,45 @@ export const getConfigHistory = createServerFn({ method: "GET" })
                 error: error instanceof Error
                     ? error.message
                     : "Failed to get config history",
+            };
+        }
+    });
+
+/**
+ * Deletes all historical configurations (where validUntil is NOT NULL)
+ * Keeps only the current configuration
+ */
+export const deleteConfigHistory = createServerFn({ method: "POST" })
+    .inputValidator((data: { configType: string } | undefined) => data)
+    .handler(async ({ data, request }) => {
+        const userId = await getAuthenticatedUserId(request);
+        const configType = data?.configType || "tracked_projects";
+
+        try {
+            // Delete all historical configs (where validUntil is NOT NULL)
+            const deleted = await db
+                .delete(configChronic)
+                .where(
+                    and(
+                        eq(configChronic.userId, userId),
+                        eq(configChronic.configType, configType as "tracked_projects"),
+                        // Only delete historical records (not the current one)
+                        not(isNull(configChronic.validUntil))
+                    )
+                )
+                .returning();
+
+            return {
+                success: true,
+                deletedCount: deleted.length,
+            };
+        } catch (error) {
+            console.error("Error deleting config history:", error);
+            return {
+                success: false,
+                error: error instanceof Error
+                    ? error.message
+                    : "Failed to delete config history",
             };
         }
     });

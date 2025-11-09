@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
-import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, History, ChevronDown, ChevronUp } from 'lucide-react'
+import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, History, ChevronDown, ChevronUp, Trash2, AlertTriangle } from 'lucide-react'
 import { checkClockifySetup, getClockifyDetails, getClockifyProjects } from '@/server/clockifyServerFns'
-import { getTrackedProjects, setTrackedProjects, getConfigHistory } from '@/server/configServerFns'
+import { getTrackedProjects, setTrackedProjects, getConfigHistory, deleteConfigHistory } from '@/server/configServerFns'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Toolbar } from '@/components/Toolbar'
 import { useState, useEffect } from 'react'
@@ -43,6 +43,7 @@ function SettingsPage() {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
   const [hasChanges, setHasChanges] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Get current tracked projects configuration
   const { data: trackedProjectsConfig, isLoading: isLoadingTrackedProjects } = useQuery({
@@ -74,6 +75,15 @@ function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['tracked-projects'] })
       queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
       setHasChanges(false)
+    },
+  })
+
+  // Mutation to delete config history
+  const deleteHistoryMutation = useMutation({
+    mutationFn: () => deleteConfigHistory({ data: { configType: 'tracked_projects' } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
+      setShowDeleteConfirm(false)
     },
   })
 
@@ -426,18 +436,31 @@ function SettingsPage() {
 
                       {/* Configuration History Panel */}
                       <div className="border-t border-gray-200 pt-6">
-                        <button
-                          onClick={() => setShowHistory(!showHistory)}
-                          className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
-                        >
-                          <History className="w-5 h-5" />
-                          Configuration History
-                          {showHistory ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
+                        <div className="flex items-center justify-between mb-4">
+                          <button
+                            onClick={() => setShowHistory(!showHistory)}
+                            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
+                          >
+                            <History className="w-5 h-5" />
+                            Configuration History
+                            {showHistory ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {configHistory?.success && configHistory.history && configHistory.history.length > 1 && (
+                            <button
+                              onClick={() => setShowDeleteConfirm(true)}
+                              disabled={deleteHistoryMutation.isPending}
+                              className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete History
+                            </button>
                           )}
-                        </button>
+                        </div>
 
                         {showHistory && (
                           <div className="mt-4">
@@ -517,6 +540,60 @@ function SettingsPage() {
                                 Error loading configuration history
                               </p>
                             )}
+                          </div>
+                        )}
+
+                        {/* Delete Confirmation Dialog */}
+                        {showDeleteConfirm && (
+                          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+                              <div className="flex items-start gap-4 mb-4">
+                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                    Delete Configuration History?
+                                  </h3>
+                                  <p className="text-sm text-gray-600 mb-4">
+                                    This will permanently delete all historical configuration entries and keep only the current configuration. This action cannot be undone.
+                                  </p>
+                                  {deleteHistoryMutation.isError && (
+                                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                      <p className="text-sm text-red-800">
+                                        Error deleting history. Please try again.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-3 justify-end">
+                                <button
+                                  onClick={() => setShowDeleteConfirm(false)}
+                                  disabled={deleteHistoryMutation.isPending}
+                                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => deleteHistoryMutation.mutate()}
+                                  disabled={deleteHistoryMutation.isPending}
+                                  className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                  {deleteHistoryMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete History
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
