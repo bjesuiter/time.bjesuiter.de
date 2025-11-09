@@ -6,29 +6,35 @@
 
 ## Overview
 
-Time tracking dashboard that integrates with Clockify, providing weekly time summaries with configurable project tracking and automated overtime calculations.
+Time tracking dashboard that integrates with Clockify, providing weekly time
+summaries with configurable project tracking and automated overtime
+calculations.
 
 ---
 
 ## Technology Stack
 
 ### Frontend
+
 - **Framework**: TanStack Start (Full-stack React framework)
 - **Styling**: Tailwind CSS
 - **Data Fetching**: TanStack Query
 - **State Management**: TanStack Query + React state
 
 ### Backend
+
 - **Runtime**: Bun
 - **API**: TanStack Start server functions
 - **Authentication**: Better-auth (email authentication)
 
 ### Database
+
 - **Engine**: SQLite
 - **ORM**: Drizzle ORM
 - **Migrations**: Drizzle Kit
 
 ### External APIs
+
 - **Clockify REST API**
   - Base URL: `https://api.clockify.me/api/v1/`
   - Reports URL: `https://reports.api.clockify.me/v1/`
@@ -40,7 +46,8 @@ Time tracking dashboard that integrates with Clockify, providing weekly time sum
 
 ### Better-Auth Managed Tables
 
-Better-auth automatically manages these core authentication tables (see [Decision: Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)):
+Better-auth automatically manages these core authentication tables (see
+[Decision: Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)):
 
 1. **`user`** - Core user identity (id, name, email, emailVerified)
 2. **`session`** - Active user sessions (token, userId, expiresAt)
@@ -50,6 +57,7 @@ Better-auth automatically manages these core authentication tables (see [Decisio
 ### Application-Specific Tables
 
 **5. `user_clockify_config`** - Clockify integration per user
+
 ```typescript
 {
   id: string (primary key)
@@ -86,9 +94,12 @@ Stores both current and historical configurations with temporal validity.
 ```
 
 **Config Type Values:**
-- `tracked_projects`: `{ projectIds: string[], projectNames: string[] }` - Projects shown in detail in weekly breakdown
 
-**Note:** Regular hours and client filter are NOT versioned - stored in `user_clockify_config` instead.
+- `tracked_projects`: `{ projectIds: string[], projectNames: string[] }` -
+  Projects shown in detail in weekly breakdown
+
+**Note:** Regular hours and client filter are NOT versioned - stored in
+`user_clockify_config` instead.
 
 **7. `cached_daily_project_sums`** - Pre-calculated daily project totals
 
@@ -106,7 +117,8 @@ Stores both current and historical configurations with temporal validity.
 }
 ```
 
-**Note:** Daily sums are stored per-project for flexible breakdown. Weekly aggregation happens on-demand.
+**Note:** Daily sums are stored per-project for flexible breakdown. Weekly
+aggregation happens on-demand.
 
 **8. `cached_weekly_sums`** - Pre-calculated weekly totals and overtime
 
@@ -155,13 +167,15 @@ Stores both current and historical configurations with temporal validity.
 
 **Pattern**: Temporal Tables (Slowly Changing Dimension Type 2)
 
-**Decision**: See [Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
+**Decision**: See
+[Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
 
 ### How It Works
 
 Using `config_chronic` table with `validFrom` and `validUntil` timestamps:
 
 **Example Workflow:**
+
 1. User sets tracked projects to `["SMC 1.8"]` on 2025-10-01
    ```
    configType: 'tracked_projects'
@@ -172,9 +186,11 @@ Using `config_chronic` table with `validFrom` and `validUntil` timestamps:
 
 2. User updates to `["SMC 1.9"]` on 2025-11-01
    - Previous record updated: `validUntil: 2025-11-01T00:00:00Z`
-   - New record created with `validFrom: 2025-11-01T00:00:00Z`, `validUntil: null`
+   - New record created with `validFrom: 2025-11-01T00:00:00Z`,
+     `validUntil: null`
 
 **Query Pattern:**
+
 ```sql
 SELECT * FROM config_chronic
 WHERE userId = ?
@@ -187,22 +203,25 @@ WHERE userId = ?
 
 ## Cache Invalidation Strategy
 
-**Decision**: Week commitment system with status-based refresh. See [Decision: Cache Invalidation and Week Commitment](decisions/2025_10_31_cache_invalidation_and_week_commitment.md)
+**Decision**: Week commitment system with status-based refresh. See
+[Decision: Cache Invalidation and Week Commitment](decisions/2025_10_31_cache_invalidation_and_week_commitment.md)
 
 ### Week Commitment Model
 
 Each week has a status:
+
 - **Pending**: Active, auto-refreshes on page load
 - **Committed**: Frozen, never auto-refreshes (manual only)
 
 ### When to Refresh
 
 | Week Status | Page Load | Manual Refresh | Discrepancy Tracking |
-|-------------|-----------|----------------|---------------------|
-| Pending     | ✅ Yes    | ✅ Yes         | ❌ No               |
-| Committed   | ❌ No     | ✅ Yes         | ✅ Yes              |
+| ----------- | --------- | -------------- | -------------------- |
+| Pending     | ✅ Yes    | ✅ Yes         | ❌ No                |
+| Committed   | ❌ No     | ✅ Yes         | ✅ Yes               |
 
 **Refresh Triggers:**
+
 1. **Page Load** - Refresh all pending (uncommitted) weeks
 2. **Manual Per-Week** - "Refetch & Recalculate" button for any week
 3. **Annual Refresh** - Settings button to refresh from January 1st
@@ -211,6 +230,7 @@ Each week has a status:
 ### Discrepancy Tracking
 
 When a committed week is manually refreshed:
+
 - If data changed → Log to `weekly_discrepancies` table
 - Show warning to user (already reported to work systems!)
 - User must acknowledge the discrepancy
@@ -242,9 +262,11 @@ When a committed week is manually refreshed:
 
 ### Time Reports Summary
 
-**Endpoint**: `POST https://reports.api.clockify.me/v1/workspaces/{workspaceId}/reports/summary`
+**Endpoint**:
+`POST https://reports.api.clockify.me/v1/workspaces/{workspaceId}/reports/summary`
 
 **Request Body**:
+
 ```json
 {
   "dateRangeStart": "2025-10-20T00:00:00.000Z",
@@ -263,7 +285,8 @@ When a committed week is manually refreshed:
 }
 ```
 
-**Purpose**: Fetch time summaries grouped by date and project, filtered by client/projects
+**Purpose**: Fetch time summaries grouped by date and project, filtered by
+client/projects
 
 ---
 
@@ -271,18 +294,24 @@ When a committed week is manually refreshed:
 
 **Status**: ✅ Configured and ready
 
-Better-auth is a comprehensive authentication framework that manages its own database schema. See [Decision: Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md) for details.
+Better-auth is a comprehensive authentication framework that manages its own
+database schema. See
+[Decision: Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)
+for details.
 
 ### Key Points
+
 - ✅ Better-auth manages its own schema (user, session, account, verification)
 - ✅ Passwords automatically hashed and stored in `account.password`
-- ✅ Store application-specific data in separate tables (e.g., `user_clockify_config`)
+- ✅ Store application-specific data in separate tables (e.g.,
+  `user_clockify_config`)
 - ✅ Always reference `user.id` as foreign key
 - ✅ Client and server integration already configured
 
 ### Configuration
 
 **Server**: `src/lib/auth/auth.ts`
+
 ```typescript
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "sqlite" }),
@@ -292,6 +321,7 @@ export const auth = betterAuth({
 ```
 
 **Client**: `src/client/auth-client.ts`
+
 ```typescript
 export const authClient = createAuthClient();
 ```
@@ -306,11 +336,11 @@ import { auth } from "@/lib/auth/auth";
 
 export const myServerFn = createServerFn("GET", async (_, { request }) => {
   const session = await auth.api.getSession({ headers: request.headers });
-  
+
   if (!session?.user) {
     throw new Error("Unauthorized");
   }
-  
+
   const userId = session.user.id;
   // ... use userId in queries
 });
@@ -321,19 +351,23 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 ## Security Considerations
 
 ### Authentication & Passwords
+
 - ✅ Better-auth handles password hashing (bcrypt/argon2)
 - ✅ HTTP-only cookies prevent XSS attacks
 - ✅ Session tokens automatically rotated
 - ✅ CSRF protection built into TanStack Start
 
 ### API Key Storage (Clockify)
+
 - ✅ **Plain text storage** (personal project, simplified approach)
 - ✅ Server-side only access (never exposed to client)
 - ✅ All Clockify API calls happen server-side
 - ⚠️ Database file protected by filesystem permissions
-- 📝 See [Decision: Clockify API Key Storage](decisions/2025_10_31_clockify_api_key_storage.md)
+- 📝 See
+  [Decision: Clockify API Key Storage](decisions/2025_10_31_clockify_api_key_storage.md)
 
 ### Data Access & Isolation
+
 - ✅ All queries must filter by `userId`
 - ✅ Session validation on every server request
 - ✅ Return 401 for unauthenticated requests
@@ -346,12 +380,36 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 ### Phase 1: Foundation & Authentication
 
 **Already Complete:**
+
 - ✅ Better-auth configured with email authentication
-- ✅ Drizzle ORM set up with SQLite
+- ✅ Drizzle ORM set up with SQLite (using better-sqlite3 driver)
 - ✅ Better-auth schema tables created
+- ✅ User signup UI (`/signup`)
+  - Modern, responsive form with validation
+  - Client-side and server-side validation
+  - Error handling and loading states
+  - Secure password requirements (min 8 chars)
+  - Link to signin page
+- ✅ User signin UI (`/signin`)
+  - Clean email/password form
+  - Better-auth client integration
+  - Error handling for invalid credentials
+  - Auto-redirect after successful login
+  - Links to signup and admin registration
+- ✅ Admin registration route (`/registerAdmin`)
+  - Server-side only implementation
+  - Environment variable configuration (ADMIN_EMAIL, ADMIN_LABEL,
+    ADMIN_PASSWORD)
+  - Automatic admin user creation
+  - Force re-registration support (`?force=true`)
+- ✅ Security controls
+  - `ALLOW_USER_SIGNUP` env var (defaults to false)
+  - Server-side signup enforcement
+  - Cannot be bypassed client-side
+- ✅ Home page with navigation links
 
 **Remaining:**
-- [ ] Build user registration/login UI
+
 - [ ] Create `user_clockify_config` table schema
 - [ ] Create setup wizard for Clockify integration
 - [ ] Fetch timezone and weekStart from Clockify `/v1/user` endpoint
@@ -360,7 +418,8 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 
 - [ ] Implement Clockify API client
 - [ ] Fetch daily summaries (grouped by DATE and PROJECT)
-- [ ] Create multi-row weekly table component (tracked projects + extra work + total)
+- [ ] Create multi-row weekly table component (tracked projects + extra work +
+      total)
 - [ ] Month-based navigation (current month + previous week)
 - [ ] Display daily sums for tracked projects
 - [ ] Display "Extra Work" row for untracked projects
@@ -412,35 +471,43 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 ## Technical Decisions
 
 ### ✅ SQLite + Drizzle ORM
+
 - Simple deployment (single file database)
 - No separate database server needed
 - Excellent TypeScript support
 - Easy backups
-- See: [Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
+- See:
+  [Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
 
 ### ✅ Better-auth for Authentication
+
 - Modern, TypeScript-first auth library
 - Email authentication support
 - Good integration with full-stack frameworks
-- See: [Decision: Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)
+- See:
+  [Decision: Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)
 
 ### ✅ TanStack Query for Data Fetching
+
 - Excellent caching built-in
 - Automatic refetching and invalidation
 - Great TypeScript support
 - Perfect for API integration
 
 ### ✅ Temporal Tables for Configuration Versioning
+
 - Perfect fit for configuration versioning needs
 - Simple SQL queries with indexes
 - Well-known pattern (Slowly Changing Dimension Type 2)
 - No additional infrastructure required
 
 ### ❌ NOT Using Event Sourcing / EventSourcingDB
+
 - Application doesn't generate domain events
 - Data comes from external API
 - Temporal tables solve the versioning problem
-- See: [Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
+- See:
+  [Decision: EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
 
 ---
 
@@ -478,11 +545,13 @@ src/
 ## Development Guidelines
 
 ### Naming Conventions
+
 - Database tables: snake_case
 - TypeScript: camelCase for variables, PascalCase for types/components
 - Files: kebab-case for components, camelCase for utilities
 
 ### Commit Message Format
+
 ```
 type(scope): description
 
@@ -494,6 +563,7 @@ Types: feat, fix, refactor, docs, test, chore
 ## References
 
 ### Decisions
+
 - [EventSourcingDB vs SQLite](decisions/2025_10_31_eventsourcingdb_vs_sqlite.md)
 - [Better-Auth Integration](decisions/2025_10_31_better_auth_integration.md)
 - [Clockify API Key Storage](decisions/2025_10_31_clockify_api_key_storage.md)
@@ -505,6 +575,7 @@ Types: feat, fix, refactor, docs, test, chore
 - [Initial Data Fetch Scope](decisions/2025_10_31_initial_data_fetch_scope.md)
 
 ### Documentation
+
 - [Better-auth Docs](https://www.better-auth.com/docs)
 - [Drizzle ORM Docs](https://orm.drizzle.team/)
 - [TanStack Start Docs](https://tanstack.com/router/latest/docs/framework/react/start)
@@ -512,4 +583,5 @@ Types: feat, fix, refactor, docs, test, chore
 
 ---
 
-_This document is a living document and should be updated as architectural decisions are made._
+_This document is a living document and should be updated as architectural
+decisions are made._

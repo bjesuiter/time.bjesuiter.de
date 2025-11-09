@@ -246,6 +246,7 @@ src/
 ├── lib/               # Shared utilities and configurations
 │   ├── auth/          # Better-auth configuration
 │   └── env/           # Environment variable validation
+├── server/            # ⭐ Server-only functions (safe to import envStore, db, auth)
 ├── routes/            # TanStack Start file-based routes
 │   ├── api/           # API endpoints (server-side only)
 │   └── __root.tsx     # Root layout component
@@ -261,12 +262,14 @@ src/
 
 ### Where to Place New Code
 
-- **Server functions** → Define in route files or `src/lib/`
+- **Server functions** → `src/server/` (organize by domain, e.g., `userServerFns.ts`, `clockifyServerFns.ts`)
 - **Database schemas** → `src/db/schema/` (one file per domain)
 - **API endpoints** → `src/routes/api/`
 - **Shared utilities** → `src/lib/`
 - **React components** → `src/components/` (organize by feature)
 - **Types** → Co-locate with usage or `src/types/` for shared types
+
+**Important**: If your code needs to import `envStore`, `db`, `auth`, or other server-only modules, it MUST go in `src/server/`. Never import these directly in route files.
 
 ---
 
@@ -366,12 +369,20 @@ Environment variables are validated using Zod in `src/lib/env/envStore.ts`:
 ```typescript
 export const envStore = z.object({
     DATABASE_URL: z.string(),
+    ALLOW_USER_SIGNUP: z.enum(["true", "false"]).default("false").transform((val) => val === "true"),
+    ADMIN_EMAIL: z.email(),
+    ADMIN_LABEL: z.string(),
+    ADMIN_PASSWORD: z.string(),
 }).parse(process.env);
 ```
 
 ### Current Variables
 
 - `DATABASE_URL` - SQLite database file path (e.g., `file:./local/db.sqlite`)
+- `ALLOW_USER_SIGNUP` - Allow user registration (defaults to `"false"`)
+- `ADMIN_EMAIL` - Admin user email for `/registerAdmin` route
+- `ADMIN_LABEL` - Admin user display name
+- `ADMIN_PASSWORD` - Admin user password
 
 ### Adding New Variables
 
@@ -379,15 +390,98 @@ export const envStore = z.object({
 2. Add to `.env` file (not committed to git)
 3. Document in this section
 
-### Usage
+### ⚠️ Critical: Server-Only Access Pattern
+
+**The `envStore` module should ONLY be imported in server-only files.**
+
+#### ✅ Correct Pattern: Server Functions in `src/server/`
+
+Create server functions in `src/server/` and import server-only modules at the top level:
 
 ```typescript
-import { envStore } from "@/lib/env/envStore";
+// src/server/myServerFns.ts
+import { createServerFn } from "@tanstack/react-start";
+import { envStore } from "@/lib/env/envStore";  // ✅ Safe - server-only file
+import { db } from "@/db";                       // ✅ Safe - server-only file
+import { auth } from "@/lib/auth/auth";          // ✅ Safe - server-only file
 
-const dbUrl = envStore.DATABASE_URL;
+export const myServerFunction = createServerFn({ method: "POST" })
+    .inputValidator((data: MyType) => data)
+    .handler(async ({ data }) => {
+        // Access envStore, db, auth directly
+        if (!envStore.SOME_SETTING) {
+            throw new Error("Setting disabled");
+        }
+        
+        const result = await db.query.myTable.findFirst();
+        return result;
+    });
 ```
 
-**Never** access `process.env` directly - always use `envStore` for type safety
-and validation.
+Then import and use in route files:
+
+```typescript
+// src/routes/myroute.tsx
+import { createFileRoute } from '@tanstack/react-router'
+import { myServerFunction } from '@/server/myServerFns'  // ✅ Safe - imports server function only
+
+export const Route = createFileRoute('/myroute')({
+  loader: async () => {
+    return await myServerFunction({ data: { /* ... */ } })
+  },
+  component: MyComponent,
+})
+```
+
+#### ❌ Incorrect Pattern: Direct Imports in Route Files
+
+```typescript
+// ❌ DON'T DO THIS
+import { createFileRoute } from '@tanstack/react-router'
+import { envStore } from '@/lib/env/envStore'  // ❌ Will run on client!
+import { db } from '@/db'                       // ❌ Will run on client!
+
+export const Route = createFileRoute('/myroute')({
+  loader: async () => {
+    // Even though this runs server-side, the imports above
+    // are evaluated when the module loads on the client!
+    return { data: envStore.SOME_VALUE }
+  },
+})
+```
+
+#### Why This Matters
+
+TanStack Start uses code splitting and bundles route files for both client and server. When you import a module at the top level:
+
+1. The import runs when the module loads
+2. Route modules load on BOTH client and server
+3. Server-only modules (envStore, db, auth) fail in the browser
+4. Result: Runtime errors about undefined `process.env`
+
+By isolating server-only imports to `src/server/` files, we ensure they never get bundled for the client.
+
+### Server-Only Modules List
+
+These modules should ONLY be imported in `src/server/` files:
+
+- `@/lib/env/envStore` - Environment variables
+- `@/db` - Database instance
+- `@/lib/auth/auth` - Auth instance (for `auth.api.*` calls)
+- `@/db/schema/*` - Database schemas
+- `drizzle-orm` - ORM utilities (eq, and, or, etc.)
+- `better-sqlite3` - SQLite driver
+- Node.js built-ins (fs, path, crypto, etc.)
+
+### Client-Safe Modules
+
+These can be imported anywhere (client or server):
+
+- `@/client/auth-client` - Better-auth client
+- `@tanstack/react-router` - Router utilities
+- `@tanstack/react-start` - Server function utilities
+- `react` - React library
+- `lucide-react` - Icons
+- UI components
 
 ---

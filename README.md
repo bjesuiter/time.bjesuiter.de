@@ -76,6 +76,68 @@ An automated dashboard that connects to Clockify and provides:
 
 ---
 
+## Project Structure
+
+### Server-Only Code Pattern
+
+This project follows a strict separation between server and client code to prevent server-only modules (database, environment variables) from being bundled for the browser.
+
+**Key Principle**: Server-only modules (`envStore`, `db`, `auth`) are ONLY imported in `src/server/` files.
+
+#### Directory Organization
+
+```
+src/
+├── server/       # Server functions - safe to import envStore, db, auth
+├── routes/       # Route components - NEVER import server-only modules directly
+├── components/   # React components - client-safe only
+├── client/       # Client-side utilities (auth-client)
+├── db/           # Database schemas and instance (server-only)
+└── lib/
+    ├── auth/     # Auth configuration (server-only)
+    └── env/      # Environment variables (server-only)
+```
+
+#### Example Pattern
+
+**✅ Correct**: Server function in `src/server/`
+
+```typescript
+// src/server/myServerFns.ts
+import { createServerFn } from "@tanstack/react-start";
+import { envStore } from "@/lib/env/envStore";  // ✅ Safe
+import { db } from "@/db";                       // ✅ Safe
+
+export const getData = createServerFn({ method: "GET" })
+    .handler(async () => {
+        // Use server-only modules freely
+        const data = await db.query.myTable.findFirst();
+        return data;
+    });
+```
+
+**✅ Correct**: Route imports server function only
+
+```typescript
+// src/routes/myroute.tsx
+import { createFileRoute } from '@tanstack/react-router'
+import { getData } from '@/server/myServerFns'  // ✅ Safe
+
+export const Route = createFileRoute('/myroute')({
+  loader: async () => await getData(),
+  component: MyComponent,
+})
+```
+
+**❌ Wrong**: Route imports server-only modules
+
+```typescript
+// ❌ DON'T DO THIS
+import { envStore } from '@/lib/env/envStore'  // ❌ Will run on client!
+```
+
+---
+
 # Repo Log
 
 ## 2025-10-22 Initial Setup
