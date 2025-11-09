@@ -45,8 +45,13 @@ function SettingsPage() {
 
   // Mutation to update config dates
   const updateConfigMutation = useMutation({
-    mutationFn: (data: { configId: string; validFrom?: string; validUntil?: string | null }) =>
-      updateConfig({ data }),
+    mutationFn: async (data: { configId: string; validFrom?: string; validUntil?: string | null }) => {
+      const result = await updateConfig({ data })
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update configuration')
+      }
+      return result
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tracked-projects'] })
       queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
