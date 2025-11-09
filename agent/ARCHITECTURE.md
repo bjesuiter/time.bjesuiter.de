@@ -396,6 +396,11 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
   - Error handling for invalid credentials
   - Auto-redirect after successful login
   - Links to signup and admin registration
+- ✅ Home page with authentication state
+  - Shows profile info when signed in (name, email, created date, verification status)
+  - Sign out button
+  - Welcome message and next steps
+  - Sign in/signup buttons when not authenticated
 - ✅ Admin registration route (`/registerAdmin`)
   - Server-side only implementation
   - Environment variable configuration (ADMIN_EMAIL, ADMIN_LABEL,
