@@ -102,10 +102,11 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
     .inputValidator((data: {
         projectIds: string[];
         projectNames: string[];
+        validFrom?: string; // ISO date string, defaults to now
     }) => data)
     .handler(async ({ data, request }) => {
         const userId = await getAuthenticatedUserId(request);
-        const now = new Date();
+        const validFromDate = data.validFrom ? new Date(data.validFrom) : new Date();
 
         try {
             // Start a transaction-like operation
@@ -123,12 +124,12 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
                 await db
                     .update(configChronic)
                     .set({
-                        validUntil: now,
+                        validUntil: validFromDate,
                     })
                     .where(eq(configChronic.id, currentConfig.id));
             }
 
-            // 3. Create the new config with validFrom = now and validUntil = NULL
+            // 3. Create the new config with validFrom and validUntil = NULL
             const newConfig = await db.insert(configChronic).values({
                 userId,
                 configType: "tracked_projects",
@@ -136,7 +137,7 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
                     projectIds: data.projectIds,
                     projectNames: data.projectNames,
                 } as TrackedProjectsValue),
-                validFrom: now,
+                validFrom: validFromDate,
                 validUntil: null,
             }).returning();
 
@@ -236,6 +237,51 @@ export const deleteConfigHistory = createServerFn({ method: "POST" })
                 error: error instanceof Error
                     ? error.message
                     : "Failed to delete config history",
+            };
+        }
+    });
+
+/**
+ * Deletes a single configuration entry by ID
+ */
+export const deleteConfigEntry = createServerFn({ method: "POST" })
+    .inputValidator((data: { configId: string }) => data)
+    .handler(async ({ data, request }) => {
+        const userId = await getAuthenticatedUserId(request);
+
+        try {
+            // First verify the config belongs to the user
+            const config = await db.query.configChronic.findFirst({
+                where: and(
+                    eq(configChronic.id, data.configId),
+                    eq(configChronic.userId, userId)
+                ),
+            });
+
+            if (!config) {
+                return {
+                    success: false,
+                    error: "Configuration entry not found or unauthorized",
+                };
+            }
+
+            // Delete the config entry
+            const deleted = await db
+                .delete(configChronic)
+                .where(eq(configChronic.id, data.configId))
+                .returning();
+
+            return {
+                success: true,
+                deletedCount: deleted.length,
+            };
+        } catch (error) {
+            console.error("Error deleting config entry:", error);
+            return {
+                success: false,
+                error: error instanceof Error
+                    ? error.message
+                    : "Failed to delete config entry",
             };
         }
     });

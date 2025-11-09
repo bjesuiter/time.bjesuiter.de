@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
 import { User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe, FolderKanban, Save, Loader2, History, ChevronDown, ChevronUp, Trash2, AlertTriangle } from 'lucide-react'
 import { checkClockifySetup, getClockifyDetails, getClockifyProjects } from '@/server/clockifyServerFns'
-import { getTrackedProjects, setTrackedProjects, getConfigHistory, deleteConfigHistory } from '@/server/configServerFns'
+import { getTrackedProjects, setTrackedProjects, getConfigHistory, deleteConfigHistory, deleteConfigEntry } from '@/server/configServerFns'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Toolbar } from '@/components/Toolbar'
 import { useState, useEffect } from 'react'
@@ -42,8 +42,10 @@ function SettingsPage() {
   // State for tracked projects selection
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
   const [hasChanges, setHasChanges] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
+  const [showHistory, setShowHistory] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [useCustomDate, setUseCustomDate] = useState(false)
+  const [customValidFrom, setCustomValidFrom] = useState('')
 
   // Get current tracked projects configuration
   const { data: trackedProjectsConfig, isLoading: isLoadingTrackedProjects } = useQuery({
@@ -69,12 +71,14 @@ function SettingsPage() {
 
   // Mutation to save tracked projects
   const saveTrackedProjectsMutation = useMutation({
-    mutationFn: (data: { projectIds: string[]; projectNames: string[] }) => 
+    mutationFn: (data: { projectIds: string[]; projectNames: string[]; validFrom?: string }) => 
       setTrackedProjects({ data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tracked-projects'] })
       queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
       setHasChanges(false)
+      setUseCustomDate(false)
+      setCustomValidFrom('')
     },
   })
 
@@ -84,6 +88,15 @@ function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
       setShowDeleteConfirm(false)
+    },
+  })
+
+  // Mutation to delete individual config entry
+  const deleteEntryMutation = useMutation({
+    mutationFn: (configId: string) => deleteConfigEntry({ data: { configId } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config-history', 'tracked_projects'] })
+      queryClient.invalidateQueries({ queryKey: ['tracked-projects'] })
     },
   })
 
@@ -109,6 +122,7 @@ function SettingsPage() {
     saveTrackedProjectsMutation.mutate({
       projectIds: selectedProjects.map(p => p.id),
       projectNames: selectedProjects.map(p => p.name),
+      validFrom: useCustomDate && customValidFrom ? customValidFrom : undefined,
     })
   }
 
@@ -394,6 +408,46 @@ function SettingsPage() {
                         </div>
                       )}
 
+                      {/* Effective Date Selection */}
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            id="useCustomDate"
+                            checked={useCustomDate}
+                            onChange={(e) => {
+                              setUseCustomDate(e.target.checked)
+                              if (!e.target.checked) {
+                                setCustomValidFrom('')
+                              }
+                            }}
+                            className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <div className="flex-1">
+                            <label htmlFor="useCustomDate" className="text-sm font-medium text-gray-900 cursor-pointer">
+                              Set custom effective date
+                            </label>
+                            <p className="text-xs text-gray-600 mt-1">
+                              By default, the configuration takes effect immediately. Enable this to specify a future date.
+                            </p>
+                            {useCustomDate && (
+                              <div className="mt-3">
+                                <label htmlFor="customValidFrom" className="block text-sm font-medium text-gray-700 mb-2">
+                                  Effective from:
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  id="customValidFrom"
+                                  value={customValidFrom}
+                                  onChange={(e) => setCustomValidFrom(e.target.value)}
+                                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Save Button */}
                       <div className="flex items-center gap-4">
                         <button
@@ -434,7 +488,7 @@ function SettingsPage() {
                         )}
                       </div>
 
-                      {/* Configuration History Panel */}
+                      {/* Configuration Chronic Panel */}
                       <div className="border-t border-gray-200 pt-6">
                         <div className="flex items-center justify-between mb-4">
                           <button
@@ -442,7 +496,7 @@ function SettingsPage() {
                             className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
                           >
                             <History className="w-5 h-5" />
-                            Configuration History
+                            Configuration Chronic
                             {showHistory ? (
                               <ChevronUp className="w-4 h-4" />
                             ) : (
@@ -476,21 +530,33 @@ function SettingsPage() {
                                     No configuration history yet. Save your first configuration to start tracking changes.
                                   </p>
                                 ) : (
-                                  configHistory.history.map((entry, idx) => (
+                                  configHistory.history.map((entry) => {
+                                    const now = new Date()
+                                    const validFrom = new Date(entry.validFrom)
+                                    const validUntil = entry.validUntil ? new Date(entry.validUntil) : null
+                                    const isCurrentlyActive = validFrom <= now && (validUntil === null || validUntil > now)
+                                    const isFuture = validFrom > now
+
+                                    return (
                                     <div
                                       key={entry.id}
                                       className={`p-4 rounded-lg border ${
-                                        idx === 0
+                                        isCurrentlyActive
                                           ? 'bg-indigo-50 border-indigo-200'
                                           : 'bg-gray-50 border-gray-200'
                                       }`}
                                     >
                                       <div className="flex items-start justify-between mb-2">
-                                        <div>
+                                        <div className="flex-1">
                                           <p className="text-sm font-medium text-gray-900">
-                                            {idx === 0 && entry.validUntil === null && (
+                                            {isCurrentlyActive && (
                                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">
                                                 Current
+                                              </span>
+                                            )}
+                                            {isFuture && (
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                                Scheduled
                                               </span>
                                             )}
                                             {new Date(entry.validFrom).toLocaleDateString('en-US', {
@@ -503,7 +569,9 @@ function SettingsPage() {
                                           </p>
                                           <p className="text-xs text-gray-600 mt-1">
                                             {entry.validUntil === null
-                                              ? 'Active since this date'
+                                              ? isFuture
+                                                ? 'Will be active from this date'
+                                                : 'Active since this date'
                                               : `Active until ${new Date(entry.validUntil).toLocaleDateString('en-US', {
                                                   year: 'numeric',
                                                   month: 'long',
@@ -513,6 +581,20 @@ function SettingsPage() {
                                                 })}`}
                                           </p>
                                         </div>
+                                        {(isFuture || !isCurrentlyActive) && (
+                                          <button
+                                            onClick={() => {
+                                              if (confirm(`Are you sure you want to delete this configuration entry? This action cannot be undone.`)) {
+                                                deleteEntryMutation.mutate(entry.id)
+                                              }
+                                            }}
+                                            disabled={deleteEntryMutation.isPending}
+                                            className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Delete this configuration entry"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        )}
                                       </div>
                                       <div className="mt-3">
                                         <p className="text-xs text-gray-600 mb-2">Tracked projects:</p>
@@ -532,7 +614,8 @@ function SettingsPage() {
                                         )}
                                       </div>
                                     </div>
-                                  ))
+                                    )
+                                  })
                                 )}
                               </div>
                             ) : (
@@ -553,7 +636,7 @@ function SettingsPage() {
                                 </div>
                                 <div className="flex-1">
                                   <h3 className="text-lg font-bold text-gray-900 mb-2">
-                                    Delete Configuration History?
+                                    Delete Configuration Chronic?
                                   </h3>
                                   <p className="text-sm text-gray-600 mb-4">
                                     This will permanently delete all historical configuration entries and keep only the current configuration. This action cannot be undone.
