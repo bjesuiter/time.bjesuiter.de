@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { envStore } from "@/lib/env/envStore";
 import { betterAuthSchemas } from "./schema/better-auth";
+import { clockifySchemas } from "./schema/clockify";
 
 // Validate DATABASE_URL is present (server-side only)
 if (!envStore.DATABASE_URL) {
@@ -10,5 +11,6 @@ const dbPath = envStore.DATABASE_URL;
 export const db = drizzle(dbPath, {
     schema: {
         ...betterAuthSchemas,
+        ...clockifySchemas,
     },
 });

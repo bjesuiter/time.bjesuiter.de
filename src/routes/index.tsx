@@ -1,11 +1,20 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
-import { Sparkles, LogOut, User, Mail, Calendar } from 'lucide-react'
+import { Sparkles, LogOut, User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight } from 'lucide-react'
+import { checkClockifySetup } from '@/server/clockifyServerFns'
+import { useQuery } from '@tanstack/react-query'
 
 export const Route = createFileRoute('/')({ component: App })
 
 function App() {
   const { data: session, isPending } = authClient.useSession()
+  
+  // Only check Clockify setup if user is signed in
+  const { data: setupStatus } = useQuery({
+    queryKey: ['clockify-setup'],
+    queryFn: () => checkClockifySetup(),
+    enabled: !!session?.user,
+  })
 
   const handleSignOut = async () => {
     await authClient.signOut()
@@ -92,17 +101,60 @@ function App() {
               </div>
             </div>
 
-            {/* Next Steps Card */}
+            {/* Clockify Setup Status Card */}
             <div className="bg-white rounded-lg shadow-xl p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Next Steps</h3>
-              <p className="text-gray-600 mb-4">
-                You're successfully signed in! The Clockify integration setup wizard will be implemented in the next phase.
-              </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Coming soon:</strong> Connect your Clockify account, configure tracked projects, and start viewing your weekly time summaries.
-                </p>
-              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Clockify Integration</h3>
+              
+              {setupStatus?.hasSetup ? (
+                // Setup Complete
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-900">Connected</p>
+                      <p className="text-sm text-green-700">
+                        Your Clockify account is connected and ready to use
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Coming in Phase 2:</strong> Weekly time summaries, project tracking, and overtime calculations will be available soon.
+                    </p>
+                  </div>
+                  
+                  <Link
+                    to="/setup/clockify"
+                    className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                    Update Configuration
+                  </Link>
+                </div>
+              ) : (
+                // Setup Required
+                <div className="space-y-4">
+                  <p className="text-gray-600">
+                    Connect your Clockify account to start tracking your time and view weekly summaries.
+                  </p>
+                  
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm text-amber-800">
+                      <strong>Setup Required:</strong> You need to configure your Clockify integration before you can use the time tracking dashboard.
+                    </p>
+                  </div>
+                  
+                  <Link
+                    to="/setup/clockify"
+                    className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    <Settings2 className="w-5 h-5" />
+                    Connect Clockify Account
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         ) : (
