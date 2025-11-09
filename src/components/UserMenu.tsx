@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from '@tanstack/react-router';
 import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
 
 interface UserMenuProps {
@@ -70,16 +71,14 @@ export function UserMenu({ user }: UserMenuProps) {
 
           {/* Menu Items */}
           <div className="py-2">
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // Navigate to settings if needed
-              }}
+            <Link
+              to="/settings"
+              onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Settings className="w-4 h-4" />
               Settings
-            </button>
+            </Link>
 
             <button
               onClick={handleSignOut}
