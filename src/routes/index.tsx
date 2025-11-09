@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
-import { Sparkles, LogOut, User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe } from 'lucide-react'
+import { Sparkles, User, Mail, Calendar, Settings2, CheckCircle2, ArrowRight, Clock, Briefcase, Globe } from 'lucide-react'
 import { checkClockifySetup, getClockifyDetails } from '@/server/clockifyServerFns'
 import { useQuery } from '@tanstack/react-query'
+import { Toolbar } from '@/components/Toolbar'
 
 export const Route = createFileRoute('/')({ component: App })
 
@@ -23,93 +24,38 @@ function App() {
     enabled: !!session?.user && !!setupStatus?.hasSetup,
   })
 
-  const handleSignOut = async () => {
-    await authClient.signOut()
-    window.location.reload() // Refresh to update session state
-  }
-
   if (isPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
+      <>
+        <Toolbar user={null} />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-gray-600">Loading...</div>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 p-5">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold flex items-center gap-2 mb-8">
-          Time Tracking Dashboard <Sparkles className="text-yellow-500" />
-        </h1>
+    <>
+      <Toolbar user={session?.user || null} />
+      
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center gap-3 mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Dashboard
+            </h1>
+            <Sparkles className="w-6 h-6 text-yellow-500" />
+          </div>
 
-        {session?.user ? (
-          // Signed In View
-          <div className="space-y-6">
-            {/* Profile Card */}
-            <div className="bg-white rounded-lg shadow-xl p-8">
-              <div className="flex items-start justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Welcome Back!</h2>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition-colors border border-gray-300 hover:border-red-600 rounded-md px-3 py-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </div>
+          {session?.user ? (
+            // Signed In View
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Content - Takes 2 columns */}
+              <div className="lg:col-span-2 space-y-6">
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                  <User className="w-5 h-5 text-indigo-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Name</p>
-                    <p className="font-medium text-gray-900">{session.user.name || 'Not set'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                  <Mail className="w-5 h-5 text-indigo-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium text-gray-900">{session.user.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                  <Calendar className="w-5 h-5 text-indigo-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Account Created</p>
-                    <p className="font-medium text-gray-900">
-                      {new Date(session.user.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="w-5 h-5 flex items-center justify-center">
-                    {session.user.emailVerified ? (
-                      <span className="text-green-600 font-bold">✓</span>
-                    ) : (
-                      <span className="text-amber-600 font-bold">!</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Email Status</p>
-                    <p className="font-medium text-gray-900">
-                      {session.user.emailVerified ? 'Verified' : 'Not verified'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Clockify Setup Status Card */}
-            <div className="bg-white rounded-lg shadow-xl p-8">
+                {/* Clockify Setup Status Card */}
+                <div className="bg-white rounded-lg shadow-lg p-8">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Clockify Integration</h3>
               
               {setupStatus?.hasSetup ? (
@@ -252,30 +198,88 @@ function App() {
               )}
             </div>
           </div>
+            
+          {/* Sidebar - Profile Card */}
+          <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Profile</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <User className="w-5 h-5 text-indigo-600" />
+                    <div>
+                      <p className="text-xs text-gray-600">Name</p>
+                      <p className="text-sm font-medium text-gray-900">{session.user.name || 'Not set'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <Mail className="w-5 h-5 text-indigo-600" />
+                    <div>
+                      <p className="text-xs text-gray-600">Email</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{session.user.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <Calendar className="w-5 h-5 text-indigo-600" />
+                    <div>
+                      <p className="text-xs text-gray-600">Member Since</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {new Date(session.user.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="w-5 h-5 flex items-center justify-center">
+                      {session.user.emailVerified ? (
+                        <span className="text-green-600 font-bold">✓</span>
+                      ) : (
+                        <span className="text-amber-600 font-bold">!</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Email Status</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {session.user.emailVerified ? 'Verified' : 'Not verified'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
           // Signed Out View
-          <div className="bg-white rounded-lg shadow-xl p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Get Started</h2>
-            <p className="text-gray-600 mb-6">
-              Sign in to access your time tracking dashboard or create a new account.
-            </p>
-            <div className="flex gap-3">
-              <Link
-                to="/signin"
-                className="text-white bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 rounded-md px-4 py-2 transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/signup"
-                className="text-indigo-600 bg-white hover:bg-indigo-50 border border-indigo-600 rounded-md px-4 py-2 transition-colors"
-              >
-                Sign Up
-              </Link>
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg shadow-xl p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Get Started</h2>
+              <p className="text-gray-600 mb-6">
+                Sign in to access your time tracking dashboard or create a new account.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  to="/signin"
+                  className="text-white bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 rounded-md px-4 py-2 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="text-indigo-600 bg-white hover:bg-indigo-50 border border-indigo-600 rounded-md px-4 py-2 transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </div>
             </div>
           </div>
         )}
       </div>
     </div>
+    </>
   )
 }

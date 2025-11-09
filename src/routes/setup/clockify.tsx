@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { authClient } from "@/client/auth-client";
+import { Toolbar } from "@/components/Toolbar";
 import {
   validateClockifyKey,
   saveClockifyConfig,
@@ -40,6 +42,7 @@ interface SetupState {
 
 function ClockifySetupWizard() {
   const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,8 +178,11 @@ function ClockifySetupWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-5">
-      <div className="max-w-3xl mx-auto">
+    <>
+      <Toolbar user={session?.user || null} />
+      
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 p-5">
+        <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -224,7 +230,7 @@ function ClockifySetupWizard() {
         {/* Error Display */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-red-800 font-medium">Error</p>
               <p className="text-red-700 text-sm">{error}</p>
@@ -665,6 +671,7 @@ function ClockifySetupWizard() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
