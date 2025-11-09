@@ -9,7 +9,8 @@
     "test": "bunx vitest run",
     "dbpush": "bunx drizzle-kit push",
     "dbstudio": "bunx drizzle-kit studio",
-    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts"
+    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
+    "test:browser": "vitest --config=vitest.browser.config.ts"
   },
   "dependencies": {
     "@tanstack/react-devtools": "^0.8.0",
@@ -42,6 +43,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/browser-playwright": "^4.0.8",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.6",
     "jsdom": "^27.0.0",
@@ -49,6 +51,7 @@
     "typescript": "^5.7.2",
     "vite": "^7.1.12",
     "vitest": "^4.0.1",
+    "vitest-browser-react": "^2.0.2",
     "web-vitals": "^5.1.0"
   }
 }
