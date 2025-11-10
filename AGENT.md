@@ -93,6 +93,31 @@ specifics into separate decision files in `agent/decisions/`.
 
 ---
 
+## Documentation Search
+
+### Using Context7 for Library Documentation
+
+When you need to search for library documentation, use the `context7` tools:
+
+1. **Resolve library ID first**: Use `context7_resolve-library-id` to get the correct Context7-compatible library ID
+2. **Fetch documentation**: Use `context7_get-library-docs` with the resolved ID
+
+Example workflow:
+```typescript
+// First resolve the library name to get the proper ID
+const libraryId = await context7_resolve-library_id("react-query");
+
+// Then fetch the documentation
+const docs = await context7_get-library-docs(libraryId, {
+  topic: "hooks",
+  tokens: 5000
+});
+```
+
+Always resolve the library ID first unless you already have the exact Context7-compatible format (e.g., `/tanstack/query`).
+
+---
+
 ## Tech Stack Overview
 
 ### Core Technologies
