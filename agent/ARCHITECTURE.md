@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-**Last Updated**: 2025-11-09
+**Last Updated**: 2025-11-10
 
 ---
 
@@ -459,12 +459,20 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
   - Server-side signup enforcement
   - Cannot be bypassed client-side
 - ✅ Home page with navigation links
+- ✅ Create `user_clockify_config` table schema
+- ✅ Create setup wizard for Clockify integration (`/setup/clockify`)
+  - Multi-step wizard (API Key → Workspace → Settings → Review)
+  - API key validation with Clockify user info display
+  - Workspace selection
+  - Client filter configuration
+  - Regular hours per week setting
+  - Working days per week setting
+  - Cumulative overtime start date setting
+- ✅ Fetch timezone and weekStart from Clockify `/v1/user` endpoint
 
 **Remaining:**
 
-- [ ] Create `user_clockify_config` table schema
-- [ ] Create setup wizard for Clockify integration
-- [ ] Fetch timezone and weekStart from Clockify `/v1/user` endpoint
+- Nothing remaining in Phase 1
 
 ### Phase 2: Clockify Integration & Basic Display
 
@@ -507,12 +515,7 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 
 **Remaining:**
 
-- [ ] Select client (single, stored in user_clockify_config) - Already
-      implemented in Clockify setup
-- [ ] Set regular hours per week - Already implemented in Clockify setup
-- [ ] Set working days per week - Already implemented in Clockify setup
-- [ ] Set cumulative overtime start date - Already implemented in Clockify setup
-- [ ] Manual refresh button for Clockify settings (timezone, weekStart)
+- [ ] Manual refresh button for Clockify settings (timezone, weekStart) in settings page
 
 ### Phase 4: Caching Layer & Optimization
 
@@ -591,9 +594,14 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 src/
 ├── lib/
 │   ├── auth/          # Better-auth configuration
-│   ├── clockify/       # Clockify API client and encryption
-│   ├── cache/          # Cache management logic
-│   └── config/        # Configuration versioning logic (deprecated - see server/configServerFns.ts)
+│   │   └── auth.ts
+│   ├── clockify/      # Clockify API client
+│   │   ├── api-instance.ts
+│   │   ├── client.ts
+│   │   ├── reports-api-instance.ts
+│   │   └── types.ts
+│   └── env/           # Environment variable store
+│       └── envStore.ts
 ├── server/
 │   ├── clockifyServerFns.ts  # Clockify API server functions
 │   ├── configServerFns.ts    # Configuration chronicle server functions
@@ -603,22 +611,34 @@ src/
 │   ├── schema/
 │   │   ├── better-auth.ts    # Better-auth managed tables
 │   │   ├── clockify.ts       # user_clockify_config
-│   │   ├── config.ts         # config_chronic
-│   │   └── cache.ts          # Cache tables
+│   │   └── config.ts         # config_chronic (cache tables will be added in Phase 4)
 │   └── types/         # Custom Drizzle column types
+│       ├── customIsoDate.ts
+│       └── customUint8Array.ts
 ├── routes/            # TanStack Start routes
-│   ├── api/           # API endpoints (including auth)
-│   ├── signin.tsx     # Sign in page
-│   ├── signup.tsx     # Sign up page
+│   ├── api/
+│   │   └── auth/
+│   │       └── $.ts
+│   ├── demo/          # Demo routes (for TanStack Start examples)
+│   ├── setup/         # Setup wizards
+│   │   ├── clockify.tsx        # Clockify setup wizard
+│   │   └── tracked-projects.tsx # Tracked projects configuration setup
+│   ├── __root.tsx
+│   ├── index.tsx      # Home page
+│   ├── registerAdmin.tsx
 │   ├── settings.tsx   # Settings page with configuration chronicle
-│   └── setup/         # Setup wizards
-│       ├── clockify.tsx        # Clockify setup wizard
-│       └── tracked-projects.tsx # Tracked projects configuration setup
+│   ├── signin.tsx     # Sign in page
+│   └── signup.tsx     # Sign up page
 ├── components/        # React components
-│   ├── auth/          # Auth-related components
-│   ├── setup/         # Setup wizard components
-│   └── dashboard/     # Dashboard components
-└── types/             # Shared TypeScript types
+│   ├── ui/
+│   │   └── ConfirmPopover.tsx
+│   ├── Header.tsx
+│   ├── Toolbar.tsx
+│   └── UserMenu.tsx
+└── integrations/      # Third-party integrations
+    └── tanstack-query/
+        ├── devtools.tsx
+        └── root-provider.tsx
 ```
 
 ---
