@@ -18,7 +18,7 @@ export const test = base.extend<ServerFixtures>({
     const port = await portManager.getRandomFreePort();
     const serverUrl = `http://localhost:${port}`;
     
-    console.log(`[${testInfo.title}] Starting server on ${serverUrl}`);
+    console.log(`[server] Starting on ${serverUrl} for "${testInfo.title}"`);
 
     // Start Vite dev server with unique port and in-memory DB
     const server = spawn("bunx", ["vite", "dev", "--port", String(port)], {
@@ -54,18 +54,18 @@ export const test = base.extend<ServerFixtures>({
     try {
       // Wait for server to be ready
       await waitForServerReady(serverUrl, { timeout: 30000 });
-      console.log(`[${testInfo.title}] Server ready on ${serverUrl}`);
+      console.log(`[server] Ready on ${serverUrl}`);
 
       // Provide server URL to test
       await use(serverUrl);
 
     } catch (error) {
-      console.error(`[${testInfo.title}] Server failed to start:`, error);
-      console.error(`[${testInfo.title}] Server output:`, serverOutput);
+      console.error(`[server] Failed to start for "${testInfo.title}":`, error);
+      console.error(`[server] Output:`, serverOutput);
       throw error;
     } finally {
       // Cleanup: kill server
-      console.log(`[${testInfo.title}] Stopping server on ${serverUrl}`);
+      console.log(`[server] Stopping ${serverUrl}`);
       server.kill("SIGTERM");
 
       // Wait for graceful shutdown
@@ -83,7 +83,7 @@ export const test = base.extend<ServerFixtures>({
 
       // Release the port back to the pool
       portManager.releasePort(port);
-      console.log(`[${testInfo.title}] Server stopped and port ${port} released`);
+      console.log(`[server] Stopped, port ${port} released`);
     }
   },
 });

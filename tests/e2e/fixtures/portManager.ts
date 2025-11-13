@@ -13,7 +13,7 @@ export class PortManager {
    */
   async getRandomFreePort(): Promise<number> {
     const maxAttempts = 10;
-    
+
     for (let i = 0; i < maxAttempts; i++) {
       // Generate random port between 3001 and 65535
       const port = Math.floor(Math.random() * (65535 - 3001) + 3001);
@@ -26,10 +26,16 @@ export class PortManager {
       // Check if port is actually free
       if (await this.isPortFree(port)) {
         this.usedPorts.add(port);
+        console.log(
+          `[port-manager] Allocated port ${port} (${this.usedPorts.size} ports in use)`,
+        );
         return port;
       }
     }
 
+    console.error(
+      `[port-manager] Could not find free port after ${maxAttempts} attempts`,
+    );
     throw new Error(`Could not find free port after ${maxAttempts} attempts`);
   }
 
@@ -41,15 +47,15 @@ export class PortManager {
   private async isPortFree(port: number): Promise<boolean> {
     return new Promise((resolve) => {
       const server = createServer();
-      
+
       server.listen(port, () => {
-        server.once('close', () => {
+        server.once("close", () => {
           resolve(true);
         });
         server.close();
       });
 
-      server.on('error', () => {
+      server.on("error", () => {
         resolve(false);
       });
     });
@@ -61,6 +67,9 @@ export class PortManager {
    */
   releasePort(port: number): void {
     this.usedPorts.delete(port);
+    console.log(
+      `[port-manager] Released port ${port} (${this.usedPorts.size} ports remaining)`,
+    );
   }
 
   /**
@@ -75,7 +84,9 @@ export class PortManager {
    * Clear all used ports (useful for cleanup)
    */
   clearAllPorts(): void {
+    const count = this.usedPorts.size;
     this.usedPorts.clear();
+    console.log(`[port-manager] Cleared all ${count} ports`);
   }
 }
 
