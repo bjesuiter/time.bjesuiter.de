@@ -5,7 +5,8 @@ import { createServer } from "net";
  * Each test gets its own port manager instance via Playwright fixtures
  * @returns Promise<number> A free port number
  */
-export async function getRandomFreePort(): Promise<number> {
+export async function getRandomFreePort(identifier?: number | string): Promise<number> {
+  const id = identifier?.toString() || 'unknown';
   const maxAttempts = 10;
 
   for (let i = 0; i < maxAttempts; i++) {
@@ -14,13 +15,13 @@ export async function getRandomFreePort(): Promise<number> {
 
     // Check if port is actually free
     if (await isPortFree(port)) {
-      console.log(`[port-manager] Allocated port ${port}`);
+      console.log(`[port-manager-${id}] Allocated port ${port}`);
       return port;
     }
   }
 
   console.error(
-    `[port-manager] Could not find free port after ${maxAttempts} attempts`,
+    `[port-manager-${id}] Could not find free port after ${maxAttempts} attempts`,
   );
   throw new Error(`Could not find free port after ${maxAttempts} attempts`);
 }
