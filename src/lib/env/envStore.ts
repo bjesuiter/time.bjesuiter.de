@@ -10,6 +10,7 @@ import { z } from "zod/v4";
  * Do not import this in client code or route loaders/components!
  */
 export const envStore = z.object({
+    ENVIRONMENT: z.enum(["dev", "prod", "test"]),
     // Server-only: Database connection
     DATABASE_URL: z.string(),
     // Server-only: Security - Allow user signup (defaults to false for security)
