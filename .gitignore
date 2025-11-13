@@ -16,3 +16,5 @@ local/*
 !local/.gitkeep
 
 .cursor/worktrees
+.env.*
+!.env.example
