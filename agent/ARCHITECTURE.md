@@ -12,6 +12,80 @@ calculations.
 
 ---
 
+## 1.5 Testing Strategy
+
+**Decision**: See [Decision: E2E Test Strategy](decisions/2025_11_13_e2e_test_strategy.md)
+
+### Three-Layer Testing Approach
+
+1. **Unit Tests** (Vitest - Node Mode)
+   - Fast, isolated function/module tests
+   - Location: `tests/unit/**/*.{test,spec}.ts`
+   - Run: `bun run test:unit`
+
+2. **Browser Component Tests** (Vitest - Browser Mode)
+   - Component integration tests in real browser
+   - Uses Playwright provider via `@vitest/browser-playwright`
+   - Location: `tests/browser/**/*.{test,spec}.ts`
+   - Run: `bun run test:browser`
+
+3. **E2E Tests** (Playwright - Full User Journeys)
+   - Complete user workflows with real server + browser + database
+   - Each test function gets isolated server instance with in-memory DB
+   - Location: `tests/e2e/**/*.spec.ts`
+   - Run: `bun run test:e2e`
+
+### E2E Test Architecture Highlights
+
+**Per-Test Isolation:**
+- Each test spawns own Bun server on random free port
+- In-memory SQLite database (`DATABASE_URL=":memory:"`)
+- Migrations applied automatically via `drizzle-orm/libsql/migrator`
+- Server auto-destroyed after test completes
+
+**API-First Testing:**
+- Tests interact ONLY via API endpoints and browser
+- No direct imports of server code (db, auth, etc.)
+- Seed data via real endpoints (`/registerAdmin`, signup flows)
+- Real authentication with natural cookie handling
+
+**Playwright Fixtures:**
+- Server lifecycle managed by Playwright test fixtures
+- Shared Playwright instance across all tests (performance)
+- Each test gets unique `serverUrl` fixture parameter
+- Automatic server startup/teardown per test
+
+### Implementation Steps
+
+**Setup (Not Yet Complete):**
+1. [ ] Install Playwright: `bun add -D @playwright/test`
+2. [ ] Create port manager utility: `tests/e2e/fixtures/portManager.ts`
+3. [ ] Create server fixture: `tests/e2e/fixtures/server.ts`
+4. [ ] Create Playwright config: `tests/e2e/playwright.config.ts`
+5. [ ] Write first E2E test (user signup + login flow)
+6. [ ] Add npm scripts for E2E testing
+7. [ ] Document test execution in README
+
+**Test NPM Scripts (To Be Added):**
+```json
+{
+  "test:unit": "vitest run --config vitest.config.ts --project unit",
+  "test:browser": "vitest run --config vitest.browser.config.ts --project browser",
+  "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
+  "test:e2e:ui": "playwright test --config tests/e2e/playwright.config.ts --ui",
+  "test:e2e:debug": "playwright test --config tests/e2e/playwright.config.ts --debug",
+  "test:all": "npm run test:unit && npm run test:browser && npm run test:e2e"
+}
+```
+
+**Key Benefits:**
+- ✅ Maximum isolation (no state leakage between tests)
+- ✅ Fast execution (in-memory DB, Bun's fast startup)
+- ✅ High confidence (tests real APIs, auth flows, migrations)
+- ✅ Maintainable (black-box tests, no coupling to internals)
+
+---
+
 ## Technology Stack
 
 ### Frontend
@@ -674,6 +748,7 @@ Types: feat, fix, refactor, docs, test, chore
 - [Client Filter and Tracked Projects](decisions/2025_10_31_client_filter_and_tracked_projects.md)
 - [Weekly Table Layout](decisions/2025_10_31_weekly_table_layout.md)
 - [Initial Data Fetch Scope](decisions/2025_10_31_initial_data_fetch_scope.md)
+- [E2E Test Strategy](decisions/2025_11_13_e2e_test_strategy.md)
 
 ### Documentation
 
@@ -681,6 +756,8 @@ Types: feat, fix, refactor, docs, test, chore
 - [Drizzle ORM Docs](https://orm.drizzle.team/)
 - [TanStack Start Docs](https://tanstack.com/router/latest/docs/framework/react/start)
 - [Clockify API Docs](https://clockify.me/developers-api)
+- [Playwright Docs](https://playwright.dev/)
+- [Vitest Docs](https://vitest.dev/)
 
 ---
 
