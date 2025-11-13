@@ -8,9 +8,11 @@
     "serve": "bunx vite preview",
     "test": "bunx vitest run",
     "dbpush": "bunx drizzle-kit push",
+    "dbgenerate": "bunx drizzle-kit generate",
+    "dbseed": "bunx drizzle-seed",
     "dbstudio": "bunx drizzle-kit studio",
     "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
-    "test:browser": "vitest --config=vitest.browser.config.ts"
+    "test:browser": "bunx vitest --config=vitest.browser.config.ts"
   },
   "dependencies": {
     "@tanstack/react-devtools": "^0.8.1",
@@ -46,6 +48,7 @@
     "@vitest/browser-playwright": "^4.0.8",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.6",
+    "drizzle-seed": "^0.3.1",
     "jsdom": "^27.0.0",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.7.2",
