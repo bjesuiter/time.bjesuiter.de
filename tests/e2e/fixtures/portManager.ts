@@ -1,94 +1,48 @@
 import { createServer } from "net";
 
 /**
- * Port manager for allocating random free ports during E2E testing
- * Ensures each test gets a unique port that's actually available
+ * Get a random free port for E2E testing
+ * Each test gets its own port manager instance via Playwright fixtures
+ * @returns Promise<number> A free port number
  */
-export class PortManager {
-  private usedPorts = new Set<number>();
+export async function getRandomFreePort(): Promise<number> {
+  const maxAttempts = 10;
 
-  /**
-   * Get a random free port that's not currently in use
-   * @returns Promise<number> A free port number
-   */
-  async getRandomFreePort(): Promise<number> {
-    const maxAttempts = 10;
+  for (let i = 0; i < maxAttempts; i++) {
+    // Generate random port between 3001 and 65535
+    const port = Math.floor(Math.random() * (65535 - 3001) + 3001);
 
-    for (let i = 0; i < maxAttempts; i++) {
-      // Generate random port between 3001 and 65535
-      const port = Math.floor(Math.random() * (65535 - 3001) + 3001);
-
-      // Skip if we've already used this port in this session
-      if (this.usedPorts.has(port)) {
-        continue;
-      }
-
-      // Check if port is actually free
-      if (await this.isPortFree(port)) {
-        this.usedPorts.add(port);
-        console.log(
-          `[port-manager] Allocated port ${port} (${this.usedPorts.size} ports in use)`,
-        );
-        return port;
-      }
+    // Check if port is actually free
+    if (await isPortFree(port)) {
+      console.log(`[port-manager] Allocated port ${port}`);
+      return port;
     }
-
-    console.error(
-      `[port-manager] Could not find free port after ${maxAttempts} attempts`,
-    );
-    throw new Error(`Could not find free port after ${maxAttempts} attempts`);
   }
 
-  /**
-   * Check if a port is free by attempting to bind to it
-   * @param port Port number to check
-   * @returns Promise<boolean> True if port is free
-   */
-  private async isPortFree(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      const server = createServer();
-
-      server.listen(port, () => {
-        server.once("close", () => {
-          resolve(true);
-        });
-        server.close();
-      });
-
-      server.on("error", () => {
-        resolve(false);
-      });
-    });
-  }
-
-  /**
-   * Release a port back to the available pool
-   * @param port Port number to release
-   */
-  releasePort(port: number): void {
-    this.usedPorts.delete(port);
-    console.log(
-      `[port-manager] Released port ${port} (${this.usedPorts.size} ports remaining)`,
-    );
-  }
-
-  /**
-   * Get count of currently used ports
-   * @returns number Number of used ports
-   */
-  getUsedPortCount(): number {
-    return this.usedPorts.size;
-  }
-
-  /**
-   * Clear all used ports (useful for cleanup)
-   */
-  clearAllPorts(): void {
-    const count = this.usedPorts.size;
-    this.usedPorts.clear();
-    console.log(`[port-manager] Cleared all ${count} ports`);
-  }
+  console.error(
+    `[port-manager] Could not find free port after ${maxAttempts} attempts`,
+  );
+  throw new Error(`Could not find free port after ${maxAttempts} attempts`);
 }
 
-// Singleton instance for use across tests
-export const portManager = new PortManager();
+/**
+ * Check if a port is free by attempting to bind to it
+ * @param port Port number to check
+ * @returns Promise<boolean> True if port is free
+ */
+async function isPortFree(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = createServer();
+
+    server.listen(port, () => {
+      server.once("close", () => {
+        resolve(true);
+      });
+      server.close();
+    });
+
+    server.on("error", () => {
+      resolve(false);
+    });
+  });
+}

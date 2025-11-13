@@ -34,12 +34,12 @@ bun run test:all
 ```
 tests/e2e/
 ├── fixtures/
-│   ├── portManager.ts    # Random free port allocation
+│   ├── portManager.ts    # Random free port allocation utility
 │   ├── server.ts         # Server lifecycle fixture
 │   └── test.ts           # Extended Playwright test
 ├── user-journeys/
 │   └── *.spec.ts         # E2E test files
-└── playwright.config.ts   # Playwright configuration
+└── playwright.config.ts  # Playwright configuration
 ```
 
 ## Writing Tests

@@ -1,6 +1,6 @@
 import { test as base } from "@playwright/test";
 import { spawn } from "child_process";
-import { portManager } from "./portManager";
+import { getRandomFreePort } from "./portManager";
 
 /**
  * Server fixture type definition
@@ -15,7 +15,7 @@ export type ServerFixtures = {
  */
 export const test = base.extend<ServerFixtures>({
   serverUrl: async ({}, use, testInfo) => {
-    const port = await portManager.getRandomFreePort();
+    const port = await getRandomFreePort();
     const serverUrl = `http://localhost:${port}`;
     
     console.log(`[server] Starting on ${serverUrl} for "${testInfo.title}"`);
@@ -81,9 +81,9 @@ export const test = base.extend<ServerFixtures>({
         }, 5000);
       });
 
-      // Release the port back to the pool
-      portManager.releasePort(port);
-      console.log(`[server] Stopped, port ${port} released`);
+      // Log port release
+      console.log(`[port-manager] Released port ${port}`);
+      console.log(`[server] Stopped`);
     }
   },
 });
