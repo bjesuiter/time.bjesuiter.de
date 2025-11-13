@@ -1,19 +1,13 @@
-import { defineConfig } from 'vite'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import viteReact from '@vitejs/plugin-react'
-import viteTsConfigPaths from 'vite-tsconfig-paths'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig, mergeConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { baseConfig } from "./vite.base";
 
+/**
+ * Vite configuration for development and production builds
+ * Extends base config and adds TanStack Start plugin
+ */
 const config = defineConfig({
-  plugins: [
-    // this is the plugin that enables path aliases
-    viteTsConfigPaths({
-      projects: ['./tsconfig.json'],
-    }),
-    tailwindcss(),
-    tanstackStart(),
-    viteReact(),
-  ],
-})
+  plugins: [],
+});
 
-export default config
+export default mergeConfig(baseConfig, config);
