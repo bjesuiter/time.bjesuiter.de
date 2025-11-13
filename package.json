@@ -7,12 +7,19 @@
     "build": "bunx vite build",
     "serve": "bunx vite preview",
     "test": "bunx vitest run",
+    "test:unit": "bunx vitest run --config vitest.config.ts --project unit",
+    "test:browser": "bunx vitest --config=vitest.browser.config.ts",
+    "test:e2e": "bunx playwright test --config tests/e2e/playwright.config.ts",
+    "test:e2e:ui": "bunx playwright test --config tests/e2e/playwright.config.ts --ui",
+    "test:e2e:debug": "bunx playwright test --config tests/e2e/playwright.config.ts --debug",
+    "test:all": "npm run test:unit && npm run test:browser && npm run test:e2e",
+    "e2e": "bun run test:e2e",
+    "report": "bunx playwright show-report reports/html",
     "dbpush": "bunx drizzle-kit push",
     "dbgenerate": "bunx drizzle-kit generate",
     "dbseed": "bunx drizzle-seed",
     "dbstudio": "bunx drizzle-kit studio",
-    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
-    "test:browser": "bunx vitest --config=vitest.browser.config.ts"
+    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts"
   },
   "dependencies": {
     "@tanstack/react-devtools": "^0.8.1",
@@ -36,6 +43,7 @@
   },
   "devDependencies": {
     "@libsql/client": "^0.15.15",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/vite": "^4.1.17",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
