@@ -50,7 +50,7 @@ export default defineConfig({
 
   use: {
     // Base URL not set - each test gets unique serverUrl from fixture
-    // trace: "on-first-retry", // Enable tracing on first retry
+    trace: "on-first-retry", // Enable tracing on first retry
     screenshot: "only-on-failure", // Take screenshots on failure
     video: "retain-on-failure", // Record video on failure
 
