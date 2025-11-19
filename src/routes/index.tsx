@@ -189,16 +189,22 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
             </a>
           </div>
 
-          {allowSignup && (
-             <div className="pt-8 border-t border-gray-200">
-               <Link 
-                 to="/signup"
-                 className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-               >
-                 Create an account
-               </Link>
-             </div>
-          )}
+          <div className="pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {allowSignup && (
+              <Link 
+                to="/signup"
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Create an account
+              </Link>
+            )}
+            <Link
+              to="/registerAdmin"
+              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Admin Registration
+            </Link>
+          </div>
         </div>
       </div>
     </div>
