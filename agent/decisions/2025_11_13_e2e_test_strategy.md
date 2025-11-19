@@ -1,7 +1,8 @@
 # Decision: E2E Test Strategy
 
 **Date**: 2025-11-13\
-**Status**: 📋 PLANNED
+**Status**: ✅ IMPLEMENTED\
+**Updated by**: [Decision: Test Strategy Update - Bun Test Runner Integration](2025_11_19_test_strategy_update.md)
 
 ---
 

@@ -14,24 +14,45 @@ calculations.
 
 ## 1.5 Testing Strategy
 
-**Decision**: See [Decision: E2E Test Strategy](decisions/2025_11_13_e2e_test_strategy.md)
+**Decisions**:
+- [Decision: E2E Test Strategy](decisions/2025_11_13_e2e_test_strategy.md) (2025-11-13)
+- [Decision: Test Strategy Update - Bun Test Runner Integration](decisions/2025_11_19_test_strategy_update.md) (2025-11-19 - Latest)
 
 ### Three-Layer Testing Approach
 
-1. **Unit Tests** (Vitest - Node Mode)
-   - Fast, isolated function/module tests
-   - Location: `tests/unit/**/*.{test,spec}.ts`
-   - Run: `bun run test:unit`
+1. **Unit Tests** (Bun Test Runner)
+   - Fast, isolated function/module tests with mocked HTTP responses
+   - Native Bun test runner - no additional dependencies needed
+   - Built-in mocking capabilities via `mock()` module
+   - Location: `tests/unit/**/*.test.ts`
+   - Run: `bun test tests/unit`
+   - For AGENTS: Don't generate them randomly, only generate the specific tests
+     you're asked for! Don't generate any other tests unless you're asked to.
+   - **Focus Areas**:
+     - Business logic and data transformations
+     - Utility functions and helpers
+     - Error handling scenarios with mocked responses
+     - Request payload formatting
 
-2. **Browser Component Tests** (Vitest - Browser Mode)
-   - Component integration tests in real browser
-   - Uses Playwright provider via `@vitest/browser-playwright`
-   - Location: `tests/browser/**/*.{test,spec}.ts`
-   - Run: `bun run test:browser`
+2. **Integration Tests** (Bun Test Runner with Real APIs)
+   - Tests against real external APIs (Clockify) with actual API keys
+   - Validates core API integration works correctly
+   - Uses environment variables for API credentials
+   - Location: `tests/integration/**/*.test.ts`
+   - Run: `bun test tests/integration`
+   - **Focus Areas**:
+     - Clockify API client functions with real API calls
+     - API key validation
+     - Workspace, client, and project fetching
+     - Summary and detailed report generation
+     - Real error responses from Clockify API
+   - **Note**: Requires `CLOCKIFY_TEST_API_KEY` and `CLOCKIFY_TEST_WORKSPACE_ID`
+     environment variables
 
 3. **E2E Tests** (Playwright - Full User Journeys)
    - Complete user workflows with real server + browser + database
    - Each test function gets isolated server instance with in-memory DB
+   - Tests full stack including UI, server functions, and database
    - Location: `tests/e2e/**/*.spec.ts`
    - Run: `bun run test:e2e`
 
@@ -81,12 +102,14 @@ calculations.
 
 ```json
 {
-  "test:unit": "vitest run --config vitest.config.ts --project unit",
-  "test:browser": "vitest --config=vitest.browser.config.ts",
+  "test:unit": "bun test tests/unit",
+  "test:unit:watch": "bun test --watch tests/unit",
+  "test:integration": "bun test tests/integration",
+  "test:integration:watch": "bun test --watch tests/integration",
   "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
   "test:e2e:ui": "playwright test --config tests/e2e/playwright.config.ts --ui",
   "test:e2e:debug": "playwright test --config tests/e2e/playwright.config.ts --debug",
-  "test:all": "npm run test:unit && npm run test:browser && npm run test:e2e",
+  "test:all": "bun test tests/unit && bun test tests/integration && bun run test:e2e",
   "e2e": "bun run test:e2e",
   "e2e:report": "playwright show-report reports/html"
 }
@@ -94,10 +117,15 @@ calculations.
 
 **Key Benefits:**
 
-- ✅ Maximum isolation (no state leakage between tests)
-- ✅ Fast execution (in-memory DB, Bun's fast startup)
-- ✅ High confidence (tests real APIs, auth flows, migrations)
-- ✅ Maintainable (black-box tests, no coupling to internals)
+- ✅ **Bun Test Runner**: Zero config, ultra-fast, built into Bun runtime
+- ✅ **Three-layer confidence**: Unit (mocked) → Integration (real APIs) → E2E
+  (full stack)
+- ✅ **Maximum isolation**: No state leakage between tests
+- ✅ **Fast execution**: Bun's fast startup, native mocking
+- ✅ **Real API validation**: Integration tests ensure Clockify API works
+  correctly
+- ✅ **Maintainable**: Clear separation between unit, integration, and E2E tests
+- ✅ **Simple stack**: Only Bun + Playwright, no Vitest/jsdom dependencies
 
 ---
 
@@ -605,7 +633,8 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 
 **Remaining:**
 
-- [ ] Manual refresh button for Clockify settings (timezone, weekStart) in settings page
+- [ ] Manual refresh button for Clockify settings (timezone, weekStart) in
+      settings page
 
 ### Phase 4: Caching Layer & Optimization
 
@@ -765,6 +794,7 @@ Types: feat, fix, refactor, docs, test, chore
 - [Weekly Table Layout](decisions/2025_10_31_weekly_table_layout.md)
 - [Initial Data Fetch Scope](decisions/2025_10_31_initial_data_fetch_scope.md)
 - [E2E Test Strategy](decisions/2025_11_13_e2e_test_strategy.md)
+- [Test Strategy Update - Bun Test Runner Integration](decisions/2025_11_19_test_strategy_update.md)
 
 ### Documentation
 
