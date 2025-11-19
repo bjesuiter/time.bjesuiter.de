@@ -181,21 +181,26 @@ Integration tests fill this gap:
 ```json
 {
   "test:unit": "bun test tests/unit",
-  "test:unit:watch": "bun test --watch tests/unit",
+  "testw:unit": "bun test --watch tests/unit",
   "test:integration": "bun test tests/integration",
-  "test:integration:watch": "bun test --watch tests/integration",
-  "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
-  "test:e2e:ui": "playwright test --config tests/e2e/playwright.config.ts --ui",
-  "test:e2e:debug": "playwright test --config tests/e2e/playwright.config.ts --debug",
+  "testw:integration": "bun test --watch tests/integration",
+  "test:e2e": "bunx playwright test --config tests/e2e/playwright.config.ts",
+  "test:e2e:ui": "bunx playwright test --config tests/e2e/playwright.config.ts --ui",
+  "test:e2e:debug": "bunx playwright test --config tests/e2e/playwright.config.ts --debug",
   "test:all": "bun test tests/unit && bun test tests/integration && bun run test:e2e",
   "e2e": "bun run test:e2e",
-  "e2e:report": "playwright show-report reports/html"
+  "e2e:report": "bunx playwright show-report reports/html"
 }
 ```
 
+**Script Naming Pattern:**
+- `test:*` - Run tests once in normal mode
+- `testw:*` - Run tests in watch mode (continuous)
+
 **Key Changes:**
 - `test:unit` now uses `bun test` instead of `vitest`
-- Added `test:integration` for real API tests
+- Watch mode uses `testw:unit` instead of `test:unit:watch`
+- Added `test:integration` and `testw:integration` for real API tests
 - Removed `test:browser` (browser testing done in E2E)
 - `test:all` now runs unit → integration → E2E
 

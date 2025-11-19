@@ -103,15 +103,15 @@ calculations.
 ```json
 {
   "test:unit": "bun test tests/unit",
-  "test:unit:watch": "bun test --watch tests/unit",
+  "testw:unit": "bun test --watch tests/unit",
   "test:integration": "bun test tests/integration",
-  "test:integration:watch": "bun test --watch tests/integration",
-  "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
-  "test:e2e:ui": "playwright test --config tests/e2e/playwright.config.ts --ui",
-  "test:e2e:debug": "playwright test --config tests/e2e/playwright.config.ts --debug",
+  "testw:integration": "bun test --watch tests/integration",
+  "test:e2e": "bunx playwright test --config tests/e2e/playwright.config.ts",
+  "test:e2e:ui": "bunx playwright test --config tests/e2e/playwright.config.ts --ui",
+  "test:e2e:debug": "bunx playwright test --config tests/e2e/playwright.config.ts --debug",
   "test:all": "bun test tests/unit && bun test tests/integration && bun run test:e2e",
   "e2e": "bun run test:e2e",
-  "e2e:report": "playwright show-report reports/html"
+  "e2e:report": "bunx playwright show-report reports/html"
 }
 ```
 
