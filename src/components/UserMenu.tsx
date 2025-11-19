@@ -43,6 +43,7 @@ export function UserMenu({ user }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
         aria-label="User menu"
+        data-testid="user-menu-button"
       >
         {user.image ? (
           <img
@@ -83,6 +84,7 @@ export function UserMenu({ user }: UserMenuProps) {
               to="/settings"
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              data-testid="user-menu-settings-link"
             >
               <Settings className="w-4 h-4" />
               Settings
@@ -91,6 +93,7 @@ export function UserMenu({ user }: UserMenuProps) {
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              data-testid="user-menu-sign-out-button"
             >
               <LogOut className="w-4 h-4" />
               Sign Out

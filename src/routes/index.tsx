@@ -76,7 +76,7 @@ function DashboardView() {
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900" data-testid="dashboard-heading">Dashboard</h1>
           <Sparkles className="w-6 h-6 text-yellow-500" />
         </div>
 
@@ -87,7 +87,7 @@ function DashboardView() {
               <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-10 h-10 text-indigo-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              <h2 className="text-2xl font-bold text-gray-900 mb-3" data-testid="dashboard-welcome-message">
                 Welcome to Your Dashboard
               </h2>
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
@@ -95,7 +95,7 @@ function DashboardView() {
                 more features to help you visualize your productivity.
               </p>
 
-              <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto">
+              <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto" data-testid="dashboard-coming-soon-section">
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-white rounded-lg shadow-sm">
                     <Rocket className="w-5 h-5 text-blue-600" />
@@ -160,16 +160,19 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
               icon={<BarChart3 className="w-8 h-8 text-indigo-600" />}
               title="Clockify Integration"
               description="Seamlessly syncs with your existing Clockify data. No migration needed."
+              dataTestId="landingpage-feature-clockify"
             />
             <FeatureCard
               icon={<Calendar className="w-8 h-8 text-purple-600" />}
               title="Weekly Summaries"
               description="Beautiful, easy-to-read breakdowns of your weekly time investments."
+              dataTestId="landingpage-feature-weekly-summaries"
             />
             <FeatureCard
               icon={<Target className="w-8 h-8 text-pink-600" />}
               title="Overtime Tracking"
               description="Keep tabs on those extra hours and maintain a healthy work-life balance."
+              dataTestId="landingpage-feature-overtime"
             />
           </div>
         </div>
@@ -218,6 +221,7 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
               <Link
                 to="/signup"
                 className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                data-testid="landingpage-create-account-link"
               >
                 Create an account
               </Link>
@@ -225,6 +229,7 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
             <Link
               to="/registerAdmin"
               className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              data-testid="landingpage-admin-registration-link"
             >
               Admin Registration
             </Link>
@@ -239,13 +244,15 @@ function FeatureCard({
   icon,
   title,
   description,
+  dataTestId,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
+  dataTestId?: string;
 }) {
   return (
-    <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md" data-testid={dataTestId}>
       <div className="bg-gray-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
         {icon}
       </div>

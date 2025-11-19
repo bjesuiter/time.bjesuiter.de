@@ -130,7 +130,7 @@ function SignUpPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="signup-heading">
             Create Account
           </h1>
           <p className="text-gray-600">
@@ -143,7 +143,7 @@ function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* General Error */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3" data-testid="signup-general-error">
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-800">{errors.general}</p>
               </div>
@@ -171,10 +171,11 @@ function SignUpPage() {
                   autoComplete='username'
                   placeholder="John Doe"
                   disabled={isLoading}
+                  data-testid="signup-name-input"
                 />
               </div>
               {errors.name && (
-                <p className="mt-1.5 text-sm text-red-600">{errors.name}</p>
+                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-name-error">{errors.name}</p>
               )}
             </div>
 
@@ -204,10 +205,11 @@ function SignUpPage() {
                   autoComplete='email'
                   disabled={isLoading}
                   required
+                  data-testid="signup-email-input"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
+                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-email-error">{errors.email}</p>
               )}
             </div>
 
@@ -237,10 +239,11 @@ function SignUpPage() {
                   autoComplete='new-password'
                   disabled={isLoading}
                   required
+                  data-testid="signup-password-input"
                 />
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-sm text-red-600">{errors.password}</p>
+                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-password-error">{errors.password}</p>
               )}
             </div>
 
@@ -270,10 +273,11 @@ function SignUpPage() {
                   disabled={isLoading}
                   autoComplete='new-password'
                   required
+                  data-testid="signup-confirm-password-input"
                 />
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1.5 text-sm text-red-600">
+                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-confirm-password-error">
                   {errors.confirmPassword}
                 </p>
               )}
@@ -284,6 +288,7 @@ function SignUpPage() {
               type="submit"
               disabled={isLoading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              data-testid="signup-submit-button"
             >
               {isLoading ? (
                 <>

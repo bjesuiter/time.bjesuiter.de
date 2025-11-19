@@ -33,6 +33,7 @@ export function Toolbar({ user }: ToolbarProps) {
                 activeProps={{
                   className: "text-sm font-medium text-indigo-600",
                 }}
+                data-testid="toolbar-dashboard-link"
               >
                 Dashboard
               </Link>
@@ -42,6 +43,7 @@ export function Toolbar({ user }: ToolbarProps) {
                 activeProps={{
                   className: "text-sm font-medium text-indigo-600",
                 }}
+                data-testid="toolbar-settings-link"
               >
                 Settings
               </Link>
@@ -57,6 +59,7 @@ export function Toolbar({ user }: ToolbarProps) {
                 <Link
                   to="/signin"
                   className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors px-3 py-2"
+                  data-testid="toolbar-signin-link"
                 >
                   Sign In
                 </Link>

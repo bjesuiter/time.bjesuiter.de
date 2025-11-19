@@ -37,7 +37,7 @@ function RegisterAdminPage() {
           <div className="flex justify-center mb-4">
             <UserPlus className="w-16 h-16 text-slate-700" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="admin-registration-heading">
             Admin Registration
           </h1>
           <p className="text-gray-600">Automated admin user setup</p>
@@ -48,7 +48,7 @@ function RegisterAdminPage() {
           {data.success ? (
             // Success State
             <div className="space-y-6">
-              <div className="flex items-start gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start gap-4 p-4 bg-green-50 border border-green-200 rounded-lg" data-testid="admin-registration-success-message">
                 <CheckCircle className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-green-900 mb-1">
@@ -74,6 +74,7 @@ function RegisterAdminPage() {
                 <Link
                   to="/signin"
                   className="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                  data-testid="admin-registration-go-to-signin-button"
                 >
                   Go to Sign In
                 </Link>
@@ -82,7 +83,7 @@ function RegisterAdminPage() {
           ) : (
             // Error/Info State
             <div className="space-y-6">
-              <div className="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg" data-testid="admin-registration-error-message">
                 <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-amber-900 mb-1">
@@ -112,6 +113,7 @@ function RegisterAdminPage() {
                     to="/registerAdmin"
                     search={{ force: true }}
                     className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                    data-testid="admin-registration-force-re-register-button"
                   >
                     Force Re-register
                   </Link>
@@ -122,6 +124,7 @@ function RegisterAdminPage() {
                 <Link
                   to="/"
                   className="block w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                  data-testid="admin-registration-go-to-home-button"
                 >
                   Go to Home
                 </Link>
