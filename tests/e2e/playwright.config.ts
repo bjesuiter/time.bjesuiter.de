@@ -86,7 +86,9 @@ export default defineConfig({
   testIgnore: [
     "**/node_modules/**",
     "**/dist/**",
-    "**/.next/**",
+    "**/.tanstack/**",
+    "**/.vscode/**",
+    "**/reports/**",
   ],
 
   // Output directory for test artifacts
