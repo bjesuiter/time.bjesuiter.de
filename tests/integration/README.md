@@ -19,8 +19,8 @@ Use a test workspace only - never production data.
 # All integration tests
 bun test tests/integration
 
-# Specific test file
-bun test tests/integration/clockify-api.test.ts
+# Specific test file (for example)
+bun test tests/integration/clockify-api/validateApiKey.test.ts
 
 # Watch mode
 bun test --watch tests/integration
@@ -29,6 +29,7 @@ bun test --watch tests/integration
 ## Coverage
 
 Tests all Clockify API functions with real API calls:
+
 - API key validation
 - Workspaces, clients, projects
 - Summary and detailed reports
@@ -39,9 +40,10 @@ Tests all Clockify API functions with real API calls:
 - Read-only operations
 - Independent tests
 - Clear test names
+- **Streamlined testing**: API key validation only tested in `validateApiKey`
+  (not repeated for each function)
 
 ## Troubleshooting
 
-**401 errors**: Check API key validity and permissions
-**404 errors**: Verify workspace ID exists
-**Rate limiting**: Run tests less frequently
+**401 errors**: Check API key validity and permissions **404 errors**: Verify
+workspace ID exists **Rate limiting**: Run tests less frequently
