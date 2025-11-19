@@ -87,23 +87,29 @@ this template:
 
 ### Summary Documentation Location
 
-**All summary markdown files must be written to the `agent/` directory**, not anywhere else in the codebase. This includes:
+**All summary markdown files must be written to the `agent/summaries`
+directory**, not anywhere else in the codebase. This includes:
+
 - Implementation summaries
-- Test strategy documents  
+- Test strategy documents
 - Architecture decision summaries
 - Project milestone summaries
 
-The `agent/` directory is the designated location for all agent-generated documentation to maintain consistency and discoverability.
+The `agent/` directory is the designated location for all agent-generated
+documentation to maintain consistency and discoverability.
 
 ### Temporary Files
 
-**If the agent needs temporary files, store them in `agent/tmp/`**. This directory is designated for:
+**If the agent needs temporary files, store them in `agent/tmp/`**. This
+directory is designated for:
+
 - Temporary data files
 - Intermediate processing results
 - Scratch files during development
 - Any files that don't need to be committed to version control
 
-The `agent/tmp/` directory should be cleaned up regularly and its contents should not be relied upon for long-term storage.
+The `agent/tmp/` directory should be cleaned up regularly and its contents
+should not be relied upon for long-term storage.
 
 ### Keep ARCHITECTURE.md Concise
 
@@ -119,22 +125,25 @@ specifics into separate decision files in `agent/decisions/`.
 
 When you need to search for library documentation, use the `context7` tools:
 
-1. **Resolve library ID first**: Use `context7_resolve-library-id` to get the correct Context7-compatible library ID
+1. **Resolve library ID first**: Use `context7_resolve-library-id` to get the
+   correct Context7-compatible library ID
 2. **Fetch documentation**: Use `context7_get-library-docs` with the resolved ID
 
 Example workflow:
+
 ```typescript
 // First resolve the library name to get the proper ID
-const libraryId = await context7_resolve-library_id("react-query");
+const libraryId = await context7_resolve - library_id("react-query");
 
 // Then fetch the documentation
-const docs = await context7_get-library-docs(libraryId, {
-  topic: "hooks",
-  tokens: 5000
+const docs = await context7_get - library - docs(libraryId, {
+    topic: "hooks",
+    tokens: 5000,
 });
 ```
 
-Always resolve the library ID first unless you already have the exact Context7-compatible format (e.g., `/tanstack/query`).
+Always resolve the library ID first unless you already have the exact
+Context7-compatible format (e.g., `/tanstack/query`).
 
 ---
 
@@ -307,14 +316,17 @@ src/
 
 ### Where to Place New Code
 
-- **Server functions** → `src/server/` (organize by domain, e.g., `userServerFns.ts`, `clockifyServerFns.ts`)
+- **Server functions** → `src/server/` (organize by domain, e.g.,
+  `userServerFns.ts`, `clockifyServerFns.ts`)
 - **Database schemas** → `src/db/schema/` (one file per domain)
 - **API endpoints** → `src/routes/api/`
 - **Shared utilities** → `src/lib/`
 - **React components** → `src/components/` (organize by feature)
 - **Types** → Co-locate with usage or `src/types/` for shared types
 
-**Important**: If your code needs to import `envStore`, `db`, `auth`, or other server-only modules, it MUST go in `src/server/`. Never import these directly in route files.
+**Important**: If your code needs to import `envStore`, `db`, `auth`, or other
+server-only modules, it MUST go in `src/server/`. Never import these directly in
+route files.
 
 ---
 
@@ -414,7 +426,9 @@ Environment variables are validated using Zod in `src/lib/env/envStore.ts`:
 ```typescript
 export const envStore = z.object({
     DATABASE_URL: z.string(),
-    ALLOW_USER_SIGNUP: z.enum(["true", "false"]).default("false").transform((val) => val === "true"),
+    ALLOW_USER_SIGNUP: z.enum(["true", "false"]).default("false").transform((
+        val,
+    ) => val === "true"),
     ADMIN_EMAIL: z.email(),
     ADMIN_LABEL: z.string(),
     ADMIN_PASSWORD: z.string(),
@@ -441,14 +455,15 @@ export const envStore = z.object({
 
 #### ✅ Correct Pattern: Server Functions in `src/server/`
 
-Create server functions in `src/server/` and import server-only modules at the top level:
+Create server functions in `src/server/` and import server-only modules at the
+top level:
 
 ```typescript
 // src/server/myServerFns.ts
 import { createServerFn } from "@tanstack/react-start";
-import { envStore } from "@/lib/env/envStore";  // ✅ Safe - server-only file
-import { db } from "@/db";                       // ✅ Safe - server-only file
-import { auth } from "@/lib/auth/auth";          // ✅ Safe - server-only file
+import { envStore } from "@/lib/env/envStore"; // ✅ Safe - server-only file
+import { db } from "@/db"; // ✅ Safe - server-only file
+import { auth } from "@/lib/auth/auth"; // ✅ Safe - server-only file
 
 export const myServerFunction = createServerFn({ method: "POST" })
     .inputValidator((data: MyType) => data)
@@ -457,7 +472,7 @@ export const myServerFunction = createServerFn({ method: "POST" })
         if (!envStore.SOME_SETTING) {
             throw new Error("Setting disabled");
         }
-        
+
         const result = await db.query.myTable.findFirst();
         return result;
     });
@@ -467,44 +482,46 @@ Then import and use in route files:
 
 ```typescript
 // src/routes/myroute.tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { myServerFunction } from '@/server/myServerFns'  // ✅ Safe - imports server function only
+import { createFileRoute } from "@tanstack/react-router";
+import { myServerFunction } from "@/server/myServerFns"; // ✅ Safe - imports server function only
 
-export const Route = createFileRoute('/myroute')({
-  loader: async () => {
-    return await myServerFunction({ data: { /* ... */ } })
-  },
-  component: MyComponent,
-})
+export const Route = createFileRoute("/myroute")({
+    loader: async () => {
+        return await myServerFunction({ data: {/* ... */} });
+    },
+    component: MyComponent,
+});
 ```
 
 #### ❌ Incorrect Pattern: Direct Imports in Route Files
 
 ```typescript
 // ❌ DON'T DO THIS
-import { createFileRoute } from '@tanstack/react-router'
-import { envStore } from '@/lib/env/envStore'  // ❌ Will run on client!
-import { db } from '@/db'                       // ❌ Will run on client!
+import { createFileRoute } from "@tanstack/react-router";
+import { envStore } from "@/lib/env/envStore"; // ❌ Will run on client!
+import { db } from "@/db"; // ❌ Will run on client!
 
-export const Route = createFileRoute('/myroute')({
-  loader: async () => {
-    // Even though this runs server-side, the imports above
-    // are evaluated when the module loads on the client!
-    return { data: envStore.SOME_VALUE }
-  },
-})
+export const Route = createFileRoute("/myroute")({
+    loader: async () => {
+        // Even though this runs server-side, the imports above
+        // are evaluated when the module loads on the client!
+        return { data: envStore.SOME_VALUE };
+    },
+});
 ```
 
 #### Why This Matters
 
-TanStack Start uses code splitting and bundles route files for both client and server. When you import a module at the top level:
+TanStack Start uses code splitting and bundles route files for both client and
+server. When you import a module at the top level:
 
 1. The import runs when the module loads
 2. Route modules load on BOTH client and server
 3. Server-only modules (envStore, db, auth) fail in the browser
 4. Result: Runtime errors about undefined `process.env`
 
-By isolating server-only imports to `src/server/` files, we ensure they never get bundled for the client.
+By isolating server-only imports to `src/server/` files, we ensure they never
+get bundled for the client.
 
 ### Server-Only Modules List
 
