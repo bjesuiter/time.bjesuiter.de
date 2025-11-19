@@ -1,3 +1,8 @@
 # Explicitly allow cursor access to the reports folder
 !reports/
+
+# Explicitly allow cursor access to the playwright-mcp folder for accessing screenshots and e2e test data
 !.playwright-mcp/
+
+# Explicitly allow cursor full access to the agent folder
+!agent

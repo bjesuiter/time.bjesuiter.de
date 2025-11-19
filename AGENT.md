@@ -85,6 +85,26 @@ this template:
 - `2025_10_31_eventsourcingdb_vs_sqlite.md`
 - `2025_11_15_api_rate_limiting_strategy.md`
 
+### Summary Documentation Location
+
+**All summary markdown files must be written to the `agent/` directory**, not anywhere else in the codebase. This includes:
+- Implementation summaries
+- Test strategy documents  
+- Architecture decision summaries
+- Project milestone summaries
+
+The `agent/` directory is the designated location for all agent-generated documentation to maintain consistency and discoverability.
+
+### Temporary Files
+
+**If the agent needs temporary files, store them in `agent/tmp/`**. This directory is designated for:
+- Temporary data files
+- Intermediate processing results
+- Scratch files during development
+- Any files that don't need to be committed to version control
+
+The `agent/tmp/` directory should be cleaned up regularly and its contents should not be relied upon for long-term storage.
+
 ### Keep ARCHITECTURE.md Concise
 
 The `agent/ARCHITECTURE.md` file should remain a high-level overview. Move
