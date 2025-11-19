@@ -19,8 +19,9 @@ const db = drizzle(dbPath, {
     },
 });
 
-// Only Prod & Testing: Run migrations at module initialization
-if (envStore.ENVIRONMENT === "prod" || envStore.ENVIRONMENT === "test") {
+// Only if not running in dev mode: Run migrations at module initialization
+// Dev mode: the default bun dev command
+if (envStore.ENVIRONMENT !== "dev") {
     console.log("Migrating database...");
     await migrate(db, { migrationsFolder: "./drizzle" });
     console.log("Database migrated successfully");
