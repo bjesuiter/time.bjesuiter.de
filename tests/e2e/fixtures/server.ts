@@ -38,7 +38,7 @@ export const test = base.extend<ServerFixtures>({
         // Admin credentials for tests
         ADMIN_EMAIL: "admin@test.com",
         ADMIN_LABEL: "Test Admin",
-        ADMIN_PASSWORD: "test123",
+        ADMIN_PASSWORD: "test1234",
       },
       stdio: "pipe",
     });
