@@ -175,3 +175,92 @@ export interface ClockifyError {
 export type ClockifyResult<T> =
   | { success: true; data: T }
   | { success: false; error: ClockifyError };
+
+/**
+ * Summary Report API Types
+ */
+
+/**
+ * Request body for Clockify Summary Report API
+ * Endpoint: POST /workspaces/{workspaceId}/reports/summary
+ */
+export interface ClockifySummaryReportRequest {
+  dateRangeStart: string; // ISO 8601 format: "2024-01-01T00:00:00.000Z"
+  dateRangeEnd: string; // ISO 8601 format: "2024-01-31T23:59:59.999Z"
+  summaryFilter: {
+    groups: string[]; // e.g., ["DATE"], ["PROJECT"], ["DATE", "PROJECT"]
+  };
+  clients?: {
+    ids: string[];
+    contains: "CONTAINS" | "DOES_NOT_CONTAIN";
+  };
+  projects?: {
+    ids: string[];
+    contains: "CONTAINS" | "DOES_NOT_CONTAIN";
+  };
+  exportType?: string; // e.g., "JSON"
+}
+
+/**
+ * Response from Clockify Summary Report API
+ */
+export interface ClockifySummaryReportResponse {
+  groupOne: ClockifySummaryReportGroup[];
+  totals: Array<{
+    totalTime: number; // Total duration in milliseconds
+    totalAmount: number;
+    entriesCount: number;
+  }>;
+}
+
+/**
+ * A single group in the summary report (can represent DATE, PROJECT, etc.)
+ */
+export interface ClockifySummaryReportGroup {
+  _id: string; // Date string (when grouped by DATE) or Project ID (when grouped by PROJECT)
+  name: string; // Formatted date string or Project name
+  duration: number; // Duration in milliseconds
+  amount: number;
+  children?: ClockifySummaryReportGroup[]; // Nested groups (e.g., projects within a date)
+}
+
+/**
+ * Weekly Time Report API Types
+ */
+
+/**
+ * Input parameters for getWeeklyTimeReport function
+ */
+export interface WeeklyTimeReportInput {
+  workspaceId: string;
+  clientId: string;
+  projectIds: string[]; // Array of tracked project IDs
+  startDate: string; // ISO 8601 format: "2025-11-18T00:00:00.000Z"
+  endDate: string; // ISO 8601 format: "2025-11-24T23:59:59.999Z"
+}
+
+/**
+ * Output from getWeeklyTimeReport function
+ */
+export interface WeeklyTimeReportOutput {
+  dailyBreakdown: Record<string, DailyBreakdown>; // Key: date in YYYY-MM-DD format
+}
+
+/**
+ * Time data for a single day
+ */
+export interface DailyBreakdown {
+  date: string; // Date in YYYY-MM-DD format (e.g., "2025-11-18")
+  trackedProjects: Record<string, ProjectTime>; // Key: projectId
+  totalSeconds: number; // Total time logged for all projects on this day
+  extraWorkSeconds: number; // Difference: totalSeconds - sum of tracked projects
+}
+
+/**
+ * Time data for a specific project
+ */
+export interface ProjectTime {
+  projectId: string;
+  projectName: string;
+  seconds: number;
+}
