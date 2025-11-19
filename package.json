@@ -21,7 +21,8 @@
     "dbgenerate": "bunx drizzle-kit generate",
     "dbseed": "bunx drizzle-seed",
     "dbstudio": "bunx drizzle-kit studio",
-    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts"
+    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
+    "pg": "bun ./playground/clockify-api.bun.ts"
   },
   "dependencies": {
     "@tanstack/react-devtools": "^0.8.1",
