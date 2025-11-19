@@ -74,25 +74,85 @@ function App() {
             </div>
           ) : (
             // Signed Out View
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-white rounded-lg shadow-xl p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Get Started</h2>
-                <p className="text-gray-600 mb-6">
-                  Sign in to access your time tracking dashboard or create a new account.
-                </p>
-                <div className="flex gap-3">
-                  <Link
-                    to="/signin"
-                    className="text-white bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 rounded-md px-4 py-2 transition-colors"
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-lg shadow-xl p-12">
+                {/* Hero Section */}
+                <div className="text-center mb-8">
+                  <h2 className="text-5xl font-bold text-gray-900 mb-4">
+                    ⏰ Time Tracking, But Make It Fun! ⏱️
+                  </h2>
+                  <p className="text-xl text-indigo-600 font-semibold mb-6">
+                    My personal Clockify-powered dashboard (with extra sparkle ✨)
+                  </p>
+                </div>
+
+                {/* Features Description */}
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 mb-8">
+                  <div className="grid md:grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-3xl mb-2">📊</div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Clockify Integration</h3>
+                      <p className="text-sm text-gray-600">Seamlessly sync with your Clockify data</p>
+                    </div>
+                    <div>
+                      <div className="text-3xl mb-2">📅</div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Weekly Summaries</h3>
+                      <p className="text-sm text-gray-600">Beautiful weekly time breakdowns</p>
+                    </div>
+                    <div>
+                      <div className="text-3xl mb-2">🎯</div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Overtime Tracking</h3>
+                      <p className="text-sm text-gray-600">Keep tabs on those extra hours</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                <div className="flex justify-center gap-4 mb-8">
+                  <a
+                    href="https://bsky.app/profile/codemonument.bsky.social"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
                   >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="text-indigo-600 bg-white hover:bg-indigo-50 border border-indigo-600 rounded-md px-4 py-2 transition-colors"
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                    </svg>
+                    <span className="font-semibold">Find me on Bluesky</span>
+                  </a>
+                  <a
+                    href="https://blog.codemonument.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
                   >
-                    Sign Up
-                  </Link>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span className="font-semibold">Read my blog</span>
+                  </a>
+                </div>
+
+                {/* Call to Action */}
+                <div className="border-t border-gray-200 pt-8">
+                  <p className="text-center text-gray-700 mb-4 text-lg">
+                    Ready to track some time? ☕ Let's get started!
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Link
+                      to="/signin"
+                      className="text-white bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 rounded-lg px-8 py-3 text-lg font-semibold transition-all hover:scale-105 shadow-md hover:shadow-lg"
+                    >
+                      Sign In →
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="text-indigo-600 bg-white hover:bg-indigo-50 border-2 border-indigo-600 rounded-lg px-8 py-3 text-lg font-semibold transition-all hover:scale-105 shadow-md hover:shadow-lg"
+                    >
+                      Create Account 🚀
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
