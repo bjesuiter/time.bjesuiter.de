@@ -13,13 +13,13 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await page.waitForLoadState("networkidle");
 
     // Fill out the signup form
-    await page.fill("#name", testUser.name);
-    await page.fill("#email", testUser.email);
-    await page.fill("#password", testUser.password);
-    await page.fill("#confirmPassword", testUser.password);
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
 
     // Submit the form
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for navigation to complete
     await page.waitForLoadState("networkidle", { timeout: 5000 });
@@ -34,9 +34,9 @@ test.describe("Dashboard and Authenticated User Experience", () => {
       await page.waitForLoadState("networkidle");
 
       // Sign in with the created user
-      await page.fill("#email", testUser.email);
-      await page.fill("#password", testUser.password);
-      await page.click('button[type="submit"]');
+      await page.getByTestId("signin-email-input").fill(testUser.email);
+      await page.getByTestId("signin-password-input").fill(testUser.password);
+      await page.getByTestId("signin-submit-button").click();
       await page.waitForLoadState("networkidle");
     } else {
       // Wait a bit more to ensure dashboard is loaded
@@ -46,10 +46,10 @@ test.describe("Dashboard and Authenticated User Experience", () => {
 
   test("dashboard displays correctly for authenticated users", async ({page,}) => {
     // Check dashboard heading
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
 
     // Check welcome message
-    await expect(page.locator("h2")).toContainText("Welcome to Your Dashboard");
+    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
 
     // Check description text
     await expect(page.locator("p.text-gray-600")).toContainText(
@@ -57,7 +57,7 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     );
 
     // Check coming soon section
-    await expect(page.locator("text=Coming Soon: Phase 2")).toBeVisible();
+    await expect(page.getByTestId("dashboard-coming-soon-section")).toBeVisible();
     await expect(
       page.locator("text=detailed weekly time summaries"),
     ).toBeVisible();
@@ -65,17 +65,17 @@ test.describe("Dashboard and Authenticated User Experience", () => {
 
   test("user menu is visible and functional", async ({ page }) => {
     // Check user menu button exists
-    const userMenuButton = page.locator('button[aria-label="User menu"]');
+    const userMenuButton = page.getByTestId("user-menu-button");
     await expect(userMenuButton).toBeVisible();
 
     // Click user menu
     await userMenuButton.click();
 
     // Check menu items
-    await expect(page.locator('button:has-text("Sign out")')).toBeVisible();
+    await expect(page.getByTestId("user-menu-sign-out-button")).toBeVisible();
 
     // Test sign out
-    await page.click('button:has-text("Sign out")');
+    await page.getByTestId("user-menu-sign-out-button").click();
     await page.waitForLoadState("networkidle");
 
     // Should be redirected to landing page
@@ -88,7 +88,7 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await expect(toolbar).toBeVisible();
 
     // Check user menu button in toolbar
-    const userMenuButton = page.locator('button[aria-label="User menu"]');
+    const userMenuButton = page.getByTestId("user-menu-button");
     await expect(userMenuButton).toBeVisible();
   });
 
@@ -116,22 +116,22 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1")).toContainText("Dashboard");
-    await expect(page.locator("h2")).toContainText("Welcome to Your Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
 
     // Test tablet view
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
 
     // Test desktop view
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
   });
 
   test("authenticated user can access signup page", async ({page,serverUrl,}) => {
@@ -144,7 +144,7 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     expect(currentUrl).toContain("/signup");
 
     // Should see signup form
-    await expect(page.locator("h1")).toContainText("Create Account");
+    await expect(page.getByTestId("signup-heading")).toBeVisible();
   });
 
   test("authenticated user can access signin page", async ({page,serverUrl,}) => {
@@ -157,7 +157,7 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     expect(currentUrl).toContain("/signin");
 
     // Should see signin form
-    await expect(page.locator("h1")).toContainText("Welcome Back");
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
   });
 
   test("session persists across page reloads", async ({ page }) => {
@@ -166,11 +166,11 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await page.waitForLoadState("networkidle");
 
     // Should still see dashboard (session persisted)
-    await expect(page.locator("h1")).toContainText("Dashboard");
-    await expect(page.locator("h2")).toContainText("Welcome to Your Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
 
     // User menu should still be visible
-    const userMenuButton = page.locator('button[aria-label="User menu"]');
+    const userMenuButton = page.getByTestId("user-menu-button");
     await expect(userMenuButton).toBeVisible();
   });
 
@@ -190,7 +190,7 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     expect(errors).toHaveLength(0);
 
     // Check that all expected content loaded
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
     await expect(page.locator(".bg-white.rounded-xl")).toBeVisible();
   });
 

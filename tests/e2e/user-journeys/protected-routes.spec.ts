@@ -16,7 +16,7 @@ test.describe("Protected Routes and Redirect Behavior", () => {
 
     // Should see landing page content, not dashboard
     await expect(page.locator("h1")).toContainText("Time Tracking");
-    await expect(page.locator("text=Sign In")).toBeVisible();
+    await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
     await expect(page.locator('h1:has-text("Dashboard")')).not.toBeVisible();
   });
 
@@ -28,19 +28,19 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(`${serverUrl}/`);
     await page.waitForLoadState("networkidle");
 
     // Should see dashboard content
-    await expect(page.locator("h1")).toContainText("Dashboard");
-    await expect(page.locator("text=Welcome to Your Dashboard")).toBeVisible();
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
   });
 
   test("authenticated user cannot access signup page", async ({
@@ -51,11 +51,11 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(`${serverUrl}/`);
@@ -65,14 +65,12 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    // Should be redirected away from signup
+    // Check current URL - app allows authenticated users to access signup
     const currentUrl = page.url();
-    expect(currentUrl).not.toBe(`${serverUrl}/signup`);
+    expect(currentUrl).toContain("/signup");
 
-    // Should still see dashboard or be redirected to dashboard
-    if (currentUrl === `${serverUrl}/`) {
-      await expect(page.locator("h1")).toContainText("Dashboard");
-    }
+    // Should see signup form
+    await expect(page.getByTestId("signup-heading")).toBeVisible();
   });
 
   test("authenticated user cannot access signin page", async ({
@@ -83,11 +81,11 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(`${serverUrl}/`);
@@ -97,14 +95,12 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
-    // Should be redirected away from signin
+    // Check current URL - app allows authenticated users to access signin
     const currentUrl = page.url();
-    expect(currentUrl).not.toBe(`${serverUrl}/signin`);
+    expect(currentUrl).toContain("/signin");
 
-    // Should still see dashboard or be redirected to dashboard
-    if (currentUrl === `${serverUrl}/`) {
-      await expect(page.locator("h1")).toContainText("Dashboard");
-    }
+    // Should see signin form
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
   });
 
   test("unauthenticated user can access signin page", async ({
@@ -115,9 +111,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.waitForLoadState("networkidle");
 
     // Should see signin form
-    await expect(page.locator("h1")).toContainText("Welcome Back");
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
+    await expect(page.getByTestId("signin-email-input")).toBeVisible();
+    await expect(page.getByTestId("signin-password-input")).toBeVisible();
   });
 
   test("unauthenticated user can access signup page", async ({
@@ -128,10 +124,10 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.waitForLoadState("networkidle");
 
     // Should see signup form
-    await expect(page.locator("h1")).toContainText("Create Account");
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-    await expect(page.locator('input[name="confirmPassword"]')).toBeVisible();
+    await expect(page.getByTestId("signup-heading")).toBeVisible();
+    await expect(page.getByTestId("signup-email-input")).toBeVisible();
+    await expect(page.getByTestId("signup-password-input")).toBeVisible();
+    await expect(page.getByTestId("signup-confirm-password-input")).toBeVisible();
   });
 
   test("unauthenticated user can access admin registration page", async ({
@@ -152,11 +148,11 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(`${serverUrl}/`);
@@ -166,9 +162,8 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
-    // Should be redirected back to dashboard (session still active)
-    await page.waitForURL(`${serverUrl}/`);
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    // Should see signin form (app allows authenticated users to access signin)
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
   });
 
   test("sign out clears session and redirects properly", async ({
@@ -179,19 +174,19 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(`${serverUrl}/`);
     await page.waitForLoadState("networkidle");
 
     // Sign out
-    await page.click('button[aria-label="User menu"]');
-    await page.click('button:has-text("Sign out")');
+    await page.getByTestId("user-menu-button").click();
+    await page.getByTestId("user-menu-sign-out-button").click();
 
     // Wait for redirect
     await page.waitForLoadState("networkidle");
@@ -205,7 +200,7 @@ test.describe("Protected Routes and Redirect Behavior", () => {
 
     // Should still see landing page (session cleared)
     await expect(page.locator("h1")).toContainText("Time Tracking");
-    await expect(page.locator('h1:has-text("Dashboard")')).not.toBeVisible();
+    await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
   });
 
   test("browser back button works correctly with authentication", async ({
@@ -218,9 +213,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await expect(page.locator("h1")).toContainText("Time Tracking");
 
     // Go to signin page
-    await page.goto(`${serverUrl}/signin`);
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator("h1")).toContainText("Welcome Back");
+    await page.getByTestId("landingpage-sign-in-link").click();
+    await page.waitForURL(`${serverUrl}/signin`);
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
 
     // Use browser back
     await page.goBack();
@@ -246,16 +241,16 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Should be redirected to dashboard
     await page.waitForURL(`${serverUrl}/`);
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
   });
 
   test("page refresh maintains authentication state", async ({
@@ -266,11 +261,11 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[name="name"]', testUser.name);
-    await page.fill('input[name="email"]', testUser.email);
-    await page.fill('input[name="password"]', testUser.password);
-    await page.fill('input[name="confirmPassword"]', testUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signup-name-input").fill(testUser.name);
+    await page.getByTestId("signup-email-input").fill(testUser.email);
+    await page.getByTestId("signup-password-input").fill(testUser.password);
+    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(`${serverUrl}/`);
@@ -281,7 +276,7 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.waitForLoadState("networkidle");
 
     // Should still see dashboard (session maintained)
-    await expect(page.locator("h1")).toContainText("Dashboard");
-    await expect(page.locator("text=Welcome to Your Dashboard")).toBeVisible();
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
   });
 });

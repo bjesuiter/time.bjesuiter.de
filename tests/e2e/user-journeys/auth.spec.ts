@@ -19,26 +19,26 @@ test.describe("Authentication Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check sign in form is present
-    await expect(page.locator("h1")).toContainText("Welcome Back");
-    await expect(page.locator('input[type="email"]')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
+    await expect(page.getByTestId("signin-email-input")).toBeVisible();
+    await expect(page.getByTestId("signin-password-input")).toBeVisible();
 
     // Fill out sign in form with admin credentials
-    await page.fill('input[type="email"]', adminUser.email);
-    await page.fill('input[type="password"]', adminUser.password);
+    await page.getByTestId("signin-email-input").fill(adminUser.email);
+    await page.getByTestId("signin-password-input").fill(adminUser.password);
 
     // Submit sign in form
     await Promise.all([
       page.waitForURL(`${serverUrl}/`),
-      page.click('button[type="submit"]'),
+      page.getByTestId("signin-submit-button").click(),
     ]);
 
     // Check that we're signed in
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
 
     // Test sign out
-    await page.click('button[aria-label="User menu"]');
-    await page.click('button:has-text("Sign out")');
+    await page.getByTestId("user-menu-button").click();
+    await page.getByTestId("user-menu-sign-out-button").click();
 
     // Wait for redirect to home page
     await page.waitForURL(`${serverUrl}/`);
@@ -69,15 +69,15 @@ test.describe("Authentication Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Try to sign in with invalid credentials
-    await page.fill('input[type="email"]', "invalid@example.com");
-    await page.fill('input[type="password"]', "wrongpassword");
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signin-email-input").fill("invalid@example.com");
+    await page.getByTestId("signin-password-input").fill("wrongpassword");
+    await page.getByTestId("signin-submit-button").click();
 
     // Should show error message
     await expect(page.locator("text=Invalid email or password")).toBeVisible();
 
     // Should still be on sign in page
-    await expect(page.locator("h1")).toContainText("Welcome Back");
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
   });
 
   test("navigation links work correctly", async ({ page, serverUrl }) => {
@@ -86,9 +86,9 @@ test.describe("Authentication Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Click sign in link
-    await page.click('a:has-text("Sign In")');
+    await page.getByTestId("landingpage-sign-in-link").click();
     await page.waitForURL(`${serverUrl}/signin`);
-    await expect(page.locator("h1")).toContainText("Welcome Back");
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
 
     // Click back to sign in link (from signup page)
     await page.goto(`${serverUrl}/signup`);
@@ -112,7 +112,7 @@ test.describe("Authentication Flow", () => {
     // Go back to signin
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("h1")).toContainText("Welcome Back");
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
   });
 
   test("session persists across page reloads", async ({ page, serverUrl }) => {
@@ -133,20 +133,20 @@ test.describe("Authentication Flow", () => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[type="email"]', adminUser.email);
-    await page.fill('input[type="password"]', adminUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signin-email-input").fill(adminUser.email);
+    await page.getByTestId("signin-password-input").fill(adminUser.password);
+    await page.getByTestId("signin-submit-button").click();
 
     await page.waitForURL(`${serverUrl}/`);
-    await expect(page.locator("h1")).toContainText("Dashboard");
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
 
     // Reload the page
     await page.reload();
     await page.waitForLoadState("networkidle");
 
     // Should still see dashboard (session persisted)
-    await expect(page.locator("h1")).toContainText("Dashboard");
-    await expect(page.locator("text=Welcome to Your Dashboard")).toBeVisible();
+    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
   });
 
   test("user menu is functional when authenticated", async ({
@@ -170,24 +170,24 @@ test.describe("Authentication Flow", () => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
-    await page.fill('input[type="email"]', adminUser.email);
-    await page.fill('input[type="password"]', adminUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId("signin-email-input").fill(adminUser.email);
+    await page.getByTestId("signin-password-input").fill(adminUser.password);
+    await page.getByTestId("signin-submit-button").click();
 
     await page.waitForURL(`${serverUrl}/`);
 
     // Check user menu button exists
-    const userMenuButton = page.locator('button[aria-label="User menu"]');
+    const userMenuButton = page.getByTestId("user-menu-button");
     await expect(userMenuButton).toBeVisible();
 
     // Click user menu
     await userMenuButton.click();
 
     // Check menu items
-    await expect(page.locator('button:has-text("Sign out")')).toBeVisible();
+    await expect(page.getByTestId("user-menu-sign-out-button")).toBeVisible();
 
     // Test sign out
-    await page.click('button:has-text("Sign out")');
+    await page.getByTestId("user-menu-sign-out-button").click();
     await page.waitForLoadState("networkidle");
 
     // Should be redirected to landing page

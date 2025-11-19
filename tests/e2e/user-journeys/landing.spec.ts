@@ -18,15 +18,13 @@ test.describe("Landing Page and Navigation", () => {
     await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
 
     // Check feature cards
-    await expect(page.locator("text=Clockify Integration")).toBeVisible();
-    await expect(page.locator("text=Weekly Summaries")).toBeVisible();
-    await expect(page.locator("text=Overtime Tracking")).toBeVisible();
+    await expect(page.getByTestId("landingpage-feature-clockify")).toBeVisible();
+    await expect(page.getByTestId("landingpage-feature-weekly-summaries")).toBeVisible();
+    await expect(page.getByTestId("landingpage-feature-overtime")).toBeVisible();
 
     // Check footer links
-    await expect(page.locator('a:has-text("Create an account")')).toBeVisible();
-    await expect(
-      page.locator('a:has-text("Admin Registration")'),
-    ).toBeVisible();
+    await expect(page.getByTestId("landingpage-create-account-link")).toBeVisible();
+    await expect(page.getByTestId("landingpage-admin-registration-link")).toBeVisible();
   });
 
   test("navigation links work from landing page", async ({ page, serverUrl }) => {
@@ -34,20 +32,20 @@ test.describe("Landing Page and Navigation", () => {
     await page.waitForLoadState("networkidle");
 
     // Test Sign In link
-    await page.click('a:has-text("Sign In")');
+    await page.getByTestId("landingpage-sign-in-link").click();
     await page.waitForURL(`${serverUrl}/signin`);
-    await expect(page.locator("h1")).toContainText("Welcome Back");
+    await expect(page.getByTestId("signin-heading")).toBeVisible();
 
     // Go back to landing page
     await page.goto(serverUrl);
     await page.waitForLoadState("networkidle");
 
     // Test Create an account link (if signup is allowed)
-    const signupLink = page.locator('a:has-text("Create an account")');
+    const signupLink = page.getByTestId("landingpage-create-account-link");
     if (await signupLink.isVisible()) {
       await signupLink.click();
       await page.waitForURL(`${serverUrl}/signup`);
-      await expect(page.locator("h1")).toContainText("Create Account");
+      await expect(page.getByTestId("signup-heading")).toBeVisible();
     }
 
     // Go back to landing page
@@ -55,7 +53,7 @@ test.describe("Landing Page and Navigation", () => {
     await page.waitForLoadState("networkidle");
 
     // Test Admin Registration link
-    await page.click('a:has-text("Admin Registration")');
+    await page.getByTestId("landingpage-admin-registration-link").click();
     await page.waitForURL(`${serverUrl}/registerAdmin`);
   });
 

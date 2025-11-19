@@ -9,7 +9,7 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check page title and header
-    await expect(page.locator("h1")).toContainText("Admin Registration");
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
     await expect(page.locator("text=Automated admin user setup")).toBeVisible();
 
     // Check for the admin icon
@@ -24,8 +24,8 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check if we have success or error state
-    const successMessage = page.locator("text=Registration Successful");
-    const errorMessage = page.locator("text=User Already Exists");
+    const successMessage = page.getByTestId("admin-registration-success-message");
+    const errorMessage = page.getByTestId("admin-registration-error-message");
     const registrationFailed = page.locator("text=Registration Failed");
 
     // At least one of these should be visible
@@ -38,22 +38,20 @@ test.describe("Admin Registration Flow", () => {
       await expect(page.locator(".text-green-600")).toBeVisible();
       await expect(page.locator("text=Admin Details:")).toBeVisible();
       await expect(page.locator("text=Email:")).toBeVisible();
-      await expect(page.locator('a:has-text("Go to Sign In")')).toBeVisible();
+      await expect(page.getByTestId("admin-registration-go-to-signin-button")).toBeVisible();
     } else if (hasError) {
       // User already exists state
       await expect(page.locator(".text-amber-600")).toBeVisible();
-      await expect(
-        page.locator('a:has-text("Force Re-register")'),
-      ).toBeVisible();
-      await expect(page.locator('a:has-text("Go to Home")')).toBeVisible();
+      await expect(page.getByTestId("admin-registration-force-re-register-button")).toBeVisible();
+      await expect(page.getByTestId("admin-registration-go-to-home-button")).toBeVisible();
     } else if (hasFailed) {
       // Registration failed state
       await expect(page.locator(".text-amber-600")).toBeVisible();
-      await expect(page.locator('a:has-text("Go to Home")')).toBeVisible();
+      await expect(page.getByTestId("admin-registration-go-to-home-button")).toBeVisible();
     }
 
     // In all cases, the main heading should be visible
-    await expect(page.locator("text=Admin Registration")).toBeVisible();
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
   });
 
   test("admin registration uses environment variables", async ({
@@ -64,7 +62,7 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check if we have success state (which shows email) or error state
-    const successMessage = page.locator("text=Registration Successful");
+    const successMessage = page.getByTestId("admin-registration-success-message");
     const hasSuccess = await successMessage.isVisible().catch(() => false);
 
     if (hasSuccess) {
@@ -84,7 +82,7 @@ test.describe("Admin Registration Flow", () => {
       expect(emailText).toContain("admin@test.com"); // From test environment
     } else {
       // In error state, we can't check the email, but page should still load
-      await expect(page.locator("text=Admin Registration")).toBeVisible();
+      await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
     }
   });
 
@@ -93,7 +91,7 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check if sign in button is available (only in success state)
-    const signInButton = page.locator('a:has-text("Go to Sign In")');
+    const signInButton = page.getByTestId("admin-registration-go-to-signin-button");
     const hasSignInButton = await signInButton.isVisible().catch(() => false);
 
     if (hasSignInButton) {
@@ -102,10 +100,10 @@ test.describe("Admin Registration Flow", () => {
 
       // Should navigate to signin page
       await page.waitForURL(`${serverUrl}/signin`);
-      await expect(page.locator("h1")).toContainText("Welcome Back");
+      await expect(page.getByTestId("signin-heading")).toBeVisible();
     } else {
       // If no sign in button, check for go to home button instead
-      const homeButton = page.locator('a:has-text("Go to Home")');
+      const homeButton = page.getByTestId("admin-registration-go-to-home-button");
       if (await homeButton.isVisible()) {
         await homeButton.click();
         await page.waitForURL(`${serverUrl}/`);
@@ -175,7 +173,7 @@ test.describe("Admin Registration Flow", () => {
     expect(errors).toHaveLength(0);
 
     // Check that page loaded successfully
-    await expect(page.locator("h1")).toContainText("Admin Registration");
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
   });
 
   test("admin registration handles force parameter correctly", async ({
@@ -187,8 +185,8 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check if we have success or error state
-    const successMessage = page.locator("text=Registration Successful");
-    const errorMessage = page.locator("text=User Already Exists");
+    const successMessage = page.getByTestId("admin-registration-success-message");
+    const errorMessage = page.getByTestId("admin-registration-error-message");
     const registrationFailed = page.locator("text=Registration Failed");
 
     // At least one of these should be visible
@@ -200,7 +198,7 @@ test.describe("Admin Registration Flow", () => {
     expect(hasSuccess || hasError || hasFailed).toBeTruthy();
 
     // In all cases, main heading should be visible
-    await expect(page.locator("text=Admin Registration")).toBeVisible();
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
   });
 
   test("admin registration page is responsive", async ({ page, serverUrl }) => {
@@ -209,7 +207,7 @@ test.describe("Admin Registration Flow", () => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1")).toContainText("Admin Registration");
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
     await expect(page.locator(".bg-white.rounded-lg")).toBeVisible();
 
     // Test tablet view
@@ -217,14 +215,14 @@ test.describe("Admin Registration Flow", () => {
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1")).toContainText("Admin Registration");
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
 
     // Test desktop view
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("h1")).toContainText("Admin Registration");
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
   });
 
   test("admin registration shows correct user details", async ({
@@ -235,7 +233,7 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Check if we have success state (which shows admin details)
-    const successMessage = page.locator("text=Registration Successful");
+    const successMessage = page.getByTestId("admin-registration-success-message");
     const hasSuccess = await successMessage.isVisible().catch(() => false);
 
     if (hasSuccess) {
@@ -251,7 +249,7 @@ test.describe("Admin Registration Flow", () => {
       await expect(emailContainer).toBeVisible();
     } else {
       // In error state, admin details won't be shown, but page should still load
-      await expect(page.locator("text=Admin Registration")).toBeVisible();
+      await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
     }
   });
 
@@ -264,11 +262,11 @@ test.describe("Admin Registration Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Click admin registration link
-    await page.click('a:has-text("Admin Registration")');
+    await page.getByTestId("landingpage-admin-registration-link").click();
 
     // Should navigate to admin registration page
     await page.waitForURL(`${serverUrl}/registerAdmin`);
-    await expect(page.locator("h1")).toContainText("Admin Registration");
+    await expect(page.getByTestId("admin-registration-heading")).toBeVisible();
   });
 
   test("admin registration page has proper meta information", async ({
