@@ -151,6 +151,8 @@ export async function getProjects(
  * 2. Get time per day per tracked project
  * Then calculates "extra work" as the difference
  * 
+ * Note: Clockify API returns durations in seconds (not milliseconds as some docs suggest)
+ * 
  * @param apiKey - The Clockify API key
  * @param input - Report parameters (workspaceId, clientId, projectIds, date range)
  * @returns Daily breakdown with tracked projects, totals, and extra work
@@ -214,7 +216,7 @@ export async function getWeeklyTimeReport(
     const totalTimeByDate: Record<string, number> = {};
     for (const group of totalTimeResponse.groupOne) {
       const date = extractDateFromId(group._id);
-      const seconds = Math.floor(group.duration / 1000); // Convert milliseconds to seconds
+      const seconds = group.duration; // Already in seconds
       totalTimeByDate[date] = seconds;
     }
 
@@ -238,7 +240,7 @@ export async function getWeeklyTimeReport(
         for (const projectGroup of dateGroup.children) {
           const projectId = projectGroup._id;
           const projectName = projectGroup.name;
-          const seconds = Math.floor(projectGroup.duration / 1000);
+          const seconds = projectGroup.duration; // Already in seconds
 
           dailyBreakdown[date].trackedProjects[projectId] = {
             projectId,

@@ -207,7 +207,7 @@ export interface ClockifySummaryReportRequest {
 export interface ClockifySummaryReportResponse {
   groupOne: ClockifySummaryReportGroup[];
   totals: Array<{
-    totalTime: number; // Total duration in milliseconds
+    totalTime: number; // Total duration in seconds (not milliseconds as some docs suggest)
     totalAmount: number;
     entriesCount: number;
   }>;
@@ -219,7 +219,7 @@ export interface ClockifySummaryReportResponse {
 export interface ClockifySummaryReportGroup {
   _id: string; // Date string (when grouped by DATE) or Project ID (when grouped by PROJECT)
   name: string; // Formatted date string or Project name
-  duration: number; // Duration in milliseconds
+  duration: number; // Duration in seconds (not milliseconds as some docs suggest)
   amount: number;
   children?: ClockifySummaryReportGroup[]; // Nested groups (e.g., projects within a date)
 }
