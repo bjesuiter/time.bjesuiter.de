@@ -53,7 +53,10 @@ needed.**
 
 - `bun run dev` - Dev server (port 3000)
 - `bun run build` / `bun run serve` - Build and preview
-- `bun run test:vitest` - Unit tests (Vitest)
+- `bun test <filename>` - Run specific unit or integration test file via bun
+  (fuzzy matches in `tests/`)
+- `bun test:unit` - Run all unit tests
+- `bun test:integration` - Run all integration tests
 - `bun e2e` - E2E tests (Playwright)
 - `bun e2e <filename>` - One specific E2E test file (fuzzy matches in
   `tests/e2e/user-journeys/`)
