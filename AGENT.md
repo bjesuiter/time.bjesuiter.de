@@ -58,6 +58,10 @@ commands:
 - `bun run build` - Build for production
 - `bun run serve` - Preview production build
 - `bun run test` - Run tests with vitest
+- `bun run test:e2e` - Run all E2E tests
+- `bun run test:e2e:ui` - Run E2E tests with UI mode
+- `bun run test:e2e:debug` - Run E2E tests in debug mode
+- `bun e2e <filename>` - Run specific E2E test file (fuzzy matches filename)
 - `bun run dbpush` - Push database schema changes (Drizzle Kit)
 - `bun run dbstudio` - Open Drizzle Studio for database management
 - `bun run auth-schema` - Generate Better-auth schema file
@@ -171,6 +175,7 @@ Context7-compatible format (e.g., `/tanstack/query`).
 - **Authentication**: Better-auth (email authentication)
 - **Data Fetching**: TanStack Query
 - **Testing**: Vitest (use vitest for all testing, no other test libraries)
+- **E2E Testing**: Playwright with per-test server isolation
 
 ---
 
@@ -293,6 +298,53 @@ export const Route = createFileRoute("/protected")({
 - `src/lib/auth/auth.ts` is a magic location - Better-auth auto-discovers it
 - API route handler: `src/routes/api/auth/$.ts` (catch-all for Better-auth
   endpoints)
+
+---
+
+## E2E Testing
+
+### Running Specific Test Files
+
+Use fuzzy matching to run specific E2E test files:
+
+```bash
+# Run dashboard tests (fuzzy matches dashboard.spec.ts)
+bun e2e dashboard.spec.ts
+
+# Run auth tests (fuzzy matches auth.spec.ts)
+bun e2e auth.spec.ts
+
+# Run all E2E tests
+bun run test:e2e
+
+# Run with UI mode
+bun run test:e2e:ui
+
+# Run in debug mode
+bun run test:e2e:debug
+```
+
+The `bun e2e <filename>` command will fuzzy-match the provided filename against files in `tests/e2e/user-journeys/` and run the matching test file.
+
+### Test Architecture
+
+- **Per-Test Isolation**: Each test gets its own Bun server instance on random port
+- **In-Memory Database**: Fresh SQLite database per test
+- **Real Authentication**: Better-auth flows with real cookies
+- **API-First Testing**: No direct server code imports
+
+### Test Structure
+
+```
+tests/e2e/
+├── fixtures/
+│   ├── portManager.ts    # Random free port allocation utility
+│   ├── server.ts         # Server lifecycle fixture
+│   └── test.ts           # Extended Playwright test
+├── user-journeys/
+│   └── *.spec.ts         # E2E test files
+└── playwright.config.ts  # Playwright configuration
+```
 
 ---
 
