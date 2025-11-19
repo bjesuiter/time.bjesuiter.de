@@ -31,7 +31,7 @@ export default defineConfig({
   fullyParallel: true,
 
   // Number of parallel workers
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 2 : 8,
 
   // Retry on CI (unstable network/flaky tests)
   retries: process.env.CI ? 2 : 0,
