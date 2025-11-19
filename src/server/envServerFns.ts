@@ -11,4 +11,3 @@ export const getPublicEnv = createServerFn({ method: "GET" })
             allowUserSignup: envStore.ALLOW_USER_SIGNUP,
         };
     });
-
