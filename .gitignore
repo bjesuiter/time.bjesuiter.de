@@ -19,5 +19,6 @@ local/*
 .env.*
 !.env.example
 
-# ignore all report folders 
+# ignore all report folders & ai stuff
 reports/
+.playwright-mcp/
