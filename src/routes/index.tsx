@@ -2,11 +2,16 @@ import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { authClient } from '@/client/auth-client'
 import { Sparkles, BarChart3, Calendar, Target, ArrowRight, Rocket } from 'lucide-react'
 import { checkClockifySetup } from '@/server/clockifyServerFns'
+import { getPublicEnv } from '@/server/envServerFns'
 import { Toolbar } from '@/components/Toolbar'
 
 export const Route = createFileRoute('/')({
   component: App,
-  beforeLoad: async ({ context }) => {
+  loader: async () => {
+    const { allowUserSignup } = await getPublicEnv()
+    return { allowUserSignup }
+  },
+  beforeLoad: async () => {
     // Only check Clockify setup if user is authenticated
     // If not authenticated, let the component handle showing sign-in UI
     try {
@@ -28,6 +33,7 @@ export const Route = createFileRoute('/')({
 
 function App() {
   const { data: session, isPending } = authClient.useSession()
+  const { allowUserSignup } = Route.useLoaderData()
 
   if (isPending) {
     return (
@@ -50,7 +56,7 @@ function App() {
       {session?.user ? (
         <DashboardView />
       ) : (
-        <LandingPage />
+        <LandingPage allowSignup={allowUserSignup} />
       )}
     </>
   )
@@ -58,7 +64,7 @@ function App() {
 
 function DashboardView() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -79,7 +85,7 @@ function DashboardView() {
                 Your time tracking hub is ready. We're currently building out more features to help you visualize your productivity.
               </p>
               
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto">
+              <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto">
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-white rounded-lg shadow-sm">
                     <Rocket className="w-5 h-5 text-blue-600" />
@@ -100,17 +106,17 @@ function DashboardView() {
   )
 }
 
-function LandingPage() {
+function LandingPage({ allowSignup }: { allowSignup: boolean }) {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-indigo-50/50">
+      <div className="relative overflow-hidden bg-linear-to-b from-indigo-50/50">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-24 sm:pb-20">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-5xl sm:text-6xl font-extrabold text-gray-900 tracking-tight mb-6 leading-tight">
               Time Tracking, <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600">
                 But Make It Fun!
               </span>
             </h1>
@@ -120,16 +126,10 @@ function LandingPage() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
-                to="/signup"
+                to="/signin"
                 className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-indigo-200 flex items-center justify-center gap-2"
               >
-                Get Started <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link
-                to="/signin"
-                className="w-full sm:w-auto px-8 py-4 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold hover:bg-gray-50 transition-all hover:border-gray-300 flex items-center justify-center"
-              >
-                Sign In
+                Sign In <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
           </div>
@@ -163,7 +163,7 @@ function LandingPage() {
       <div className="bg-gray-50 py-16 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-gray-600 mb-6 font-medium">Connect with the developer</p>
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 mb-8">
             <a
               href="https://bsky.app/profile/codemonument.bsky.social"
               target="_blank"
@@ -188,6 +188,17 @@ function LandingPage() {
               <span className="font-semibold">Blog</span>
             </a>
           </div>
+
+          {allowSignup && (
+             <div className="pt-8 border-t border-gray-200">
+               <Link 
+                 to="/signup"
+                 className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+               >
+                 Create an account
+               </Link>
+             </div>
+          )}
         </div>
       </div>
     </div>

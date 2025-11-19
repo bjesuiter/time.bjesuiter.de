@@ -60,12 +60,6 @@ export function Toolbar({ user }: ToolbarProps) {
                 >
                   Sign In
                 </Link>
-                <Link
-                  to="/signup"
-                  className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-2 transition-colors"
-                >
-                  Sign Up
-                </Link>
               </div>
             )}
           </div>
