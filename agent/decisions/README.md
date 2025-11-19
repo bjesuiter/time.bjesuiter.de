@@ -20,6 +20,7 @@ considered, and implementation details.
 **Summary**: Use SQLite with temporal tables instead of EventSourcingDB.
 
 **Key Points**:
+
 - Application doesn't generate domain events (data comes from Clockify)
 - Temporal tables (Slowly Changing Dimension Type 2) solve versioning needs
 - Simpler deployment and operation
@@ -31,6 +32,7 @@ considered, and implementation details.
 **Summary**: Use Better-auth for authentication with email/password.
 
 **Key Points**:
+
 - Better-auth manages its own schema (user, session, account, verification)
 - Application data stored in separate tables
 - Passwords automatically hashed
@@ -43,6 +45,7 @@ considered, and implementation details.
 **Summary**: Store Clockify API keys in plain text (no encryption).
 
 **Key Points**:
+
 - Personal project - encryption complexity not justified
 - Server-side only access (never exposed to client)
 - Can add encryption later if needed
@@ -57,6 +60,7 @@ considered, and implementation details.
 **Summary**: Use timezone and week start settings from Clockify user profile.
 
 **Key Points**:
+
 - Fetch `timeZone` and `weekStart` from Clockify `/v1/user` endpoint
 - Store in `user_clockify_config` table
 - Manual refresh button to update if user changes Clockify settings
@@ -71,6 +75,7 @@ considered, and implementation details.
 **Summary**: User-defined start date, daily-based calculation, no reset mechanism.
 
 **Key Points**:
+
 - User sets `cumulativeOvertimeStartDate` (e.g., 2025-10-01)
 - Starts at 0 hours
 - Daily-based calculation:
@@ -80,6 +85,7 @@ considered, and implementation details.
 - No automatic reset (tracks indefinitely)
 
 **Configuration**:
+
 - `regularHoursPerWeek`: e.g., 25 or 40
 - `workingDaysPerWeek`: e.g., 5 (Mon-Fri)
 - `cumulativeOvertimeStartDate`: e.g., "2025-10-01"
@@ -93,6 +99,7 @@ considered, and implementation details.
 **Summary**: Week commitment system with status-based refresh logic.
 
 **Key Points**:
+
 - Each week has status: **Pending** or **Committed**
 - Pending weeks: Auto-refresh on page load
 - Committed weeks: Never auto-refresh (manual only)
@@ -100,6 +107,7 @@ considered, and implementation details.
 - Settings: "Refresh from January 1st" button
 
 **Week Actions**:
+
 - Commit week: Lock data (reported to work systems)
 - Per-week "Refetch & Recalculate" button
 - Uncommit week: Allow auto-refresh again
@@ -113,12 +121,14 @@ considered, and implementation details.
 **Summary**: Single client filter with multiple tracked projects (versioned).
 
 **Key Points**:
+
 - **Client**: Single, stored in `user_clockify_config` (not versioned)
 - **Tracked Projects**: Multiple, stored in `config_chronic` (versioned)
 - Weekly total includes ALL client projects (tracked + untracked)
 - Tracked projects shown in detail, untracked shown as "Extra Work"
 
 **Storage**:
+
 - `user_clockify_config.selectedClientId`
 - `user_clockify_config.selectedClientName`
 - `config_chronic.tracked_projects` (versioned config)
@@ -133,12 +143,14 @@ for historical accuracy.
 **Summary**: Multi-row weekly table with tracked projects, extra work, and total rows.
 
 **Key Points**:
+
 - One row per tracked project (detailed breakdown)
 - One "Extra Work" row (sum of untracked projects)
 - One "Total" row (all client work, used for overtime)
 - Transparency: User sees exactly where time went
 
 **Example**:
+
 ```
 SMC 1.9:        19h
 Internal Time:   6h
@@ -157,12 +169,14 @@ Overtime:       +2h
 **Summary**: Display current month plus the week before the month starts.
 
 **Key Points**:
+
 - Default view: Current calendar month + previous week
 - Month-based navigation (Previous/Next month buttons)
 - Approximately 5-6 weeks displayed
 - Fast page loads, clear boundaries
 
 **Example** (Oct 31, 2025):
+
 ```
 Week Sep 22-28   (week before Oct 1)
 Week Sep 29-Oct 5 (contains Oct 1)
@@ -190,6 +204,7 @@ Week Oct 27-Nov 2 (current week)
 ### Database Schema Ready
 
 All table schemas finalized:
+
 - ✅ `user_clockify_config` (updated with all fields)
 - ✅ `config_chronic` (tracked projects only)
 - ✅ `cached_daily_project_sums` (per-project granularity)
@@ -212,17 +227,20 @@ Ready to proceed with implementation following the phase plan in
 ## Key Technical Decisions
 
 ### Architecture Pattern
+
 - **Temporal Tables** for configuration versioning
 - **Status-Based Caching** for week commitment
 - **Daily Granularity** for accurate overtime calculation
 
 ### Data Model
+
 - **User settings** in `user_clockify_config` (rarely change)
 - **Versioned config** in `config_chronic` (tracked projects)
 - **Per-project daily sums** for flexible breakdown
 - **Weekly sums with status** for commitment tracking
 
 ### User Experience
+
 - **Transparent calculations** via multi-row breakdown
 - **Data protection** via week commitment
 - **Zero configuration** by using Clockify settings
@@ -256,4 +274,3 @@ Each decision document follows this structure:
 ---
 
 _All pre-implementation decisions complete. Ready for development!_
-

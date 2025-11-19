@@ -18,7 +18,7 @@ export const test = base.extend<ServerFixtures>({
     const testNumber = testInfo.parallelIndex + 1; // 1-based numbering
     const port = await getRandomFreePort(testNumber);
     const serverUrl = `http://localhost:${port}`;
-    
+
     console.log(`[server-${testNumber}] Starting on ${serverUrl}`);
 
     // Start Vite dev server with unique port and in-memory DB
@@ -59,9 +59,11 @@ export const test = base.extend<ServerFixtures>({
 
       // Provide server URL to test
       await use(serverUrl);
-
     } catch (error) {
-      console.error(`[server-${testNumber}] Failed to start for "${testInfo.title}":`, error);
+      console.error(
+        `[server-${testNumber}] Failed to start for "${testInfo.title}":`,
+        error,
+      );
       console.error(`[server-${testNumber}] Output:`, serverOutput);
       throw error;
     } finally {
@@ -74,7 +76,7 @@ export const test = base.extend<ServerFixtures>({
         server.on("exit", () => {
           resolve();
         });
-        
+
         // Force kill if not exited after 5 seconds
         setTimeout(() => {
           server.kill("SIGKILL");
@@ -106,7 +108,7 @@ async function waitForServerReady(
           "User-Agent": "playwright-test-health-check",
         },
       });
-      
+
       // Server is responding (404 is fine, means server is up)
       if (response.ok || response.status === 404) {
         return;

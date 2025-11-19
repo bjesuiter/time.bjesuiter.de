@@ -39,10 +39,13 @@ export default defineConfig({
   // Reporter configuration
   reporter: [
     ["list"], // Console output
-    ["html", {
-      open: "never",
-      outputFolder: path.join(repoRoot, "reports/html"),
-    }], // HTML report for CI
+    [
+      "html",
+      {
+        open: "never",
+        outputFolder: path.join(repoRoot, "reports/html"),
+      },
+    ], // HTML report for CI
   ],
 
   // Global setup and teardown

@@ -215,9 +215,9 @@ The time tracking application:
 **With SQLite (Simple & Fast)**
 
 ```sql
-SELECT * 
-FROM config_chronic 
-WHERE userId = '123' 
+SELECT *
+FROM config_chronic
+WHERE userId = '123'
   AND configType = 'tracked_projects'
   AND validFrom <= CURRENT_TIMESTAMP
   AND (validUntil IS NULL OR validUntil > CURRENT_TIMESTAMP)
@@ -233,22 +233,20 @@ WHERE userId = '123'
 ```javascript
 // Read all config events
 const events = [];
-for await (
-    const event of client.readEvents(`/users/123/config`, {
-        recursive: false,
-    })
-) {
-    events.push(event);
+for await (const event of client.readEvents(`/users/123/config`, {
+  recursive: false,
+})) {
+  events.push(event);
 }
 
 // Manually reconstruct state
 let currentConfig = null;
 for (const event of events) {
-    if (event.type === "config.tracked_projects.changed") {
-        if (event.timestamp <= Date.now()) {
-            currentConfig = event.data;
-        }
+  if (event.type === "config.tracked_projects.changed") {
+    if (event.timestamp <= Date.now()) {
+      currentConfig = event.data;
     }
+  }
 }
 ```
 

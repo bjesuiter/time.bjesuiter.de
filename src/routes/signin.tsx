@@ -1,94 +1,94 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { authClient } from '@/client/auth-client'
-import { useState } from 'react'
-import { Mail, Lock, AlertCircle, Loader2, LogIn } from 'lucide-react'
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { authClient } from "@/client/auth-client";
+import { useState } from "react";
+import { Mail, Lock, AlertCircle, Loader2, LogIn } from "lucide-react";
 
-export const Route = createFileRoute('/signin')({
+export const Route = createFileRoute("/signin")({
   component: SignInPage,
-})
+});
 
 function SignInPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
+    email: "",
+    password: "",
+  });
   const [errors, setErrors] = useState<{
-    email?: string
-    password?: string
-    general?: string
-  }>({})
-  const [isLoading, setIsLoading] = useState(false)
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
-    const newErrors: typeof errors = {}
+    const newErrors: typeof errors = {};
 
     // Email validation
     if (!formData.email) {
-      newErrors.email = 'Email is required'
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
+      newErrors.email = "Please enter a valid email address";
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      newErrors.password = "Password is required";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrors({})
+    e.preventDefault();
+    setErrors({});
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const result = await authClient.signIn.email({
         email: formData.email,
         password: formData.password,
-      })
+      });
 
       if (result.error) {
         // Handle specific error types
-        let errorMessage = 'Invalid email or password'
-        
+        let errorMessage = "Invalid email or password";
+
         if (result.error.message) {
-          errorMessage = result.error.message
+          errorMessage = result.error.message;
         }
 
         setErrors({
           general: errorMessage,
-        })
+        });
       } else {
         // Successfully signed in, redirect to home
-        navigate({ to: '/' })
+        navigate({ to: "/" });
       }
     } catch (error) {
       setErrors({
-        general: 'An unexpected error occurred. Please try again.',
-      })
-      console.error('Sign in error:', error)
+        general: "An unexpected error occurred. Please try again.",
+      });
+      console.error("Sign in error:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleInputChange = (field: keyof typeof formData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFormData({ ...formData, [field]: e.target.value })
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: undefined })
-    }
-  }
+  const handleInputChange =
+    (field: keyof typeof formData) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData({ ...formData, [field]: e.target.value });
+      // Clear error for this field when user starts typing
+      if (errors[field]) {
+        setErrors({ ...errors, [field]: undefined });
+      }
+    };
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -98,8 +98,12 @@ function SignInPage() {
           <div className="flex justify-center mb-4">
             <LogIn className="w-12 h-12 text-indigo-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your time tracking dashboard</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-gray-600">
+            Sign in to your time tracking dashboard
+          </p>
         </div>
 
         {/* Sign In Form Card */}
@@ -115,7 +119,10 @@ function SignInPage() {
 
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
                 Email
               </label>
               <div className="relative">
@@ -126,11 +133,11 @@ function SignInPage() {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={handleInputChange('email')}
+                  onChange={handleInputChange("email")}
                   className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-colors ${
                     errors.email
-                      ? 'border-red-300 focus:border-red-500'
-                      : 'border-gray-300 focus:border-indigo-500'
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-indigo-500"
                   }`}
                   placeholder="you@example.com"
                   disabled={isLoading}
@@ -145,7 +152,10 @@ function SignInPage() {
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
                 Password
               </label>
               <div className="relative">
@@ -156,11 +166,11 @@ function SignInPage() {
                   id="password"
                   type="password"
                   value={formData.password}
-                  onChange={handleInputChange('password')}
+                  onChange={handleInputChange("password")}
                   className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-indigo-500 transition-colors ${
                     errors.password
-                      ? 'border-red-300 focus:border-red-500'
-                      : 'border-gray-300 focus:border-indigo-500'
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-indigo-500"
                   }`}
                   placeholder="Enter your password"
                   disabled={isLoading}
@@ -196,7 +206,7 @@ function SignInPage() {
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link
                 to="/signup"
                 className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
@@ -218,5 +228,5 @@ function SignInPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

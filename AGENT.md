@@ -133,13 +133,16 @@ Example workflow:
 
 ```typescript
 // First resolve the library name to get the proper ID
-const libraryId = await context7_resolve - library_id("react-query");
+const libraryId = (await context7_resolve) - library_id("react-query");
 
 // Then fetch the documentation
-const docs = await context7_get - library - docs(libraryId, {
+const docs =
+  (await context7_get) -
+  library -
+  docs(libraryId, {
     topic: "hooks",
     tokens: 5000,
-});
+  });
 ```
 
 Always resolve the library ID first unless you already have the exact
@@ -189,9 +192,11 @@ Example:
 
 ```typescript
 export const userClockifyConfig = sqliteTable("user_clockify_config", {
-    id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => user.id),
-    // ... other fields
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  // ... other fields
 });
 ```
 
@@ -217,14 +222,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { auth } from "@/lib/auth/auth";
 
 export const myServerFn = createServerFn("GET", async (_, { request }) => {
-    const session = await auth.api.getSession({ headers: request.headers });
+  const session = await auth.api.getSession({ headers: request.headers });
 
-    if (!session?.user) {
-        throw new Error("Unauthorized");
-    }
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
 
-    const userId = session.user.id;
-    // ... use userId in database queries
+  const userId = session.user.id;
+  // ... use userId in database queries
 });
 ```
 
@@ -237,15 +242,15 @@ import { authClient } from "@/client/auth-client";
 
 // Sign in
 await authClient.signIn.email({
-    email: "user@example.com",
-    password: "password",
+  email: "user@example.com",
+  password: "password",
 });
 
 // Sign up
 await authClient.signUp.email({
-    email: "user@example.com",
-    password: "password",
-    name: "User Name",
+  email: "user@example.com",
+  password: "password",
+  name: "User Name",
 });
 
 // Get current session
@@ -261,15 +266,15 @@ Protect routes by checking authentication in loaders:
 
 ```typescript
 export const Route = createFileRoute("/protected")({
-    beforeLoad: async ({ context }) => {
-        const session = await auth.api.getSession({
-            headers: context.request.headers,
-        });
-        if (!session?.user) {
-            throw redirect({ to: "/signin" });
-        }
-    },
-    // ... rest of route
+  beforeLoad: async ({ context }) => {
+    const session = await auth.api.getSession({
+      headers: context.request.headers,
+    });
+    if (!session?.user) {
+      throw redirect({ to: "/signin" });
+    }
+  },
+  // ... rest of route
 });
 ```
 
@@ -353,17 +358,17 @@ import { createServerFn } from "@tanstack/react-start";
 
 // GET request
 export const getData = createServerFn("GET", async () => {
-    // Server-side code only
-    return { data: "value" };
+  // Server-side code only
+  return { data: "value" };
 });
 
 // POST with validation
 export const postData = createServerFn("POST")
-    .inputValidator((input: MyType) => input)
-    .handler(async ({ data }) => {
-        // Server-side code with validated input
-        return processData(data);
-    });
+  .inputValidator((input: MyType) => input)
+  .handler(async ({ data }) => {
+    // Server-side code with validated input
+    return processData(data);
+  });
 ```
 
 Call from components:
@@ -407,11 +412,11 @@ Access the router context in routes:
 
 ```typescript
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-    // ...
+  // ...
 });
 
 interface MyRouterContext {
-    queryClient: QueryClient;
+  queryClient: QueryClient;
 }
 ```
 
@@ -424,15 +429,18 @@ interface MyRouterContext {
 Environment variables are validated using Zod in `src/lib/env/envStore.ts`:
 
 ```typescript
-export const envStore = z.object({
+export const envStore = z
+  .object({
     DATABASE_URL: z.string(),
-    ALLOW_USER_SIGNUP: z.enum(["true", "false"]).default("false").transform((
-        val,
-    ) => val === "true"),
+    ALLOW_USER_SIGNUP: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((val) => val === "true"),
     ADMIN_EMAIL: z.email(),
     ADMIN_LABEL: z.string(),
     ADMIN_PASSWORD: z.string(),
-}).parse(process.env);
+  })
+  .parse(process.env);
 ```
 
 ### Current Variables
@@ -466,16 +474,16 @@ import { db } from "@/db"; // ✅ Safe - server-only file
 import { auth } from "@/lib/auth/auth"; // ✅ Safe - server-only file
 
 export const myServerFunction = createServerFn({ method: "POST" })
-    .inputValidator((data: MyType) => data)
-    .handler(async ({ data }) => {
-        // Access envStore, db, auth directly
-        if (!envStore.SOME_SETTING) {
-            throw new Error("Setting disabled");
-        }
+  .inputValidator((data: MyType) => data)
+  .handler(async ({ data }) => {
+    // Access envStore, db, auth directly
+    if (!envStore.SOME_SETTING) {
+      throw new Error("Setting disabled");
+    }
 
-        const result = await db.query.myTable.findFirst();
-        return result;
-    });
+    const result = await db.query.myTable.findFirst();
+    return result;
+  });
 ```
 
 Then import and use in route files:
@@ -486,10 +494,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { myServerFunction } from "@/server/myServerFns"; // ✅ Safe - imports server function only
 
 export const Route = createFileRoute("/myroute")({
-    loader: async () => {
-        return await myServerFunction({ data: {/* ... */} });
-    },
-    component: MyComponent,
+  loader: async () => {
+    return await myServerFunction({
+      data: {
+        /* ... */
+      },
+    });
+  },
+  component: MyComponent,
 });
 ```
 
@@ -502,11 +514,11 @@ import { envStore } from "@/lib/env/envStore"; // ❌ Will run on client!
 import { db } from "@/db"; // ❌ Will run on client!
 
 export const Route = createFileRoute("/myroute")({
-    loader: async () => {
-        // Even though this runs server-side, the imports above
-        // are evaluated when the module loads on the client!
-        return { data: envStore.SOME_VALUE };
-    },
+  loader: async () => {
+    // Even though this runs server-side, the imports above
+    // are evaluated when the module loads on the client!
+    return { data: envStore.SOME_VALUE };
+  },
 });
 ```
 

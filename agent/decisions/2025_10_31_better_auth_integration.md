@@ -18,6 +18,7 @@ Do NOT create custom authentication tables. Better-auth automatically manages us
 ### From: Custom Authentication Tables
 
 **Old approach (incorrect):**
+
 ```typescript
 // Custom accounts table with password hash
 accounts {
@@ -34,6 +35,7 @@ accounts {
 **Better-auth managed tables (automatic):**
 
 1. **`user`** - Core user identity
+
    ```typescript
    {
      id: string (primary key)
@@ -47,6 +49,7 @@ accounts {
    ```
 
 2. **`session`** - Active user sessions
+
    ```typescript
    {
      id: string (primary key)
@@ -61,6 +64,7 @@ accounts {
    ```
 
 3. **`account`** - Authentication providers
+
    ```typescript
    {
      id: string (primary key)
@@ -110,19 +114,19 @@ accounts {
 
 Changed all references from `accountId` to `userId`:
 
-| Table | Field | References |
-|-------|-------|-----------|
-| `user_clockify_config` | `userId` | `user.id` |
-| `config_chronic` | `userId` | `user.id` |
-| `cached_daily_project_sums` | `userId` | `user.id` |
-| `cached_daily_client_sums` | `userId` | `user.id` |
-| `cached_weekly_sums` | `userId` | `user.id` |
+| Table                       | Field    | References |
+| --------------------------- | -------- | ---------- |
+| `user_clockify_config`      | `userId` | `user.id`  |
+| `config_chronic`            | `userId` | `user.id`  |
+| `cached_daily_project_sums` | `userId` | `user.id`  |
+| `cached_daily_client_sums`  | `userId` | `user.id`  |
+| `cached_weekly_sums`        | `userId` | `user.id`  |
 
 ### Example Schema Definition
 
 ```typescript
 // src/db/schema/clockify.ts
-import { user } from './better-auth';
+import { user } from "./better-auth";
 
 export const userClockifyConfig = sqliteTable("user_clockify_config", {
   id: text("id").primaryKey(),
@@ -200,6 +204,7 @@ export const Route = createFileRoute("/api/auth/$")({
 ```
 
 This automatically handles all better-auth endpoints:
+
 - `/api/auth/sign-up/email` - User registration
 - `/api/auth/sign-in/email` - User login
 - `/api/auth/sign-out` - User logout
@@ -237,10 +242,10 @@ const { data: session } = authClient.useSession();
 // In components
 function MyComponent() {
   const { data: session, isPending } = authClient.useSession();
-  
+
   if (isPending) return <div>Loading...</div>;
   if (!session) return <div>Not logged in</div>;
-  
+
   return <div>Welcome, {session.user.name}!</div>;
 }
 ```
@@ -304,18 +309,21 @@ export const getClockifyData = createServerFn("GET", async (_, { request }) => {
 ## Security Considerations
 
 ### Password Storage
+
 - ✅ Better-auth handles password hashing automatically (bcrypt/argon2)
 - ✅ Passwords stored in `account.password` field (hashed)
 - ❌ Never store or log plaintext passwords
 - ❌ Don't create custom password fields
 
 ### Session Management
+
 - ✅ HTTP-only cookies prevent XSS attacks
 - ✅ Secure flag for HTTPS-only transmission
 - ✅ Session tokens automatically rotated
 - ✅ TanStack Start integration via `reactStartCookies()` plugin
 
 ### API Key Encryption (Clockify)
+
 - ✅ Encrypt Clockify API keys before storing in `user_clockify_config`
 - ✅ Use `crypto` module with AES-256-GCM
 - ✅ Store encryption key in environment variable
@@ -323,6 +331,7 @@ export const getClockifyData = createServerFn("GET", async (_, { request }) => {
 - ✅ All Clockify API calls happen server-side
 
 **Example encryption:**
+
 ```typescript
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
@@ -337,12 +346,14 @@ function encryptApiKey(apiKey: string): string {
 ```
 
 ### Data Access & Isolation
+
 - ✅ All database queries must filter by `userId`
 - ✅ Check session validity before processing requests
 - ✅ Return 401 for unauthenticated requests
 - ✅ Return 403 for unauthorized data access attempts
 
 **Example query pattern:**
+
 ```typescript
 // Always filter by userId
 const data = await db
@@ -438,4 +449,3 @@ If you have an existing `accounts` table with `passwordHash`:
 ---
 
 _Decision implemented: 2025-10-31_
-

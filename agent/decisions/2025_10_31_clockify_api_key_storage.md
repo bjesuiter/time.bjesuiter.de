@@ -69,24 +69,24 @@ benefits.
 ```typescript
 // Server-side only
 export const fetchClockifyData = createServerFn(
-    "GET",
-    async (_, { request }) => {
-        const session = await auth.api.getSession({ headers: request.headers });
-        if (!session?.user) throw new Error("Unauthorized");
+  "GET",
+  async (_, { request }) => {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session?.user) throw new Error("Unauthorized");
 
-        // Fetch user's API key (never sent to client)
-        const config = await db.query.userClockifyConfig.findFirst({
-            where: eq(userClockifyConfig.userId, session.user.id),
-        });
+    // Fetch user's API key (never sent to client)
+    const config = await db.query.userClockifyConfig.findFirst({
+      where: eq(userClockifyConfig.userId, session.user.id),
+    });
 
-        // Use API key to call Clockify
-        const response = await fetch("https://api.clockify.me/api/v1/...", {
-            headers: { "X-Api-Key": config.clockifyApiKey },
-        });
+    // Use API key to call Clockify
+    const response = await fetch("https://api.clockify.me/api/v1/...", {
+      headers: { "X-Api-Key": config.clockifyApiKey },
+    });
 
-        // Return processed data (not the API key)
-        return processedData;
-    },
+    // Return processed data (not the API key)
+    return processedData;
+  },
 );
 ```
 
@@ -126,8 +126,8 @@ If the project scales or security requirements change:
    ```typescript
    // Encrypt existing plain text keys
    for (const config of allConfigs) {
-       config.clockifyApiKeyEncrypted = await encrypt(config.clockifyApiKey);
-       config.clockifyApiKey = null; // Clear plain text
+     config.clockifyApiKeyEncrypted = await encrypt(config.clockifyApiKey);
+     config.clockifyApiKey = null; // Clear plain text
    }
    ```
 5. Update access layer to decrypt on read

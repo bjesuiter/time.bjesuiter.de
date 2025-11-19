@@ -1,6 +1,6 @@
-import { Link } from '@tanstack/react-router';
-import { Clock } from 'lucide-react';
-import { UserMenu } from './UserMenu';
+import { Link } from "@tanstack/react-router";
+import { Clock } from "lucide-react";
+import { UserMenu } from "./UserMenu";
 
 interface ToolbarProps {
   user?: {
@@ -31,7 +31,7 @@ export function Toolbar({ user }: ToolbarProps) {
                 to="/"
                 className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
                 activeProps={{
-                  className: 'text-sm font-medium text-indigo-600',
+                  className: "text-sm font-medium text-indigo-600",
                 }}
               >
                 Dashboard
@@ -40,7 +40,7 @@ export function Toolbar({ user }: ToolbarProps) {
                 to="/settings"
                 className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors"
                 activeProps={{
-                  className: 'text-sm font-medium text-indigo-600',
+                  className: "text-sm font-medium text-indigo-600",
                 }}
               >
                 Settings
@@ -68,4 +68,3 @@ export function Toolbar({ user }: ToolbarProps) {
     </header>
   );
 }
-

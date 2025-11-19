@@ -5,8 +5,10 @@ import { createServer } from "net";
  * Each test gets its own port manager instance via Playwright fixtures
  * @returns Promise<number> A free port number
  */
-export async function getRandomFreePort(identifier?: number | string): Promise<number> {
-  const id = identifier?.toString() || 'unknown';
+export async function getRandomFreePort(
+  identifier?: number | string,
+): Promise<number> {
+  const id = identifier?.toString() || "unknown";
   const maxAttempts = 10;
 
   for (let i = 0; i < maxAttempts; i++) {

@@ -89,20 +89,20 @@ unexpectedly.
 
 ```typescript
 async function refreshWeeklySumsOnPageLoad(userId: string) {
-    // Get all pending (uncommitted) weeks visible on current page
-    const pendingWeeks = await db.query.cachedWeeklySums.findMany({
-        where: and(
-            eq(cachedWeeklySums.userId, userId),
-            eq(cachedWeeklySums.status, "pending"),
-        ),
-    });
+  // Get all pending (uncommitted) weeks visible on current page
+  const pendingWeeks = await db.query.cachedWeeklySums.findMany({
+    where: and(
+      eq(cachedWeeklySums.userId, userId),
+      eq(cachedWeeklySums.status, "pending"),
+    ),
+  });
 
-    // Refresh each pending week from Clockify
-    for (const week of pendingWeeks) {
-        await refetchAndRecalculateWeek(userId, week.weekStart);
-    }
+  // Refresh each pending week from Clockify
+  for (const week of pendingWeeks) {
+    await refetchAndRecalculateWeek(userId, week.weekStart);
+  }
 
-    // Committed weeks: DO NOT REFRESH
+  // Committed weeks: DO NOT REFRESH
 }
 ```
 
@@ -184,37 +184,37 @@ async function refetchAndRecalculateWeek(
 
 ```typescript
 async function refreshFromJanuaryFirst(userId: string, year: number) {
-    const startDate = new Date(year, 0, 1); // Jan 1
+  const startDate = new Date(year, 0, 1); // Jan 1
 
-    // Get all weeks from Jan 1 onwards
-    const weeks = await db.query.cachedWeeklySums.findMany({
-        where: and(
-            eq(cachedWeeklySums.userId, userId),
-            gte(cachedWeeklySums.weekStart, startDate),
-        ),
-        orderBy: asc(cachedWeeklySums.weekStart),
-    });
+  // Get all weeks from Jan 1 onwards
+  const weeks = await db.query.cachedWeeklySums.findMany({
+    where: and(
+      eq(cachedWeeklySums.userId, userId),
+      gte(cachedWeeklySums.weekStart, startDate),
+    ),
+    orderBy: asc(cachedWeeklySums.weekStart),
+  });
 
-    const discrepancies: Discrepancy[] = [];
+  const discrepancies: Discrepancy[] = [];
 
-    // Refresh each week
-    for (const week of weeks) {
-        const result = await refetchAndRecalculateWeek(userId, week.weekStart);
-        if (result.hasDiscrepancy) {
-            discrepancies.push(result.discrepancy);
-        }
+  // Refresh each week
+  for (const week of weeks) {
+    const result = await refetchAndRecalculateWeek(userId, week.weekStart);
+    if (result.hasDiscrepancy) {
+      discrepancies.push(result.discrepancy);
     }
+  }
 
-    // If any committed weeks changed, show warning
-    if (discrepancies.length > 0) {
-        return {
-            success: true,
-            warning: `${discrepancies.length} committed weeks have changed!`,
-            discrepancies,
-        };
-    }
+  // If any committed weeks changed, show warning
+  if (discrepancies.length > 0) {
+    return {
+      success: true,
+      warning: `${discrepancies.length} committed weeks have changed!`,
+      discrepancies,
+    };
+  }
 
-    return { success: true };
+  return { success: true };
 }
 ```
 
@@ -224,18 +224,18 @@ async function refreshFromJanuaryFirst(userId: string, year: number) {
 
 ```typescript
 async function commitWeek(userId: string, weekStart: Date) {
-    await db
-        .update(cachedWeeklySums)
-        .set({
-            status: "committed",
-            committedAt: new Date(),
-        })
-        .where(
-            and(
-                eq(cachedWeeklySums.userId, userId),
-                eq(cachedWeeklySums.weekStart, weekStart),
-            ),
-        );
+  await db
+    .update(cachedWeeklySums)
+    .set({
+      status: "committed",
+      committedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, weekStart),
+      ),
+    );
 }
 ```
 
@@ -243,18 +243,18 @@ async function commitWeek(userId: string, weekStart: Date) {
 
 ```typescript
 async function uncommitWeek(userId: string, weekStart: Date) {
-    await db
-        .update(cachedWeeklySums)
-        .set({
-            status: "pending",
-            committedAt: null,
-        })
-        .where(
-            and(
-                eq(cachedWeeklySums.userId, userId),
-                eq(cachedWeeklySums.weekStart, weekStart),
-            ),
-        );
+  await db
+    .update(cachedWeeklySums)
+    .set({
+      status: "pending",
+      committedAt: null,
+    })
+    .where(
+      and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, weekStart),
+      ),
+    );
 }
 ```
 

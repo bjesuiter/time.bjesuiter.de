@@ -2,7 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { authClient } from "@/client/auth-client";
 import { Toolbar } from "@/components/Toolbar";
-import { getClockifyDetails, getClockifyProjects } from "@/server/clockifyServerFns";
+import {
+  getClockifyDetails,
+  getClockifyProjects,
+} from "@/server/clockifyServerFns";
 import { createConfig, getCurrentConfig } from "@/server/configServerFns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -115,7 +118,7 @@ function TrackedProjectsSetup() {
       const newValidFrom = new Date(validFrom);
       if (newValidFrom < currentValidFrom) {
         setError(
-          `Start date cannot be before the current config's start date (${currentValidFrom.toLocaleString()})`
+          `Start date cannot be before the current config's start date (${currentValidFrom.toLocaleString()})`,
         );
         return;
       }
@@ -127,7 +130,7 @@ function TrackedProjectsSetup() {
     }
 
     const selectedProjects = availableProjects.projects.filter((p) =>
-      selectedProjectIds.includes(p.id)
+      selectedProjectIds.includes(p.id),
     );
 
     createConfigMutation.mutate({
@@ -141,7 +144,7 @@ function TrackedProjectsSetup() {
     setSelectedProjectIds((prev) =>
       prev.includes(projectId)
         ? prev.filter((id) => id !== projectId)
-        : [...prev, projectId]
+        : [...prev, projectId],
     );
   };
 
@@ -232,9 +235,7 @@ function TrackedProjectsSetup() {
                           <input
                             type="checkbox"
                             checked={selectedProjectIds.includes(project.id)}
-                            onChange={() =>
-                              toggleProjectSelection(project.id)
-                            }
+                            onChange={() => toggleProjectSelection(project.id)}
                             className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
                           />
                           <div className="flex-1">
@@ -290,7 +291,7 @@ function TrackedProjectsSetup() {
                           <>
                             Current config starts:{" "}
                             {new Date(
-                              currentConfig.config.validFrom
+                              currentConfig.config.validFrom,
                             ).toLocaleString()}
                           </>
                         )}
@@ -314,7 +315,9 @@ function TrackedProjectsSetup() {
                 <div className="space-y-4 pt-6 border-t border-gray-200">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm text-blue-800">
-                      <strong>Note:</strong> You can edit this configuration's dates after saving it from the Configuration History section on the Settings page.
+                      <strong>Note:</strong> You can edit this configuration's
+                      dates after saving it from the Configuration History
+                      section on the Settings page.
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -359,4 +362,3 @@ function TrackedProjectsSetup() {
     </>
   );
 }
-

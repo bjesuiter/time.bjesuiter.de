@@ -1,7 +1,10 @@
 import { expect, test } from "../fixtures/test";
 
 test.describe("Admin Registration Flow", () => {
-  test("admin registration page loads correctly", async ({ page, serverUrl }) => {
+  test("admin registration page loads correctly", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
@@ -13,7 +16,10 @@ test.describe("Admin Registration Flow", () => {
     await expect(page.locator(".text-slate-700")).toBeVisible();
   });
 
-  test("admin registration shows appropriate response", async ({ page, serverUrl }) => {
+  test("admin registration shows appropriate response", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
@@ -36,8 +42,9 @@ test.describe("Admin Registration Flow", () => {
     } else if (hasError) {
       // User already exists state
       await expect(page.locator(".text-amber-600")).toBeVisible();
-      await expect(page.locator('a:has-text("Force Re-register")'))
-        .toBeVisible();
+      await expect(
+        page.locator('a:has-text("Force Re-register")'),
+      ).toBeVisible();
       await expect(page.locator('a:has-text("Go to Home")')).toBeVisible();
     } else if (hasFailed) {
       // Registration failed state
@@ -49,7 +56,10 @@ test.describe("Admin Registration Flow", () => {
     await expect(page.locator("text=Admin Registration")).toBeVisible();
   });
 
-  test("admin registration uses environment variables", async ({ page, serverUrl }) => {
+  test("admin registration uses environment variables", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
@@ -63,9 +73,8 @@ test.describe("Admin Registration Flow", () => {
         hasText: "Admin Details:",
       });
       await expect(adminDetailsElement).toBeVisible();
-      const emailElement = adminDetailsElement.locator(
-        "//following-sibling::div",
-      )
+      const emailElement = adminDetailsElement
+        .locator("//following-sibling::div")
         .filter({
           hasText: "Email:",
         });
@@ -105,7 +114,10 @@ test.describe("Admin Registration Flow", () => {
     }
   });
 
-  test("admin registration page styling is correct", async ({ page, serverUrl }) => {
+  test("admin registration page styling is correct", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
@@ -144,7 +156,10 @@ test.describe("Admin Registration Flow", () => {
     await expect(firstFocused).toBeVisible();
   });
 
-  test("admin registration page loads without errors", async ({ page, serverUrl }) => {
+  test("admin registration page loads without errors", async ({
+    page,
+    serverUrl,
+  }) => {
     // Listen for console errors
     const errors: string[] = [];
     page.on("console", (msg) => {
@@ -163,7 +178,10 @@ test.describe("Admin Registration Flow", () => {
     await expect(page.locator("h1")).toContainText("Admin Registration");
   });
 
-  test("admin registration handles force parameter correctly", async ({ page, serverUrl }) => {
+  test("admin registration handles force parameter correctly", async ({
+    page,
+    serverUrl,
+  }) => {
     // Test with force parameter
     await page.goto(`${serverUrl}/registerAdmin?force=true`);
     await page.waitForLoadState("networkidle");
@@ -209,7 +227,10 @@ test.describe("Admin Registration Flow", () => {
     await expect(page.locator("h1")).toContainText("Admin Registration");
   });
 
-  test("admin registration shows correct user details", async ({ page, serverUrl }) => {
+  test("admin registration shows correct user details", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
@@ -234,7 +255,10 @@ test.describe("Admin Registration Flow", () => {
     }
   });
 
-  test("admin registration navigation works from landing page", async ({ page, serverUrl }) => {
+  test("admin registration navigation works from landing page", async ({
+    page,
+    serverUrl,
+  }) => {
     // Start from landing page
     await page.goto(serverUrl);
     await page.waitForLoadState("networkidle");
@@ -247,7 +271,10 @@ test.describe("Admin Registration Flow", () => {
     await expect(page.locator("h1")).toContainText("Admin Registration");
   });
 
-  test("admin registration page has proper meta information", async ({ page, serverUrl }) => {
+  test("admin registration page has proper meta information", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 

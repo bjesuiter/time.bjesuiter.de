@@ -105,35 +105,34 @@ src/
 ```typescript
 // src/server/myServerFns.ts
 import { createServerFn } from "@tanstack/react-start";
-import { envStore } from "@/lib/env/envStore";  // ✅ Safe
-import { db } from "@/db";                       // ✅ Safe
+import { envStore } from "@/lib/env/envStore"; // ✅ Safe
+import { db } from "@/db"; // ✅ Safe
 
-export const getData = createServerFn({ method: "GET" })
-    .handler(async () => {
-        // Use server-only modules freely
-        const data = await db.query.myTable.findFirst();
-        return data;
-    });
+export const getData = createServerFn({ method: "GET" }).handler(async () => {
+  // Use server-only modules freely
+  const data = await db.query.myTable.findFirst();
+  return data;
+});
 ```
 
 **✅ Correct**: Route imports server function only
 
 ```typescript
 // src/routes/myroute.tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { getData } from '@/server/myServerFns'  // ✅ Safe
+import { createFileRoute } from "@tanstack/react-router";
+import { getData } from "@/server/myServerFns"; // ✅ Safe
 
-export const Route = createFileRoute('/myroute')({
+export const Route = createFileRoute("/myroute")({
   loader: async () => await getData(),
   component: MyComponent,
-})
+});
 ```
 
 **❌ Wrong**: Route imports server-only modules
 
 ```typescript
 // ❌ DON'T DO THIS
-import { envStore } from '@/lib/env/envStore'  // ❌ Will run on client!
+import { envStore } from "@/lib/env/envStore"; // ❌ Will run on client!
 ```
 
 ---

@@ -9,7 +9,8 @@ import { z } from "zod/v4";
  * IMPORTANT: Only import this in tanstack/start server functions or other code running purely on the server.
  * Do not import this in client code or route loaders/components!
  */
-export const envStore = z.object({
+export const envStore = z
+  .object({
     /**
      * The environment the application is running in
      * dev: the default bun dev command
@@ -22,11 +23,12 @@ export const envStore = z.object({
     DATABASE_URL: z.string(),
     // Server-only: Security - Allow user signup (defaults to false for security)
     ALLOW_USER_SIGNUP: z
-        .enum(["true", "false"])
-        .default("false")
-        .transform((val) => val === "true"),
+      .enum(["true", "false"])
+      .default("false")
+      .transform((val) => val === "true"),
     // Server-only: Admin user credentials for initial registration & basic permission checks
     ADMIN_EMAIL: z.email(),
     ADMIN_LABEL: z.string(),
     ADMIN_PASSWORD: z.string(),
-}).parse(process.env);
+  })
+  .parse(process.env);

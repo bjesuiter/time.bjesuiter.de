@@ -9,13 +9,13 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
  * Contains common plugins and settings for development and testing
  */
 export const baseConfig = defineConfig({
-    plugins: [
-        // Path aliases (@/* -> ./src/*)
-        viteTsConfigPaths({
-            projects: ["./tsconfig.json"],
-        }),
-        tailwindcss(),
-        tanstackStart(),
-        viteReact(),
-    ],
+  plugins: [
+    // Path aliases (@/* -> ./src/*)
+    viteTsConfigPaths({
+      projects: ["./tsconfig.json"],
+    }),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
 });

@@ -32,9 +32,7 @@ const config = defineConfig({
             enabled: true,
             // https://vitest.dev/guide/browser/playwright
             provider: playwright(),
-            instances: [
-              { browser: "chromium" },
-            ],
+            instances: [{ browser: "chromium" }],
           },
         },
       },

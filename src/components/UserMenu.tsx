@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link } from '@tanstack/react-router';
-import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
+import { User, LogOut, Settings, ChevronDown } from "lucide-react";
 
 interface UserMenuProps {
   user: {
@@ -16,7 +16,7 @@ export function UserMenu({ user }: UserMenuProps) {
 
   const handleSignOut = async () => {
     // Dynamically import authClient only on the client side
-    const { authClient } = await import('@/client/auth-client');
+    const { authClient } = await import("@/client/auth-client");
     await authClient.signOut();
     window.location.reload();
   };
@@ -30,8 +30,9 @@ export function UserMenu({ user }: UserMenuProps) {
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
@@ -54,10 +55,14 @@ export function UserMenu({ user }: UserMenuProps) {
           </div>
         )}
         <div className="hidden md:block text-left">
-          <p className="text-sm font-medium text-gray-900">{user.name || 'User'}</p>
+          <p className="text-sm font-medium text-gray-900">
+            {user.name || "User"}
+          </p>
           <p className="text-xs text-gray-500">{user.email}</p>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {/* Dropdown Menu */}
@@ -65,7 +70,9 @@ export function UserMenu({ user }: UserMenuProps) {
         <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
           {/* User Info Header */}
           <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">{user.name || 'User'}</p>
+            <p className="text-sm font-medium text-gray-900">
+              {user.name || "User"}
+            </p>
             <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
 
@@ -93,4 +100,3 @@ export function UserMenu({ user }: UserMenuProps) {
     </div>
   );
 }
-

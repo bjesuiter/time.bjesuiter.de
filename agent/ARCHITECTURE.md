@@ -38,18 +38,21 @@ calculations.
 ### E2E Test Architecture Highlights
 
 **Per-Test Isolation:**
+
 - Each test spawns own Bun server on random free port
 - In-memory SQLite database (`DATABASE_URL=":memory:"`)
 - Migrations applied automatically via `drizzle-orm/libsql/migrator`
 - Server auto-destroyed after test completes
 
 **API-First Testing:**
+
 - Tests interact ONLY via API endpoints and browser
 - No direct imports of server code (db, auth, etc.)
 - Seed data via real endpoints (`/registerAdmin`, signup flows)
 - Real authentication with natural cookie handling
 
 **Playwright Fixtures:**
+
 - Server lifecycle managed by Playwright test fixtures
 - Shared Playwright instance across all tests (performance)
 - Each test gets unique `serverUrl` fixture parameter
@@ -58,6 +61,7 @@ calculations.
 ### Implementation Steps
 
 **Setup (Not Yet Complete):**
+
 1. [ ] Install Playwright: `bun add -D @playwright/test`
 2. [ ] Create port manager utility: `tests/e2e/fixtures/portManager.ts`
 3. [ ] Create server fixture: `tests/e2e/fixtures/server.ts`
@@ -67,6 +71,7 @@ calculations.
 7. [ ] Document test execution in README
 
 **Test NPM Scripts (To Be Added):**
+
 ```json
 {
   "test:unit": "vitest run --config vitest.config.ts --project unit",
@@ -79,6 +84,7 @@ calculations.
 ```
 
 **Key Benefits:**
+
 - ✅ Maximum isolation (no state leakage between tests)
 - ✅ Fast execution (in-memory DB, Bun's fast startup)
 - ✅ High confidence (tests real APIs, auth flows, migrations)
@@ -270,6 +276,7 @@ Using `config_chronic` table with `validFrom` and `validUntil` timestamps:
 **Example Workflow:**
 
 1. User creates tracked projects config `["SMC 1.8"]` effective from 2025-10-01
+
    ```
    configType: 'tracked_projects'
    value: { projectIds: ["project_id_smc18"], projectNames: ["SMC 1.8"] }

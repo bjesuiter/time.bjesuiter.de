@@ -3,22 +3,24 @@ import { user } from "./better-auth";
 
 /**
  * Configuration Chronicle Table
- * 
+ *
  * Stores versioned configuration using Slowly Changing Dimension Type 2 pattern.
  * Each configuration change creates a new record with validFrom/validUntil timestamps.
- * 
+ *
  * Current config: validUntil = NULL
  * Historical config: validUntil = timestamp when it was superseded
  */
 export const configChronic = sqliteTable(
   "config_chronic",
   {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    configType: text("config_type", { 
-      enum: ["tracked_projects"] 
+    configType: text("config_type", {
+      enum: ["tracked_projects"],
     }).notNull(),
     // JSON value stored as text
     // For tracked_projects: { projectIds: string[], projectNames: string[] }
@@ -37,12 +39,11 @@ export const configChronic = sqliteTable(
       table.userId,
       table.configType,
       table.validFrom,
-      table.validUntil
+      table.validUntil,
     ),
-  })
+  }),
 );
 
 export const configSchemas = {
   configChronic,
 };
-

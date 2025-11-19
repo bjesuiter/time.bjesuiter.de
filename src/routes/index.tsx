@@ -1,39 +1,48 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { authClient } from '@/client/auth-client'
-import { Sparkles, BarChart3, Calendar, Target, ArrowRight, Rocket } from 'lucide-react'
-import { checkClockifySetup } from '@/server/clockifyServerFns'
-import { getPublicEnv } from '@/server/envServerFns'
-import { Toolbar } from '@/components/Toolbar'
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { authClient } from "@/client/auth-client";
+import {
+  Sparkles,
+  BarChart3,
+  Calendar,
+  Target,
+  ArrowRight,
+  Rocket,
+} from "lucide-react";
+import { checkClockifySetup } from "@/server/clockifyServerFns";
+import { getPublicEnv } from "@/server/envServerFns";
+import { Toolbar } from "@/components/Toolbar";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: App,
   loader: async () => {
-    const { allowUserSignup } = await getPublicEnv()
-    return { allowUserSignup }
+    const { allowUserSignup } = await getPublicEnv();
+    return { allowUserSignup };
   },
   beforeLoad: async () => {
     // Only check Clockify setup if user is authenticated
     // If not authenticated, let the component handle showing sign-in UI
     try {
-      const setupStatus = await checkClockifySetup()
+      const setupStatus = await checkClockifySetup();
       if (setupStatus && !setupStatus.hasSetup) {
-        throw redirect({ to: '/settings' })
+        throw redirect({ to: "/settings" });
       }
     } catch (error: any) {
       // If it's a TanStack Router redirect, re-throw it
-      if (error?.routerCode === 'BEFORE_LOAD') {
-        throw error
+      if (error?.routerCode === "BEFORE_LOAD") {
+        throw error;
       }
-      // If checkClockifySetup fails (e.g., user not authenticated), 
+      // If checkClockifySetup fails (e.g., user not authenticated),
       // let the component handle it - don't redirect
-      console.log('beforeLoad: Could not check Clockify setup, continuing to component')
+      console.log(
+        "beforeLoad: Could not check Clockify setup, continuing to component",
+      );
     }
   },
-})
+});
 
 function App() {
-  const { data: session, isPending } = authClient.useSession()
-  const { allowUserSignup } = Route.useLoaderData()
+  const { data: session, isPending } = authClient.useSession();
+  const { allowUserSignup } = Route.useLoaderData();
 
   if (isPending) {
     return (
@@ -46,20 +55,20 @@ function App() {
           </div>
         </div>
       </>
-    )
+    );
   }
 
   return (
     <>
       <Toolbar user={session?.user || null} />
-      
+
       {session?.user ? (
         <DashboardView />
       ) : (
         <LandingPage allowSignup={allowUserSignup} />
       )}
     </>
-  )
+  );
 }
 
 function DashboardView() {
@@ -67,9 +76,7 @@ function DashboardView() {
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <Sparkles className="w-6 h-6 text-yellow-500" />
         </div>
 
@@ -80,20 +87,26 @@ function DashboardView() {
               <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-10 h-10 text-indigo-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">Welcome to Your Dashboard</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                Welcome to Your Dashboard
+              </h2>
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Your time tracking hub is ready. We're currently building out more features to help you visualize your productivity.
+                Your time tracking hub is ready. We're currently building out
+                more features to help you visualize your productivity.
               </p>
-              
+
               <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto">
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-white rounded-lg shadow-sm">
                     <Rocket className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-blue-900 mb-1">Coming Soon: Phase 2</h3>
+                    <h3 className="font-semibold text-blue-900 mb-1">
+                      Coming Soon: Phase 2
+                    </h3>
                     <p className="text-sm text-blue-700 leading-relaxed">
-                      Get ready for detailed weekly time summaries, granular project tracking, and smart overtime calculations.
+                      Get ready for detailed weekly time summaries, granular
+                      project tracking, and smart overtime calculations.
                     </p>
                   </div>
                 </div>
@@ -103,7 +116,7 @@ function DashboardView() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function LandingPage({ allowSignup }: { allowSignup: boolean }) {
@@ -121,9 +134,11 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-              A personal Clockify-powered dashboard that brings joy to your productivity tracking. Visualization, summaries, and a touch of sparkle. ✨
+              A personal Clockify-powered dashboard that brings joy to your
+              productivity tracking. Visualization, summaries, and a touch of
+              sparkle. ✨
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 to="/signin"
@@ -140,17 +155,17 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
       <div className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard 
+            <FeatureCard
               icon={<BarChart3 className="w-8 h-8 text-indigo-600" />}
               title="Clockify Integration"
               description="Seamlessly syncs with your existing Clockify data. No migration needed."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Calendar className="w-8 h-8 text-purple-600" />}
               title="Weekly Summaries"
               description="Beautiful, easy-to-read breakdowns of your weekly time investments."
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Target className="w-8 h-8 text-pink-600" />}
               title="Overtime Tracking"
               description="Keep tabs on those extra hours and maintain a healthy work-life balance."
@@ -162,7 +177,9 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
       {/* Social Proof / Footer */}
       <div className="bg-gray-50 py-16 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-600 mb-6 font-medium">Connect with the developer</p>
+          <p className="text-gray-600 mb-6 font-medium">
+            Connect with the developer
+          </p>
           <div className="flex justify-center gap-4 mb-8">
             <a
               href="https://bsky.app/profile/codemonument.bsky.social"
@@ -171,7 +188,7 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
               className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-lg hover:border-blue-400 hover:text-blue-500 transition-all shadow-sm"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" />
               </svg>
               <span className="font-semibold">Bluesky</span>
             </a>
@@ -181,9 +198,15 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-lg hover:border-purple-400 hover:text-purple-500 transition-all shadow-sm"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
               <span className="font-semibold">Blog</span>
             </a>
@@ -191,7 +214,7 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
 
           <div className="pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-center gap-4">
             {allowSignup && (
-              <Link 
+              <Link
                 to="/signup"
                 className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -208,19 +231,25 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
       <div className="bg-gray-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
         {icon}
       </div>
       <h3 className="text-xl font-bold text-gray-900 mb-3">{title}</h3>
-      <p className="text-gray-600 leading-relaxed">
-        {description}
-      </p>
+      <p className="text-gray-600 leading-relaxed">{description}</p>
     </div>
-  )
+  );
 }

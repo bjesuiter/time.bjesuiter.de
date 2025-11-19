@@ -57,8 +57,8 @@ Two related questions:
   regularHoursPerWeek: number;
   workingDaysPerWeek: number;
   cumulativeOvertimeStartDate: date | null;
-  selectedClientId: string | null;           // NEW: Single client
-  selectedClientName: string | null;         // NEW: For display
+  selectedClientId: string | null; // NEW: Single client
+  selectedClientName: string | null; // NEW: For display
   createdAt: timestamp;
   updatedAt: timestamp;
 }
@@ -86,7 +86,7 @@ Two related questions:
 async function setSelectedClient(
   userId: string,
   clientId: string,
-  clientName: string
+  clientName: string,
 ) {
   await db
     .update(userClockifyConfig)
@@ -109,7 +109,7 @@ async function setTrackedProjects(
   userId: string,
   projectIds: string[],
   projectNames: string[],
-  validFrom: Date
+  validFrom: Date,
 ) {
   // Close previous configuration
   await db
@@ -119,8 +119,8 @@ async function setTrackedProjects(
       and(
         eq(configChronic.userId, userId),
         eq(configChronic.configType, "tracked_projects"),
-        isNull(configChronic.validUntil)
-      )
+        isNull(configChronic.validUntil),
+      ),
     );
 
   // Create new configuration
@@ -147,7 +147,7 @@ async function setTrackedProjects(
 async function fetchWeeklyDataForClient(
   userId: string,
   weekStart: Date,
-  weekEnd: Date
+  weekEnd: Date,
 ): Promise<DailyProjectSums[]> {
   const config = await getUserConfig(userId);
 
@@ -175,7 +175,7 @@ async function fetchWeeklyDataForClient(
           contains: "CONTAINS", // Only this client
         },
       }),
-    }
+    },
   );
 
   const data = await response.json();
@@ -192,7 +192,7 @@ async function fetchWeeklyDataForClient(
 ```typescript
 async function calculateWeeklyTotal(
   userId: string,
-  weekStart: Date
+  weekStart: Date,
 ): Promise<WeeklySum> {
   const config = await getUserConfig(userId);
   const dailySums = await fetchWeeklyDataForClient(userId, weekStart, weekEnd);
@@ -200,7 +200,7 @@ async function calculateWeeklyTotal(
   // Sum ALL projects for the client (tracked + untracked)
   const totalSeconds = dailySums.reduce(
     (sum, day) => sum + day.totalSeconds,
-    0
+    0,
   );
 
   const expectedSeconds = config.regularHoursPerWeek * 3600;
@@ -300,8 +300,8 @@ const trackedProjects = await db.query.configChronic.findFirst({
     lte(configChronic.validFrom, "2025-10-07"),
     or(
       isNull(configChronic.validUntil),
-      gt(configChronic.validUntil, "2025-10-07")
-    )
+      gt(configChronic.validUntil, "2025-10-07"),
+    ),
   ),
 });
 
@@ -533,8 +533,8 @@ If user needs to track multiple clients:
 {
   selectedClients: [
     { clientId: "client_a", clientName: "Secunet" },
-    { clientId: "client_b", clientName: "Side Project" }
-  ]
+    { clientId: "client_b", clientName: "Side Project" },
+  ];
 }
 ```
 
@@ -575,4 +575,3 @@ Analyze Clockify data to suggest main client:
 - [ARCHITECTURE.md - Configuration Versioning](../ARCHITECTURE.md#configuration-versioning-strategy)
 - [Decision: Cumulative Overtime Tracking](2025_10_31_cumulative_overtime_tracking.md)
 - [Decision: Cache Invalidation and Week Commitment](2025_10_31_cache_invalidation_and_week_commitment.md)
-

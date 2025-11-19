@@ -1,29 +1,33 @@
-import { registerAdminUser } from '@/server/userServerFns'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { zodValidator } from '@tanstack/zod-adapter'
-import { AlertCircle, CheckCircle, UserPlus } from 'lucide-react'
-import z from 'zod/v4'
+import { registerAdminUser } from "@/server/userServerFns";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { AlertCircle, CheckCircle, UserPlus } from "lucide-react";
+import z from "zod/v4";
 
 // Validating search params
 // https://tanstack.com/router/latest/docs/framework/react/guide/search-params#validating-and-typing-search-params
-export const Route = createFileRoute('/registerAdmin')({
+export const Route = createFileRoute("/registerAdmin")({
   component: RegisterAdminPage,
-  validateSearch: zodValidator(z.object({
-    force: z.boolean().optional(),
-  })),
-  beforeLoad: async ({search}) => {
-    const result = await registerAdminUser({ data: { force: search.force === true } })
+  validateSearch: zodValidator(
+    z.object({
+      force: z.boolean().optional(),
+    }),
+  ),
+  beforeLoad: async ({ search }) => {
+    const result = await registerAdminUser({
+      data: { force: search.force === true },
+    });
     return {
       result,
-    }
-  }, 
+    };
+  },
   loader: async ({ context }) => {
     return context.result;
-  }
-})
+  },
+});
 
 function RegisterAdminPage() {
-  const data = Route.useLoaderData()
+  const data = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
@@ -59,7 +63,8 @@ function RegisterAdminPage() {
                   <h4 className="font-medium text-gray-900">Admin Details:</h4>
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <p className="text-sm text-gray-700">
-                      <span className="font-medium">Email:</span> {data.userEmail}
+                      <span className="font-medium">Email:</span>{" "}
+                      {data.userEmail}
                     </p>
                   </div>
                 </div>
@@ -81,7 +86,9 @@ function RegisterAdminPage() {
                 <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-amber-900 mb-1">
-                    {data.canForceRegister ? 'User Already Exists' : 'Registration Failed'}
+                    {data.canForceRegister
+                      ? "User Already Exists"
+                      : "Registration Failed"}
                   </h3>
                   <p className="text-sm text-amber-800">{data.message}</p>
                 </div>
@@ -91,12 +98,13 @@ function RegisterAdminPage() {
                 <div className="space-y-4">
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <p className="text-sm text-gray-700 mb-3">
-                      If you want to reset the admin user and re-register with the
-                      current environment variables, you can force re-registration.
+                      If you want to reset the admin user and re-register with
+                      the current environment variables, you can force
+                      re-registration.
                     </p>
                     <p className="text-xs text-gray-600 font-mono bg-white p-2 rounded border border-gray-300">
-                      ⚠️ Warning: This will delete all sessions and data associated
-                      with this user account.
+                      ⚠️ Warning: This will delete all sessions and data
+                      associated with this user account.
                     </p>
                   </div>
 
@@ -121,10 +129,7 @@ function RegisterAdminPage() {
             </div>
           )}
         </div>
-
-      
       </div>
     </div>
-  )
+  );
 }
-

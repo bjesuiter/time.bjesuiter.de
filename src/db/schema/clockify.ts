@@ -2,7 +2,9 @@ import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { user } from "./better-auth";
 
 export const userClockifyConfig = sqliteTable("user_clockify_config", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id")
     .notNull()
     .unique()
@@ -29,4 +31,3 @@ export const userClockifyConfig = sqliteTable("user_clockify_config", {
 export const clockifySchemas = {
   userClockifyConfig,
 };
-

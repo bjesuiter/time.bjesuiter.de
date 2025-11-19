@@ -111,7 +111,7 @@ type DailyBreakdown = {
 ```typescript
 async function calculateDailyBreakdown(
   userId: string,
-  date: Date
+  date: Date,
 ): Promise<DailyBreakdown> {
   // Get user's selected client and tracked projects
   const config = await getUserConfig(userId);
@@ -121,21 +121,21 @@ async function calculateDailyBreakdown(
   const allClientProjects = await fetchClockifyDailyData(
     userId,
     date,
-    config.selectedClientId
+    config.selectedClientId,
   );
 
   // Separate tracked vs. untracked
   const trackedProjects = allClientProjects.filter((p) =>
-    trackedProjectsConfig.projectIds.includes(p.projectId)
+    trackedProjectsConfig.projectIds.includes(p.projectId),
   );
 
   const extraWorkProjects = allClientProjects.filter(
-    (p) => !trackedProjectsConfig.projectIds.includes(p.projectId)
+    (p) => !trackedProjectsConfig.projectIds.includes(p.projectId),
   );
 
   const extraWorkSeconds = extraWorkProjects.reduce(
     (sum, p) => sum + p.seconds,
-    0
+    0,
   );
 
   const totalSeconds = allClientProjects.reduce((sum, p) => sum + p.seconds, 0);
@@ -223,13 +223,13 @@ No new tables needed - use existing `cached_daily_project_sums`:
 ```typescript
 async function getWeeklyBreakdown(
   userId: string,
-  weekStart: Date
+  weekStart: Date,
 ): Promise<WeeklyBreakdown> {
   const weekEnd = addDays(weekStart, 6);
   const config = await getUserConfig(userId);
   const trackedProjectsConfig = await getTrackedProjectsForDate(
     userId,
-    weekStart
+    weekStart,
   );
 
   // Get all daily project sums for the week
@@ -237,7 +237,7 @@ async function getWeeklyBreakdown(
     where: and(
       eq(cachedDailyProjectSums.userId, userId),
       gte(cachedDailyProjectSums.date, weekStart),
-      lte(cachedDailyProjectSums.date, weekEnd)
+      lte(cachedDailyProjectSums.date, weekEnd),
     ),
     orderBy: asc(cachedDailyProjectSums.date),
   });
@@ -245,7 +245,7 @@ async function getWeeklyBreakdown(
   // Build daily breakdowns
   const dailyBreakdowns = buildDailyBreakdowns(
     dailySums,
-    trackedProjectsConfig
+    trackedProjectsConfig,
   );
 
   // Aggregate to weekly
@@ -263,7 +263,7 @@ async function getWeeklyBreakdown(
   id: string;
   userId: string;
   date: date;
-  projectId: string;        // Individual project
+  projectId: string; // Individual project
   projectName: string;
   seconds: number;
   clientId: string;
@@ -548,4 +548,3 @@ Test cases needed:
 - [ARCHITECTURE.md - Weekly Table Component](../ARCHITECTURE.md)
 - [Decision: Client Filter and Tracked Projects](2025_10_31_client_filter_and_tracked_projects.md)
 - [Decision: Cumulative Overtime Tracking](2025_10_31_cumulative_overtime_tracking.md)
-

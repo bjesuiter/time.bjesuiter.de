@@ -5,6 +5,7 @@ This directory contains end-to-end tests using Playwright with per-test server i
 ## Architecture
 
 Each test gets:
+
 - **Isolated Server**: Own Bun server instance on random port
 - **In-Memory Database**: Fresh SQLite database per test
 - **Real Authentication**: Better-auth flows with real cookies
@@ -50,7 +51,7 @@ import { test, expect } from "../fixtures/test";
 test("my test", async ({ page, serverUrl }) => {
   // Navigate to isolated server
   await page.goto(serverUrl);
-  
+
   // Test your application
   await expect(page.locator("h1")).toContainText("Welcome");
 });
@@ -72,6 +73,7 @@ test("my test", async ({ page, serverUrl }) => {
 - Server output logged for debugging
 
 View the latest HTML report:
+
 ```bash
 npx playwright show-report
 ```

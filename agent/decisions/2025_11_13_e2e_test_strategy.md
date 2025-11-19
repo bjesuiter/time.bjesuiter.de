@@ -428,10 +428,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   // Reporter
-  reporter: [
-    ["html", { open: "never" }],
-    ["list"],
-  ],
+  reporter: [["html", { open: "never" }], ["list"]],
 
   use: {
     // Base URL not set - each test gets unique serverUrl

@@ -29,19 +29,20 @@ no automatic reset mechanism.**
 ### Implementation Details
 
 1. **Add to `user_clockify_config` table:**
+
    ```typescript
    {
-       userId: string;
-       clockifyApiKey: string;
-       clockifyWorkspaceId: string;
-       clockifyUserId: string;
-       timeZone: string;
-       weekStart: string;
-       regularHoursPerWeek: number; // NEW: e.g., 25 or 40
-       workingDaysPerWeek: number; // NEW: e.g., 5 (Mon-Fri)
-       cumulativeOvertimeStartDate: date | null; // NEW: e.g., "2025-10-01"
-       createdAt: timestamp;
-       updatedAt: timestamp;
+     userId: string;
+     clockifyApiKey: string;
+     clockifyWorkspaceId: string;
+     clockifyUserId: string;
+     timeZone: string;
+     weekStart: string;
+     regularHoursPerWeek: number; // NEW: e.g., 25 or 40
+     workingDaysPerWeek: number; // NEW: e.g., 5 (Mon-Fri)
+     cumulativeOvertimeStartDate: date | null; // NEW: e.g., "2025-10-01"
+     createdAt: timestamp;
+     updatedAt: timestamp;
    }
    ```
 
@@ -61,6 +62,7 @@ no automatic reset mechanism.**
        days)
 
 3. **Example calculation:**
+
    ```
    User settings:
    - cumulativeOvertimeStartDate = "2025-10-01" (Wednesday)
@@ -70,7 +72,7 @@ no automatic reset mechanism.**
 
    Week 2025-09-30 (Mon) to 2025-10-05 (Sun):
    - Mon 09-30: NOT INCLUDED (before start date)
-   - Tue 10-01: NOT INCLUDED (before start date) 
+   - Tue 10-01: NOT INCLUDED (before start date)
    - Wed 10-01: 6h actual - 5h expected = +1h
    - Thu 10-02: 5h actual - 5h expected = 0h
    - Fri 10-03: 4h actual - 5h expected = -1h
@@ -142,6 +144,7 @@ no automatic reset mechanism.**
 ### Initial Setup
 
 1. During Clockify setup wizard, user sees:
+
    ```
    ┌─────────────────────────────────────────────┐
    │ Cumulative Overtime Tracking (Optional)     │
@@ -197,15 +200,15 @@ When user changes `cumulativeOvertimeStartDate`:
 ```typescript
 // user_clockify_config table
 {
-    id: string;
-    userId: string;
-    clockifyApiKey: string;
-    clockifyWorkspaceId: string;
-    clockifyUserId: string;
-    timeZone: string;
-    weekStart: string;
-    createdAt: timestamp;
-    updatedAt: timestamp;
+  id: string;
+  userId: string;
+  clockifyApiKey: string;
+  clockifyWorkspaceId: string;
+  clockifyUserId: string;
+  timeZone: string;
+  weekStart: string;
+  createdAt: timestamp;
+  updatedAt: timestamp;
 }
 ```
 
@@ -214,18 +217,18 @@ When user changes `cumulativeOvertimeStartDate`:
 ```typescript
 // user_clockify_config table
 {
-    id: string;
-    userId: string;
-    clockifyApiKey: string;
-    clockifyWorkspaceId: string;
-    clockifyUserId: string;
-    timeZone: string;
-    weekStart: string;
-    regularHoursPerWeek: number; // NEW: e.g., 25 or 40
-    workingDaysPerWeek: number; // NEW: e.g., 5
-    cumulativeOvertimeStartDate: date | null; // NEW: e.g., "2025-10-01"
-    createdAt: timestamp;
-    updatedAt: timestamp;
+  id: string;
+  userId: string;
+  clockifyApiKey: string;
+  clockifyWorkspaceId: string;
+  clockifyUserId: string;
+  timeZone: string;
+  weekStart: string;
+  regularHoursPerWeek: number; // NEW: e.g., 25 or 40
+  workingDaysPerWeek: number; // NEW: e.g., 5
+  cumulativeOvertimeStartDate: date | null; // NEW: e.g., "2025-10-01"
+  createdAt: timestamp;
+  updatedAt: timestamp;
 }
 ```
 
@@ -233,13 +236,13 @@ When user changes `cumulativeOvertimeStartDate`:
 
 ```sql
 -- Add new columns
-ALTER TABLE user_clockify_config 
+ALTER TABLE user_clockify_config
 ADD COLUMN regularHoursPerWeek REAL NOT NULL DEFAULT 40;
 
-ALTER TABLE user_clockify_config 
+ALTER TABLE user_clockify_config
 ADD COLUMN workingDaysPerWeek INTEGER NOT NULL DEFAULT 5;
 
-ALTER TABLE user_clockify_config 
+ALTER TABLE user_clockify_config
 ADD COLUMN cumulativeOvertimeStartDate TEXT; -- SQLite stores dates as TEXT
 
 -- Notes:
@@ -424,13 +427,14 @@ Or, add a "Reset" feature:
 ```typescript
 // Backend logic
 function resetCumulativeOvertime(userId: string, resetDate: Date) {
-    // Update start date to reset date
-    await db.update(userClockifyConfig)
-        .set({ cumulativeOvertimeStartDate: resetDate })
-        .where(eq(userClockifyConfig.userId, userId));
+  // Update start date to reset date
+  await db
+    .update(userClockifyConfig)
+    .set({ cumulativeOvertimeStartDate: resetDate })
+    .where(eq(userClockifyConfig.userId, userId));
 
-    // Invalidate all cached weekly sums
-    await invalidateWeeklySumsCache(userId);
+  // Invalidate all cached weekly sums
+  await invalidateWeeklySumsCache(userId);
 }
 ```
 
