@@ -49,116 +49,32 @@ needed.**
 
 ## Development Workflow
 
-### Use Package.json Scripts
+**Common Commands:**
 
-Always use the predefined scripts from `package.json` rather than custom
-commands:
-
-- `bun run dev` - Start development server on port 3000
-- `bun run build` - Build for production
-- `bun run serve` - Preview production build
-- `bun run test` - Run tests with vitest
-- `bun run test:e2e` - Run all E2E tests
-- `bun run test:e2e:ui` - Run E2E tests with UI mode
-- `bun run test:e2e:debug` - Run E2E tests in debug mode
-- `bun e2e <filename>` - Run specific E2E test file (fuzzy matches filename)
-- `bun run dbpush` - Push database schema changes (Drizzle Kit)
-- `bun run dbstudio` - Open Drizzle Studio for database management
-- `bun run auth-schema` - Generate Better-auth schema file
-
-### Code Formatting
-
-Use prettier to format files after making changes to files:
-
-```bash
-bunx prettier --write <filepath>
-```
-
-### Check for Running Dev Server
-
-Before starting a new dev server with `bun run dev`, check if one is already
-running on localhost port 3000. This prevents multiple instances and port
-conflicts.
+- `bun run dev` - Dev server (port 3000)
+- `bun run build` / `bun run serve` - Build and preview
+- `bun run test:vitest` - Unit tests (Vitest)
+- `bun e2e` - E2E tests (Playwright)
+- `bun e2e <filename>` - One specific E2E test file (fuzzy matches in
+  `tests/e2e/user-journeys/`)
+- `bun run dbpush` / `bun run dbstudio` - Database tools
+- `bunx prettier --write <filepath>` - Format code
+- Check port 3000 or 3001 before starting dev server
 
 ---
 
-## Architecture Decision Records
+## Agent Documentation
 
-### Logging Decisions
-
-Document all significant architectural decisions in `agent/decisions/` following
-this template:
-
-**Filename Format**: `YYYY_MM_DD_topic_description.md`
-
-**Examples**:
-
-- `2025_10_31_better_auth_integration.md`
-- `2025_10_31_eventsourcingdb_vs_sqlite.md`
-- `2025_11_15_api_rate_limiting_strategy.md`
-
-### Summary Documentation Location
-
-**All summary markdown files must be written to the `agent/summaries`
-directory**, not anywhere else in the codebase. This includes:
-
-- Implementation summaries
-- Test strategy documents
-- Architecture decision summaries
-- Project milestone summaries
-
-The `agent/` directory is the designated location for all agent-generated
-documentation to maintain consistency and discoverability.
-
-### Temporary Files
-
-**If the agent needs temporary files, store them in `agent/tmp/`**. This
-directory is designated for:
-
-- Temporary data files
-- Intermediate processing results
-- Scratch files during development
-- Any files that don't need to be committed to version control
-
-The `agent/tmp/` directory should be cleaned up regularly and its contents
-should not be relied upon for long-term storage.
-
-### Keep ARCHITECTURE.md Concise
-
-The `agent/ARCHITECTURE.md` file should remain a high-level overview. Move
-detailed decision rationale, alternatives considered, and implementation
-specifics into separate decision files in `agent/decisions/`.
+- **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
+- **Summaries**: `agent/summaries/` (implementation notes, test strategies)
+- **Temporary files**: `agent/tmp/` (not committed)
+- Keep `agent/ARCHITECTURE.md` high-level; details go in decision files
 
 ---
 
 ## Documentation Search
 
-### Using Context7 for Library Documentation
-
-When you need to search for library documentation, use the `context7` tools:
-
-1. **Resolve library ID first**: Use `context7_resolve-library-id` to get the
-   correct Context7-compatible library ID
-2. **Fetch documentation**: Use `context7_get-library-docs` with the resolved ID
-
-Example workflow:
-
-```typescript
-// First resolve the library name to get the proper ID
-const libraryId = (await context7_resolve) - library_id("react-query");
-
-// Then fetch the documentation
-const docs =
-  (await context7_get) -
-  library -
-  docs(libraryId, {
-    topic: "hooks",
-    tokens: 5000,
-  });
-```
-
-Always resolve the library ID first unless you already have the exact
-Context7-compatible format (e.g., `/tanstack/query`).
+Use `context7` tools: resolve library ID first, then fetch docs.
 
 ---
 
@@ -179,345 +95,90 @@ Context7-compatible format (e.g., `/tanstack/query`).
 
 ---
 
-## Database Schema Patterns
+## Database (SQLite + Drizzle)
 
-### Better-Auth Managed Tables
+**Better-auth tables** (DO NOT modify): `user`, `session`, `account`,
+`verification`
 
-Better-auth automatically manages these tables - **DO NOT modify them
-directly**:
+**Custom tables:**
 
-- `user` - Core user identity (id, name, email, emailVerified)
-- `session` - Active user sessions (token, userId, expiresAt)
-- `account` - Authentication providers (password hash stored here)
-- `verification` - Email verification tokens
+- Reference `user.id` as foreign key
+- Use snake_case naming
+- Define in `src/db/schema/` (one file per domain)
 
-To regenerate the Better-auth schema: `bun run auth-schema`
-
-### Application Tables
-
-All custom tables must:
-
-1. **Reference `user.id` as foreign key** for user-specific data
-2. Use snake_case naming convention
-3. Be defined in `src/db/schema/` (separate files by domain)
-
-Example:
-
-```typescript
-export const userClockifyConfig = sqliteTable("user_clockify_config", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id),
-  // ... other fields
-});
-```
-
-### Custom Drizzle Types
-
-Located in `src/db/types/`:
-
-- `customIsoDate.ts` - ISO date string handling
-- `customUint8Array.ts` - Binary data handling
-
-Use these custom types when standard Drizzle types don't fit your needs.
+**Custom types:** `src/db/types/` (customIsoDate, customUint8Array)
 
 ---
 
-## Authentication Patterns
+## Authentication (Better-auth)
 
-### Server-Side Authentication
+**Server-side:** Check `auth.api.getSession()` in server functions
 
-Always check session in server functions:
+**Client-side:** Use `authClient` from `src/client/auth-client.ts`
 
-```typescript
-import { createServerFn } from "@tanstack/react-start";
-import { auth } from "@/lib/auth/auth";
+**Route protection:** Check auth in `beforeLoad`, redirect to `/signin` if
+needed
 
-export const myServerFn = createServerFn("GET", async (_, { request }) => {
-  const session = await auth.api.getSession({ headers: request.headers });
+**Notes:**
 
-  if (!session?.user) {
-    throw new Error("Unauthorized");
-  }
-
-  const userId = session.user.id;
-  // ... use userId in database queries
-});
-```
-
-### Client-Side Authentication
-
-Use the auth client from `src/client/auth-client.ts`:
-
-```typescript
-import { authClient } from "@/client/auth-client";
-
-// Sign in
-await authClient.signIn.email({
-  email: "user@example.com",
-  password: "password",
-});
-
-// Sign up
-await authClient.signUp.email({
-  email: "user@example.com",
-  password: "password",
-  name: "User Name",
-});
-
-// Get current session
-const session = authClient.useSession();
-
-// Sign out
-await authClient.signOut();
-```
-
-### Route Protection
-
-Protect routes by checking authentication in loaders:
-
-```typescript
-export const Route = createFileRoute("/protected")({
-  beforeLoad: async ({ context }) => {
-    const session = await auth.api.getSession({
-      headers: context.request.headers,
-    });
-    if (!session?.user) {
-      throw redirect({ to: "/signin" });
-    }
-  },
-  // ... rest of route
-});
-```
-
-### Important Notes
-
-- Better-auth automatically handles password hashing
-- Sessions use HTTP-only cookies (secure by default)
-- `src/lib/auth/auth.ts` is a magic location - Better-auth auto-discovers it
-- API route handler: `src/routes/api/auth/$.ts` (catch-all for Better-auth
-  endpoints)
+- Auto password hashing, HTTP-only cookies
+- Auth config: `src/lib/auth/auth.ts` (auto-discovered)
+- API route: `src/routes/api/auth/$.ts`
 
 ---
 
 ## E2E Testing
 
-### Running Specific Test Files
-
-Use fuzzy matching to run specific E2E test files:
-
-```bash
-# Run dashboard tests (fuzzy matches dashboard.spec.ts)
-bun e2e dashboard.spec.ts
-
-# Run auth tests (fuzzy matches auth.spec.ts)
-bun e2e auth.spec.ts
-
-# Run all E2E tests
-bun run test:e2e
-
-# Run with UI mode
-bun run test:e2e:ui
-
-# Run in debug mode
-bun run test:e2e:debug
-```
-
-The `bun e2e <filename>` command will fuzzy-match the provided filename against files in `tests/e2e/user-journeys/` and run the matching test file.
-
-### Test Architecture
-
-- **Per-Test Isolation**: Each test gets its own Bun server instance on random port
-- **In-Memory Database**: Fresh SQLite database per test
-- **Real Authentication**: Better-auth flows with real cookies
-- **API-First Testing**: No direct server code imports
-
-### Test Structure
-
-```
-tests/e2e/
-├── fixtures/
-│   ├── portManager.ts    # Random free port allocation utility
-│   ├── server.ts         # Server lifecycle fixture
-│   └── test.ts           # Extended Playwright test
-├── user-journeys/
-│   └── *.spec.ts         # E2E test files
-└── playwright.config.ts  # Playwright configuration
-```
+- **Run tests**: `bun e2e <filename>` (fuzzy matches in
+  `tests/e2e/user-journeys/`)
+- **Architecture**: Per-test server isolation with in-memory SQLite database
+- See `tests/e2e/README.md` for detailed documentation
 
 ---
 
 ## Code Organization
 
-### Directory Structure
+**Key directories:**
 
-```
-src/
-├── client/            # Client-side utilities (auth-client, etc.)
-├── components/        # React components (organized by feature/domain)
-├── db/
-│   ├── index.ts       # Drizzle instance
-│   ├── schema/        # Database schemas (separate by domain)
-│   │   └── better-auth.ts  # Better-auth managed tables
-│   └── types/         # Custom Drizzle column types
-├── integrations/      # Third-party integrations (TanStack Query, etc.)
-├── lib/               # Shared utilities and configurations
-│   ├── auth/          # Better-auth configuration
-│   └── env/           # Environment variable validation
-├── server/            # ⭐ Server-only functions (safe to import envStore, db, auth)
-├── routes/            # TanStack Start file-based routes
-│   ├── api/           # API endpoints (server-side only)
-│   └── __root.tsx     # Root layout component
-└── routeTree.gen.ts   # Auto-generated route tree (don't edit)
-```
+- `src/server/` - ⭐ Server functions (safe for envStore, db, auth imports)
+- `src/routes/` - File-based routes (never import server-only modules here)
+- `src/db/schema/` - Database schemas (separate by domain)
+- `src/components/` - React components
+- `src/lib/` - Shared utilities
+- `src/client/` - Client-side utilities
 
-### File Naming Conventions
-
-- **Components**: PascalCase (e.g., `Header.tsx`, `UserProfile.tsx`)
-- **Utilities**: camelCase (e.g., `envStore.ts`, `authClient.ts`)
-- **Routes**: TanStack Router conventions (e.g., `index.tsx`, `signin.tsx`)
-- **Database tables**: snake_case in schema definitions
-
-### Where to Place New Code
-
-- **Server functions** → `src/server/` (organize by domain, e.g.,
-  `userServerFns.ts`, `clockifyServerFns.ts`)
-- **Database schemas** → `src/db/schema/` (one file per domain)
-- **API endpoints** → `src/routes/api/`
-- **Shared utilities** → `src/lib/`
-- **React components** → `src/components/` (organize by feature)
-- **Types** → Co-locate with usage or `src/types/` for shared types
-
-**Important**: If your code needs to import `envStore`, `db`, `auth`, or other
-server-only modules, it MUST go in `src/server/`. Never import these directly in
-route files.
+**Naming:** PascalCase (components), camelCase (utilities), snake_case (DB
+tables)
 
 ---
 
-## TanStack Router Conventions
+## TanStack Router
 
-### File-Based Routing
+**File-based routing:** `src/routes/` (auto-generates `routeTree.gen.ts`)
 
-Routes are defined by file structure in `src/routes/`:
+**Server functions:** Use `createServerFn` in `src/server/` files
 
-- `index.tsx` → `/`
-- `signin.tsx` → `/signin`
-- `demo/start.ssr.tsx` → `/demo/start/ssr`
-- `api/auth/$.ts` → `/api/auth/*` (catch-all)
+**Loaders vs Server Functions:**
 
-After adding/modifying routes, TanStack Router auto-generates
-`src/routeTree.gen.ts` - **never edit this file manually**.
+- Loaders: Initial page data, pre-navigation fetch, runs on client and server
+- Server functions: Mutations, user interaction data, runs directly on server,
+  REST call from client to server
 
-### Server Functions
-
-Use `createServerFn` for server-side logic:
-
-```typescript
-import { createServerFn } from "@tanstack/react-start";
-
-// GET request
-export const getData = createServerFn("GET", async () => {
-  // Server-side code only
-  return { data: "value" };
-});
-
-// POST with validation
-export const postData = createServerFn("POST")
-  .inputValidator((input: MyType) => input)
-  .handler(async ({ data }) => {
-    // Server-side code with validated input
-    return processData(data);
-  });
-```
-
-Call from components:
-
-```typescript
-// Call server function
-const result = await getData();
-```
-
-### Loaders vs Server Functions
-
-**Use loaders** when:
-
-- Data is needed for initial page render
-- Data should be fetched before route navigation
-- You want automatic loading states
-
-```typescript
-export const Route = createFileRoute("/my-route")({
-    loader: async () => {
-        return await getData();
-    },
-    component: MyComponent,
-});
-
-function MyComponent() {
-    const data = Route.useLoaderData();
-    return <div>{data.value}</div>;
-}
-```
-
-**Use server functions** when:
-
-- Handling mutations (POST, PUT, DELETE)
-- Fetching data on user interaction
-- Need more control over when data is fetched
-
-### Router Context
-
-Access the router context in routes:
-
-```typescript
-export const Route = createRootRouteWithContext<MyRouterContext>()({
-  // ...
-});
-
-interface MyRouterContext {
-  queryClient: QueryClient;
-}
-```
+**Route protection:** Check auth in `beforeLoad` hook
 
 ---
 
 ## Environment Variables
 
-### Required Variables
+**Validated with Zod in `src/lib/env/envStore.ts`:**
 
-Environment variables are validated using Zod in `src/lib/env/envStore.ts`:
+- `DATABASE_URL`, `ALLOW_USER_SIGNUP`, `ADMIN_EMAIL`, `ADMIN_LABEL`,
+  `ADMIN_PASSWORD`
 
-```typescript
-export const envStore = z
-  .object({
-    DATABASE_URL: z.string(),
-    ALLOW_USER_SIGNUP: z
-      .enum(["true", "false"])
-      .default("false")
-      .transform((val) => val === "true"),
-    ADMIN_EMAIL: z.email(),
-    ADMIN_LABEL: z.string(),
-    ADMIN_PASSWORD: z.string(),
-  })
-  .parse(process.env);
-```
+**Adding new variables:** Update envStore schema, tell user to add to `.env`
+file, document here
 
-### Current Variables
-
-- `DATABASE_URL` - SQLite database file path (e.g., `file:./local/db.sqlite`)
-- `ALLOW_USER_SIGNUP` - Allow user registration (defaults to `"false"`)
-- `ADMIN_EMAIL` - Admin user email for `/registerAdmin` route
-- `ADMIN_LABEL` - Admin user display name
-- `ADMIN_PASSWORD` - Admin user password
-
-### Adding New Variables
-
-1. Add to `envStore` schema in `src/lib/env/envStore.ts`
-2. Add to `.env` file (not committed to git)
-3. Document in this section
-
-### ⚠️ Critical: Server-Only Access Pattern
+### ⚠️ Critical: Server-Only Access
 
 **The `envStore` module should ONLY be imported in server-only files.**
 
