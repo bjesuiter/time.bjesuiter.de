@@ -62,6 +62,14 @@ commands:
 - `bun run dbstudio` - Open Drizzle Studio for database management
 - `bun run auth-schema` - Generate Better-auth schema file
 
+### Code Formatting
+
+Use prettier to format files after making changes to files:
+
+```bash
+bunx prettier --write <filepath>
+```
+
 ### Check for Running Dev Server
 
 Before starting a new dev server with `bun run dev`, check if one is already
