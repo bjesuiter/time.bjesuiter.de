@@ -34,6 +34,15 @@ Tests all Clockify API functions with real API calls:
 - Workspaces, clients, projects
 - Summary and detailed reports
 
+### Clockify API Functions
+
+- ✅ `validateApiKey` - API key validation and user info
+- ✅ `getWorkspaces` - Workspace listing
+- ✅ `getClients` - Client listing per workspace
+- [ ] `getProjects` - Project listing (with optional client filter)
+- [ ] `getSummaryReport` - Summary reports (grouped by date/project)
+- [ ] `getDetailedReport` - Detailed reports (individual time entries)
+
 ## Best Practices
 
 - Real API only (no mocking)
