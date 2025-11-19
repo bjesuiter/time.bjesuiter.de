@@ -44,14 +44,14 @@ test.describe("Authentication Flow", () => {
     await expect(page.locator("h1")).toContainText("Time Tracking");
   });
 
-  test("sign in fails with invalid credentials", async ({page,serverUrl,}) => {
+  test("sign in fails with invalid credentials", async ({ page, serverUrl }) => {
     // First, register the admin user to ensure the system is set up
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
 
     // Wait for admin registration to complete (handle different states)
+    // Note: existingUserMessage should not be possible since we start with a fresh database => debug
     const successMessage = page.locator("text=Registration Successful");
-    // TODO: This "User Already Exists" message should not be possible since we start with a fresh database => debug
     const existingUserMessage = page.locator("text=User Already Exists");
 
     await Promise.race([
@@ -143,7 +143,7 @@ test.describe("Authentication Flow", () => {
     await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
   });
 
-  test("user menu is functional when authenticated", async ({page,serverUrl,}) => {
+  test("user menu is functional when authenticated", async ({ page, serverUrl }) => {
     // First, register the admin user
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
