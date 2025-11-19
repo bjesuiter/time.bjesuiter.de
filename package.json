@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bunx vite dev --port 3000",
+    "dev2": "bunx vite dev --port 3001 --mode memory",
     "build": "bunx vite build",
     "serve": "bunx vite preview",
     "test": "bunx vitest run",
