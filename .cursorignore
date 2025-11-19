@@ -1,0 +1,2 @@
+# Explicitly allow cursor access to the reports folder
+!reports/
