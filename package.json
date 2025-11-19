@@ -15,7 +15,7 @@
     "test:e2e:debug": "bunx playwright test --config tests/e2e/playwright.config.ts --debug",
     "test:all": "npm run test:unit && npm run test:browser && npm run test:e2e",
     "e2e": "bun run test:e2e",
-    "report": "bunx playwright show-report reports/html",
+    "e2e:report": "bunx playwright show-report reports/html",
     "dbpush": "bunx drizzle-kit push",
     "dbgenerate": "bunx drizzle-kit generate",
     "dbseed": "bunx drizzle-seed",
