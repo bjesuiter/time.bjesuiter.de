@@ -143,6 +143,7 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
               <Link
                 to="/signin"
                 className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-indigo-200 flex items-center justify-center gap-2"
+                data-testid="landingpage-sign-in-link"
               >
                 Sign In <ArrowRight className="w-5 h-5" />
               </Link>

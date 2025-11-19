@@ -1,10 +1,7 @@
 import { expect, test } from "../fixtures/test";
 
 test.describe("Landing Page and Navigation", () => {
-  test("landing page displays correctly for unauthenticated users", async ({
-    page,
-    serverUrl,
-  }) => {
+  test("landing page displays correctly for unauthenticated users", async ({ page, serverUrl }) => {
     await page.goto(serverUrl);
     await page.waitForLoadState("networkidle");
 
@@ -13,12 +10,12 @@ test.describe("Landing Page and Navigation", () => {
     await expect(page.locator("h1")).toContainText("But Make It Fun!");
 
     // Check subheading
-    await expect(page.locator("p")).toContainText(
+    await expect(page.locator("p").first()).toContainText(
       "A personal Clockify-powered dashboard",
     );
 
     // Check sign in button
-    await expect(page.locator('a:has-text("Sign In")')).toBeVisible();
+    await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
 
     // Check feature cards
     await expect(page.locator("text=Clockify Integration")).toBeVisible();
@@ -32,10 +29,7 @@ test.describe("Landing Page and Navigation", () => {
     ).toBeVisible();
   });
 
-  test("navigation links work from landing page", async ({
-    page,
-    serverUrl,
-  }) => {
+  test("navigation links work from landing page", async ({ page, serverUrl }) => {
     await page.goto(serverUrl);
     await page.waitForLoadState("networkidle");
 
@@ -81,10 +75,7 @@ test.describe("Landing Page and Navigation", () => {
     // but we verify they exist and have correct hrefs
   });
 
-  test("page is responsive and mobile-friendly", async ({
-    page,
-    serverUrl,
-  }) => {
+  test("page is responsive and mobile-friendly", async ({ page, serverUrl }) => {
     // Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto(serverUrl);
@@ -92,7 +83,7 @@ test.describe("Landing Page and Navigation", () => {
 
     // Check that main elements are still visible
     await expect(page.locator("h1")).toContainText("Time Tracking,");
-    await expect(page.locator('a:has-text("Sign In")')).toBeVisible();
+    await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
 
     // Test tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
@@ -100,7 +91,7 @@ test.describe("Landing Page and Navigation", () => {
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("h1")).toContainText("Time Tracking,");
-    await expect(page.locator('a:has-text("Sign In")')).toBeVisible();
+    await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
 
     // Test desktop viewport
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -108,7 +99,7 @@ test.describe("Landing Page and Navigation", () => {
     await page.waitForLoadState("networkidle");
 
     await expect(page.locator("h1")).toContainText("Time Tracking,");
-    await expect(page.locator('a:has-text("Sign In")')).toBeVisible();
+    await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
   });
 
   test("page loads without JavaScript errors", async ({ page, serverUrl }) => {
