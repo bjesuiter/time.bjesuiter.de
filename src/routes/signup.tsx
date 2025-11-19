@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { authClient } from "@/client/auth-client";
 import { isUserSignupAllowed, signUpUser } from "@/server/userServerFns";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AlertCircle, Loader2, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
-import { Mail, Lock, User, AlertCircle, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
   component: SignUpPage,
@@ -168,6 +168,7 @@ function SignUpPage() {
                   value={formData.name}
                   onChange={handleInputChange("name")}
                   className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  autoComplete='username'
                   placeholder="John Doe"
                   disabled={isLoading}
                 />
@@ -200,6 +201,7 @@ function SignUpPage() {
                       : "border-gray-300 focus:border-indigo-500"
                   }`}
                   placeholder="you@example.com"
+                  autoComplete='email'
                   disabled={isLoading}
                   required
                 />
@@ -232,6 +234,7 @@ function SignUpPage() {
                       : "border-gray-300 focus:border-indigo-500"
                   }`}
                   placeholder="At least 8 characters"
+                  autoComplete='new-password'
                   disabled={isLoading}
                   required
                 />
@@ -265,6 +268,7 @@ function SignUpPage() {
                   }`}
                   placeholder="Repeat your password"
                   disabled={isLoading}
+                  autoComplete='new-password'
                   required
                 />
               </div>
