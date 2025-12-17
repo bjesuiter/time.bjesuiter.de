@@ -29,7 +29,8 @@ export function WeeklyTable({
   data,
   trackedProjects,
   regularHoursPerWeek,
-  workingDaysPerWeek,
+  // workingDaysPerWeek is available for future use (e.g., calculating expected hours per day)
+  workingDaysPerWeek: _workingDaysPerWeek,
   clientName,
 }: WeeklyTableProps) {
   const weekStartDate = parseDate(weekStart);

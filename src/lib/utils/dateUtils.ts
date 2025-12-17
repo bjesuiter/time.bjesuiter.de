@@ -42,7 +42,7 @@ export function getWeekEnd(date: Date, weekStart: WeekStart): Date {
  */
 export function getWeekDates(
   weekStartDate: Date,
-  weekStart: WeekStart,
+  _weekStart: WeekStart,
 ): Date[] {
   const dates: Date[] = [];
   const start = new Date(weekStartDate);
@@ -62,7 +62,7 @@ export function getWeekDates(
  */
 export function getPreviousWeekStart(
   currentWeekStart: Date,
-  weekStart: WeekStart,
+  _weekStart: WeekStart,
 ): Date {
   const prevWeekStart = new Date(currentWeekStart);
   prevWeekStart.setDate(prevWeekStart.getDate() - 7);
@@ -74,7 +74,7 @@ export function getPreviousWeekStart(
  */
 export function getNextWeekStart(
   currentWeekStart: Date,
-  weekStart: WeekStart,
+  _weekStart: WeekStart,
 ): Date {
   const nextWeekStart = new Date(currentWeekStart);
   nextWeekStart.setDate(nextWeekStart.getDate() + 7);

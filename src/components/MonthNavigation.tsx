@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  getMonthBoundaries,
   getPreviousWeekStart,
-  getWeekStart,
   getWeeksInMonth,
   type WeekStart,
 } from "@/lib/utils/dateUtils";
@@ -22,9 +20,6 @@ export function MonthNavigation({
   selectedWeekStart,
 }: MonthNavigationProps) {
   const [viewDate, setViewDate] = useState(currentDate);
-
-  // Get month boundaries
-  const { start: monthStart, end: monthEnd } = getMonthBoundaries(viewDate);
 
   // Get all weeks in the current month
   const weeksInMonth = getWeeksInMonth(viewDate, weekStart);
