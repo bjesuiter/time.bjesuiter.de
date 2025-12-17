@@ -592,27 +592,17 @@ export const myServerFn = createServerFn("GET", async (_, { request }) => {
 
 - Nothing remaining in Phase 1
 
-### Phase 2: Clockify Integration & Basic Display
+### Phase 2: Clockify Integration & Basic Display ✅
 
 - [x] Implement Clockify API client
 - [x] Fetch daily summaries (grouped by DATE and PROJECT)
 - [x] Create multi-row weekly table component (tracked projects + extra work +
       total)
-- [ ] Month-based navigation (current month + previous week)
-- [ ] Display daily sums for tracked projects
-- [ ] Display "Extra Work" row for untracked projects
-- [ ] Display total row for all client projects
-- [ ] Daily-based overtime calculation (working days vs. weekends)
-
-**Remaining:**
-
-- [ ] Create multi-row weekly table component (tracked projects + extra work +
-      total)
-- [ ] Month-based navigation (current month + previous week)
-- [ ] Display daily sums for tracked projects
-- [ ] Display "Extra Work" row for untracked projects
-- [ ] Display total row for all client projects
-- [ ] Daily-based overtime calculation (working days vs. weekends)
+- [x] Month-based navigation (current month + previous week)
+- [x] Display daily sums for tracked projects
+- [x] Display "Extra Work" row for untracked projects
+- [x] Display total row for all client projects
+- [x] Daily-based overtime calculation (working days vs. weekends)
 
 ### Phase 3: Configuration Management & Versioning
 
