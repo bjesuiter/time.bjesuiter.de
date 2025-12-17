@@ -8,9 +8,14 @@ import {
   ArrowRight,
   Rocket,
 } from "lucide-react";
-import { checkClockifySetup } from "@/server/clockifyServerFns";
+import { useQuery } from "@tanstack/react-query";
+import { checkClockifySetup, getClockifyConfig, getWeeklyTimeReport } from "@/server/clockifyServerFns";
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
+import { MonthNavigation } from "@/components/MonthNavigation";
+import { WeeklyTable } from "@/components/WeeklyTable";
+import { getWeekStart, type WeekStart } from "@/lib/utils/dateUtils";
+import { useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -72,46 +77,135 @@ function App() {
 }
 
 function DashboardView() {
+  // Get Clockify config to determine weekStart setting
+  const { data: configResult, isLoading: configLoading } = useQuery({
+    queryKey: ["clockifyConfig"],
+    queryFn: async () => {
+      const result = await getClockifyConfig();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to load configuration");
+      }
+      return result.config;
+    },
+  });
+
+  // Get current week start based on user's weekStart setting
+  const weekStartSetting: WeekStart =
+    (configResult?.weekStart as WeekStart) || "MONDAY";
+  const currentDate = new Date();
+  const currentWeekStart = getWeekStart(currentDate, weekStartSetting);
+  const currentWeekStartStr = currentWeekStart.toISOString().split("T")[0];
+
+  // State for selected week
+  const [selectedWeekStart, setSelectedWeekStart] = useState<string>(
+    currentWeekStartStr,
+  );
+
+  // Fetch weekly time report for selected week
+  const {
+    data: weeklyReport,
+    isLoading: reportLoading,
+    error: reportError,
+  } = useQuery({
+    queryKey: ["weeklyReport", selectedWeekStart],
+    queryFn: async () => {
+      const result = await getWeeklyTimeReport({ weekStart: selectedWeekStart });
+      if (!result.success) {
+        throw new Error(result.error || "Failed to load weekly report");
+      }
+      return result;
+    },
+    enabled: !!configResult && !!selectedWeekStart,
+  });
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="h-8 w-8 bg-indigo-200 rounded-full mb-4"></div>
+              <div className="h-4 w-32 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!configResult) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8">
+            <p className="text-red-600">
+              Failed to load Clockify configuration. Please check your settings.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="dashboard-heading">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900" data-testid="dashboard-heading">
+            Dashboard
+          </h1>
           <Sparkles className="w-6 h-6 text-yellow-500" />
         </div>
 
-        <div className="space-y-6">
-          {/* Main Dashboard Content */}
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-8 transition-all hover:shadow-md">
-            <div className="text-center py-12">
-              <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-10 h-10 text-indigo-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3" data-testid="dashboard-welcome-message">
-                Welcome to Your Dashboard
-              </h2>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Your time tracking hub is ready. We're currently building out
-                more features to help you visualize your productivity.
-              </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Month Navigation */}
+          <div className="lg:col-span-1">
+            <MonthNavigation
+              currentDate={currentDate}
+              weekStart={weekStartSetting}
+              onWeekSelect={setSelectedWeekStart}
+              selectedWeekStart={selectedWeekStart}
+            />
+          </div>
 
-              <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto" data-testid="dashboard-coming-soon-section">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    <Rocket className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-blue-900 mb-1">
-                      Coming Soon: Phase 2
-                    </h3>
-                    <p className="text-sm text-blue-700 leading-relaxed">
-                      Get ready for detailed weekly time summaries, granular
-                      project tracking, and smart overtime calculations.
-                    </p>
+          {/* Weekly Table */}
+          <div className="lg:col-span-2">
+            {reportLoading ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-8 w-8 bg-indigo-200 rounded-full mb-4"></div>
+                    <div className="h-4 w-48 bg-gray-200 rounded"></div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : reportError ? (
+              <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8">
+                <p className="text-red-600">
+                  {reportError instanceof Error
+                    ? reportError.message
+                    : "Failed to load weekly report"}
+                </p>
+              </div>
+            ) : weeklyReport ? (
+              <WeeklyTable
+                weekStart={weeklyReport.weekStart}
+                weekEnd={weeklyReport.weekEnd}
+                weekStartSetting={weekStartSetting}
+                data={weeklyReport.data}
+                trackedProjects={weeklyReport.trackedProjects}
+                regularHoursPerWeek={weeklyReport.regularHoursPerWeek}
+                workingDaysPerWeek={weeklyReport.workingDaysPerWeek}
+                clientName={weeklyReport.clientName}
+              />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <p className="text-gray-600">
+                  No data available for the selected week. Please ensure you have
+                  tracked projects configured and time entries in Clockify.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
