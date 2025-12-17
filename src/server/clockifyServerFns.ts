@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, and, lte, gt, or, isNull } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
+import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
 
@@ -327,4 +328,119 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
       success: true,
       projects: result.data,
     };
+  });
+
+/**
+ * Gets weekly time report for a specific week
+ * Fetches data from Clockify API and returns daily breakdown
+ */
+export const getWeeklyTimeReport = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      weekStart: string; // ISO date string for Monday (or Sunday) of the week
+    }) => data,
+  )
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    try {
+      // Get user's Clockify config
+      const config = await db.query.userClockifyConfig.findFirst({
+        where: eq(userClockifyConfig.userId, userId),
+      });
+
+      if (!config) {
+        return {
+          success: false,
+          error: "Clockify configuration not found",
+        };
+      }
+
+      // Get tracked projects config for the week start date
+      const targetDate = new Date(data.weekStart);
+      const trackedProjectsConfig = await db.query.configChronic.findFirst({
+        where: and(
+          eq(configChronic.userId, userId),
+          eq(configChronic.configType, "tracked_projects"),
+          lte(configChronic.validFrom, targetDate),
+          or(
+            isNull(configChronic.validUntil),
+            gt(configChronic.validUntil, targetDate),
+          ),
+        ),
+      });
+
+      if (!trackedProjectsConfig) {
+        return {
+          success: false,
+          error: "No tracked projects configuration found for this week",
+        };
+      }
+
+      if (!config.selectedClientId) {
+        return {
+          success: false,
+          error: "No client filter configured. Please configure a client in settings.",
+        };
+      }
+
+      const trackedProjects = JSON.parse(
+        trackedProjectsConfig.value,
+      ) as { projectIds: string[]; projectNames: string[] };
+
+      if (trackedProjects.projectIds.length === 0) {
+        return {
+          success: false,
+          error: "No tracked projects configured for this week",
+        };
+      }
+
+      // Calculate week end date (6 days after week start)
+      const weekStartDate = new Date(data.weekStart);
+      const weekEndDate = new Date(weekStartDate);
+      weekEndDate.setDate(weekEndDate.getDate() + 6);
+
+      // Format dates for Clockify API (ISO 8601 with time)
+      const startDateISO = `${weekStartDate.toISOString().split("T")[0]}T00:00:00.000Z`;
+      const endDateISO = `${weekEndDate.toISOString().split("T")[0]}T23:59:59.999Z`;
+
+      // Call Clockify API to get weekly time report
+      const reportResult = await clockifyClient.getWeeklyTimeReport(
+        config.clockifyApiKey,
+        {
+          workspaceId: config.clockifyWorkspaceId,
+          clientId: config.selectedClientId,
+          projectIds: trackedProjects.projectIds,
+          startDate: startDateISO,
+          endDate: endDateISO,
+        },
+      );
+
+      if (!reportResult.success) {
+        return {
+          success: false,
+          error: reportResult.error.message,
+        };
+      }
+
+      return {
+        success: true,
+        data: reportResult.data,
+        weekStart: data.weekStart,
+        weekEnd: weekEndDate.toISOString().split("T")[0],
+        trackedProjects: trackedProjects,
+        regularHoursPerWeek: config.regularHoursPerWeek,
+        workingDaysPerWeek: config.workingDaysPerWeek,
+        clientName: config.selectedClientName || "All Clients",
+      };
+    } catch (error) {
+      console.error("Error getting weekly time report:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get weekly time report",
+      };
+    }
   });
