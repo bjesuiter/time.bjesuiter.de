@@ -6,7 +6,6 @@ import {
   Calendar,
   Target,
   ArrowRight,
-  Rocket,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { checkClockifySetup, getClockifyConfig, getWeeklyTimeReport } from "@/server/clockifyServerFns";
@@ -109,7 +108,7 @@ function DashboardView() {
   } = useQuery({
     queryKey: ["weeklyReport", selectedWeekStart],
     queryFn: async () => {
-      const result = await getWeeklyTimeReport({ weekStart: selectedWeekStart });
+      const result = await getWeeklyTimeReport({ data: { weekStart: selectedWeekStart } });
       if (!result.success) {
         throw new Error(result.error || "Failed to load weekly report");
       }

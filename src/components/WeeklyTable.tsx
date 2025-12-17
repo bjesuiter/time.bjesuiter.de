@@ -4,6 +4,7 @@ import {
   formatHoursMinutes,
   getDayAbbreviation,
   getWeekDates,
+  isWorkingDay,
   parseDate,
   type WeekStart,
 } from "@/lib/utils/dateUtils";
@@ -35,10 +36,25 @@ export function WeeklyTable({
   const weekStartDate = parseDate(weekStart);
   const weekDates = getWeekDates(weekStartDate, weekStartSetting);
 
-  // Calculate weekly totals
+  // Calculate expected hours per working day
+  const expectedSecondsPerWorkingDay =
+    (regularHoursPerWeek / workingDaysPerWeek) * 3600;
+
+  // Calculate weekly totals and daily data
   let weeklyTrackedProjectsTotal = 0;
   let weeklyExtraWorkTotal = 0;
   let weeklyTotal = 0;
+  let weeklyExpectedSeconds = 0;
+
+  // Daily expected and actual seconds for overtime calculation
+  const dailyData: Array<{
+    date: Date;
+    dateStr: string;
+    isWorking: boolean;
+    expectedSeconds: number;
+    actualSeconds: number;
+    overtimeSeconds: number;
+  }> = [];
 
   const trackedProjectsData: Array<{
     projectId: string;
@@ -60,12 +76,30 @@ export function WeeklyTable({
   // Process daily breakdown
   weekDates.forEach((date, dayIndex) => {
     const dateStr = date.toISOString().split("T")[0];
-    const dayData = data.dailyBreakdown[dateStr];
+    const dayBreakdown = data.dailyBreakdown[dateStr];
+    const isWorking = isWorkingDay(date);
 
-    if (dayData) {
+    // Expected hours: full day for working days, 0 for weekends
+    const expectedSeconds = isWorking ? expectedSecondsPerWorkingDay : 0;
+    const actualSeconds = dayBreakdown?.totalSeconds || 0;
+    const overtimeSeconds = actualSeconds - expectedSeconds;
+
+    dailyData.push({
+      date,
+      dateStr,
+      isWorking,
+      expectedSeconds,
+      actualSeconds,
+      overtimeSeconds,
+    });
+
+    weeklyExpectedSeconds += expectedSeconds;
+    weeklyTotal += actualSeconds;
+
+    if (dayBreakdown) {
       // Process tracked projects
       trackedProjectsData.forEach((project) => {
-        const projectTime = dayData.trackedProjects[project.projectId];
+        const projectTime = dayBreakdown.trackedProjects[project.projectId];
         if (projectTime) {
           project.dailySeconds[dayIndex] = projectTime.seconds;
           project.weeklyTotal += projectTime.seconds;
@@ -74,15 +108,12 @@ export function WeeklyTable({
       });
 
       // Extra work
-      weeklyExtraWorkTotal += dayData.extraWorkSeconds;
-      weeklyTotal += dayData.totalSeconds;
+      weeklyExtraWorkTotal += dayBreakdown.extraWorkSeconds;
     }
   });
 
-  // Calculate overtime
-  const expectedSeconds = regularHoursPerWeek * 3600;
-  const overtimeSeconds = weeklyTotal - expectedSeconds;
-  const overtimeHours = overtimeSeconds / 3600;
+  // Calculate weekly overtime (sum of daily overtime)
+  const weeklyOvertimeSeconds = weeklyTotal - weeklyExpectedSeconds;
 
   // Format week range
   const weekRange = `${weekStartDate.toLocaleDateString("en-US", {
@@ -199,23 +230,74 @@ export function WeeklyTable({
               <td className="px-4 py-3 text-sm font-semibold text-gray-900">
                 Total ({clientName})
               </td>
-              {weekDates.map((date, dayIndex) => {
-                const dateStr = date.toISOString().split("T")[0];
-                const dayData = data.dailyBreakdown[dateStr];
-                return (
-                  <td
-                    key={dayIndex}
-                    className="px-3 py-3 text-sm text-center text-gray-900"
-                  >
-                    {dayData ? formatHours(dayData.totalSeconds) : "-"}
-                  </td>
-                );
-              })}
+              {dailyData.map((day, dayIndex) => (
+                <td
+                  key={dayIndex}
+                  className="px-3 py-3 text-sm text-center text-gray-900"
+                >
+                  {day.actualSeconds > 0 ? formatHours(day.actualSeconds) : "-"}
+                </td>
+              ))}
               <td className="px-4 py-3 text-sm text-center font-semibold text-gray-900">
                 {formatHours(weeklyTotal)}
               </td>
               <td className="px-4 py-3 text-sm text-center font-semibold text-gray-700">
-                {formatHours(expectedSeconds)}
+                {formatHours(weeklyExpectedSeconds)}
+              </td>
+            </tr>
+
+            {/* Expected Row - shows daily expected hours */}
+            <tr className="bg-gray-50">
+              <td className="px-4 py-3 text-sm text-gray-500">
+                Expected
+              </td>
+              {dailyData.map((day, dayIndex) => (
+                <td
+                  key={dayIndex}
+                  className={`px-3 py-3 text-sm text-center ${
+                    day.isWorking ? "text-gray-500" : "text-gray-300"
+                  }`}
+                >
+                  {day.isWorking ? formatHours(day.expectedSeconds) : "-"}
+                </td>
+              ))}
+              <td className="px-4 py-3 text-sm text-center text-gray-500">
+                {formatHours(weeklyExpectedSeconds)}
+              </td>
+              <td className="px-4 py-3 text-sm text-center text-gray-400">
+                -
+              </td>
+            </tr>
+
+            {/* Daily Overtime Row */}
+            <tr className="bg-gray-50">
+              <td className="px-4 py-3 text-sm text-gray-500">
+                Daily +/-
+              </td>
+              {dailyData.map((day, dayIndex) => {
+                const hasTime = day.actualSeconds > 0 || day.expectedSeconds > 0;
+                return (
+                  <td
+                    key={dayIndex}
+                    className={`px-3 py-3 text-sm text-center font-medium ${
+                      day.overtimeSeconds > 0
+                        ? "text-green-600"
+                        : day.overtimeSeconds < 0
+                          ? "text-red-600"
+                          : "text-gray-400"
+                    }`}
+                  >
+                    {hasTime
+                      ? `${day.overtimeSeconds >= 0 ? "+" : ""}${formatHoursMinutes(day.overtimeSeconds)}`
+                      : "-"}
+                  </td>
+                );
+              })}
+              <td className="px-4 py-3 text-sm text-center font-medium text-gray-500">
+                -
+              </td>
+              <td className="px-4 py-3 text-sm text-center text-gray-400">
+                -
               </td>
             </tr>
           </tbody>
@@ -227,20 +309,20 @@ export function WeeklyTable({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-700">
-              <span className="font-medium">Overtime:</span>{" "}
+              <span className="font-medium">Week Overtime:</span>{" "}
               <span
                 className={
-                  overtimeHours >= 0
+                  weeklyOvertimeSeconds >= 0
                     ? "text-green-600 font-semibold"
                     : "text-red-600 font-semibold"
                 }
               >
-                {overtimeHours >= 0 ? "+" : ""}
-                {formatHoursMinutes(overtimeSeconds)}
+                {weeklyOvertimeSeconds >= 0 ? "+" : ""}
+                {formatHoursMinutes(weeklyOvertimeSeconds)}
               </span>
             </span>
             <span className="text-sm text-gray-500">
-              Cumulative: {formatHoursMinutes(overtimeSeconds)}
+              Cumulative: {formatHoursMinutes(weeklyOvertimeSeconds)}
             </span>
           </div>
           <div className="flex items-center gap-2">
