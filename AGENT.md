@@ -4,7 +4,7 @@ This document contains guidelines for AI agents working on this codebase.
 
 ---
 
-## Communication Guidelines
+## Agent Communication Rules
 
 ### Be Concise by Default
 
@@ -47,7 +47,24 @@ needed.**
 
 ---
 
-## Development Workflow
+### Agent Documentation
+
+- **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
+- **Summaries**: `agent/summaries/` (implementation notes, test strategies)
+- **Temporary files**: `agent/tmp/` (not committed)
+- Keep `agent/ARCHITECTURE.md` high-level; details go in decision files
+
+---
+
+### Documentation Search
+
+Use `context7` tools: resolve library ID first, then fetch docs.
+
+---
+
+## Project-Specific Guidelines
+
+### Development Workflow
 
 **Common Commands:**
 
@@ -65,19 +82,6 @@ needed.**
 - Check port 3000 or 3001 before starting dev server
 
 ---
-
-## Agent Documentation
-
-- **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
-- **Summaries**: `agent/summaries/` (implementation notes, test strategies)
-- **Temporary files**: `agent/tmp/` (not committed)
-- Keep `agent/ARCHITECTURE.md` high-level; details go in decision files
-
----
-
-## Documentation Search
-
-Use `context7` tools: resolve library ID first, then fetch docs.
 
 ---
 
