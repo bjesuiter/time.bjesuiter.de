@@ -49,6 +49,8 @@ needed.**
 
 ### Agent Documentation
 
+The `agent/` folder is the workspace for the LLM. It can store plans, temporary documents, summaries, or similar documents there at free will.
+
 - **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
 - **Summaries**: `agent/summaries/` (implementation notes, test strategies)
 - **Temporary files**: `agent/tmp/` (not committed)
