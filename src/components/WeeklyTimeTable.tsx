@@ -6,6 +6,7 @@ export interface WeeklyTimeTableProps {
   weekStart: "MONDAY" | "SUNDAY";
   dailyBreakdown: Record<string, DailyBreakdown>;
   trackedProjects: TrackedProjectsValue;
+  clientName?: string | null;
 }
 
 function formatSecondsToHHMM(seconds: number): string {
@@ -14,16 +15,19 @@ function formatSecondsToHHMM(seconds: number): string {
   return `${hours}:${minutes.toString().padStart(2, "0")}`;
 }
 
-function getDaysOfWeek(weekStartDate: string, _weekStart: "MONDAY" | "SUNDAY"): string[] {
+function getDaysOfWeek(
+  weekStartDate: string,
+  _weekStart: "MONDAY" | "SUNDAY",
+): string[] {
   const days: string[] = [];
   const start = new Date(weekStartDate);
-  
+
   for (let i = 0; i < 7; i++) {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
     days.push(date.toISOString().split("T")[0]);
   }
-  
+
   return days;
 }
 
@@ -42,7 +46,10 @@ export function WeeklyTimeTable({
   weekStart,
   dailyBreakdown,
   trackedProjects,
+  clientName,
 }: WeeklyTimeTableProps) {
+  const formatProjectName = (name: string) =>
+    clientName ? `${clientName} - ${name}` : name;
   const days = getDaysOfWeek(weekStartDate, weekStart);
 
   const getProjectTimeForDay = (projectId: string, date: string): number => {
@@ -52,7 +59,10 @@ export function WeeklyTimeTable({
   };
 
   const getProjectWeeklyTotal = (projectId: string): number => {
-    return days.reduce((sum, date) => sum + getProjectTimeForDay(projectId, date), 0);
+    return days.reduce(
+      (sum, date) => sum + getProjectTimeForDay(projectId, date),
+      0,
+    );
   };
 
   const getDayTotal = (date: string): number => {
@@ -89,7 +99,9 @@ export function WeeklyTimeTable({
                 className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 <div>{getDayLabel(date)}</div>
-                <div className="text-gray-400 font-normal">{getDateLabel(date)}</div>
+                <div className="text-gray-400 font-normal">
+                  {getDateLabel(date)}
+                </div>
               </th>
             ))}
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50">
@@ -101,11 +113,11 @@ export function WeeklyTimeTable({
           {trackedProjects.projectIds.map((projectId, index) => {
             const projectName = trackedProjects.projectNames[index];
             const weeklyTotal = getProjectWeeklyTotal(projectId);
-            
+
             return (
               <tr key={projectId} className="hover:bg-gray-50">
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {projectName}
+                  {formatProjectName(projectName)}
                 </td>
                 {days.map((date) => {
                   const seconds = getProjectTimeForDay(projectId, date);
@@ -127,7 +139,7 @@ export function WeeklyTimeTable({
           {hasExtraWork && (
             <tr className="bg-amber-50 hover:bg-amber-100">
               <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-amber-800">
-                Extra Work
+                {formatProjectName("Extra Work")}
               </td>
               {days.map((date) => {
                 const seconds = getExtraWorkForDay(date);

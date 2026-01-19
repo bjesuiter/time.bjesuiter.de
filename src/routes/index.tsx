@@ -1,4 +1,9 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -32,8 +37,14 @@ import {
 } from "@/lib/date-utils";
 
 const dashboardSearchSchema = z.object({
-  month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
-  week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional(),
+  week: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export const Route = createFileRoute("/")({
@@ -50,7 +61,12 @@ export const Route = createFileRoute("/")({
         throw redirect({ to: "/settings" });
       }
     } catch (error: unknown) {
-      if (error && typeof error === "object" && "routerCode" in error && error.routerCode === "BEFORE_LOAD") {
+      if (
+        error &&
+        typeof error === "object" &&
+        "routerCode" in error &&
+        error.routerCode === "BEFORE_LOAD"
+      ) {
         throw error;
       }
       console.log(
@@ -107,14 +123,16 @@ function DashboardView() {
   const currentMonth = search.month || toISOMonth(new Date());
   const { year, month } = parseMonthString(currentMonth);
   const weeksInMonth = getWeeksForMonth(year, month, weekStart);
-  
-  const selectedWeek = search.week && weeksInMonth.some(w => w.startDate === search.week)
-    ? search.week
-    : getDefaultWeekForMonth(currentMonth, weekStart);
+
+  const selectedWeek =
+    search.week && weeksInMonth.some((w) => w.startDate === search.week)
+      ? search.week
+      : getDefaultWeekForMonth(currentMonth, weekStart);
 
   const weeklyQuery = useQuery({
     queryKey: ["weeklyTimeSummary", selectedWeek],
-    queryFn: () => getWeeklyTimeSummary({ data: { weekStartDate: selectedWeek } }),
+    queryFn: () =>
+      getWeeklyTimeSummary({ data: { weekStartDate: selectedWeek } }),
     enabled: configQuery.isSuccess && configQuery.data?.success,
   });
 
@@ -122,8 +140,8 @@ function DashboardView() {
     const { year: newYear, month: newMonthNum } = parseMonthString(newMonth);
     const newWeeks = getWeeksForMonth(newYear, newMonthNum, weekStart);
     const defaultWeek = getDefaultWeekForMonth(newMonth, weekStart);
-    const weekExists = newWeeks.some(w => w.startDate === search.week);
-    
+    const weekExists = newWeeks.some((w) => w.startDate === search.week);
+
     navigate({
       search: {
         month: newMonth,
@@ -145,7 +163,12 @@ function DashboardView() {
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="dashboard-heading">Dashboard</h1>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            data-testid="dashboard-heading"
+          >
+            Dashboard
+          </h1>
           <Sparkles className="w-6 h-6 text-yellow-500" />
         </div>
 
@@ -166,7 +189,10 @@ function DashboardView() {
           <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold text-gray-900" data-testid="weekly-summary-heading">
+                <h2
+                  className="text-xl font-bold text-gray-900"
+                  data-testid="weekly-summary-heading"
+                >
                   Weekly Time Summary
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
@@ -185,15 +211,22 @@ function DashboardView() {
               <>
                 <WeeklyTimeTable
                   weekStartDate={weeklyQuery.data.data.weekStartDate}
-                  weekStart={weeklyQuery.data.data.weekStart as "MONDAY" | "SUNDAY"}
+                  weekStart={
+                    weeklyQuery.data.data.weekStart as "MONDAY" | "SUNDAY"
+                  }
                   dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
                   trackedProjects={weeklyQuery.data.data.trackedProjects}
+                  clientName={weeklyQuery.data.data.clientName}
                 />
                 <div className="mt-6">
                   <OvertimeSummary
                     dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
-                    regularHoursPerWeek={weeklyQuery.data.data.regularHoursPerWeek}
-                    workingDaysPerWeek={weeklyQuery.data.data.workingDaysPerWeek}
+                    regularHoursPerWeek={
+                      weeklyQuery.data.data.regularHoursPerWeek
+                    }
+                    workingDaysPerWeek={
+                      weeklyQuery.data.data.workingDaysPerWeek
+                    }
                   />
                 </div>
               </>
@@ -203,7 +236,9 @@ function DashboardView() {
                 <div>
                   <p className="text-amber-800 font-medium">Setup Required</p>
                   <p className="text-amber-700 text-sm">
-                    {weeklyQuery.data?.error || configQuery.data?.error || "Please complete your Clockify setup to view time data."}
+                    {weeklyQuery.data?.error ||
+                      configQuery.data?.error ||
+                      "Please complete your Clockify setup to view time data."}
                   </p>
                   <Link
                     to="/settings"
@@ -351,7 +386,10 @@ function FeatureCard({
   dataTestId?: string;
 }) {
   return (
-    <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md" data-testid={dataTestId}>
+    <div
+      className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md"
+      data-testid={dataTestId}
+    >
       <div className="bg-gray-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6">
         {icon}
       </div>
