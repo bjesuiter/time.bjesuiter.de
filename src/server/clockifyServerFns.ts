@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
+import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
+import type { TrackedProjectsValue } from "./configServerFns";
 
 /**
  * Helper to get authenticated user ID
@@ -327,4 +329,107 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
       success: true,
       projects: result.data,
     };
+  });
+
+export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
+  .inputValidator((data: { weekStartDate: string }) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    try {
+      const config = await db.query.userClockifyConfig.findFirst({
+        where: eq(userClockifyConfig.userId, userId),
+      });
+
+      if (!config) {
+        return {
+          success: false,
+          error: "No Clockify configuration found. Please complete setup first.",
+        };
+      }
+
+      if (!config.selectedClientId) {
+        return {
+          success: false,
+          error: "No client selected. Please select a client in settings.",
+        };
+      }
+
+      const weekStart = new Date(data.weekStartDate);
+      const trackedProjectsConfig = await db.query.configChronic.findFirst({
+        where: and(
+          eq(configChronic.userId, userId),
+          eq(configChronic.configType, "tracked_projects"),
+          lte(configChronic.validFrom, weekStart),
+          or(
+            isNull(configChronic.validUntil),
+            gt(configChronic.validUntil, weekStart),
+          ),
+        ),
+      });
+
+      if (!trackedProjectsConfig) {
+        return {
+          success: false,
+          error: "No tracked projects configured. Please set up tracked projects first.",
+        };
+      }
+
+      const trackedProjects = JSON.parse(
+        trackedProjectsConfig.value,
+      ) as TrackedProjectsValue;
+
+      if (trackedProjects.projectIds.length === 0) {
+        return {
+          success: false,
+          error: "No projects selected for tracking.",
+        };
+      }
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const startDate = new Date(weekStart);
+      startDate.setHours(0, 0, 0, 0);
+
+      const reportResult = await clockifyClient.getWeeklyTimeReport(
+        config.clockifyApiKey,
+        {
+          workspaceId: config.clockifyWorkspaceId,
+          clientId: config.selectedClientId,
+          projectIds: trackedProjects.projectIds,
+          startDate: startDate.toISOString(),
+          endDate: weekEnd.toISOString(),
+        },
+      );
+
+      if (!reportResult.success) {
+        return {
+          success: false,
+          error: reportResult.error.message,
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          weekStartDate: data.weekStartDate,
+          weekStart: config.weekStart,
+          dailyBreakdown: reportResult.data.dailyBreakdown,
+          trackedProjects: trackedProjects,
+          regularHoursPerWeek: config.regularHoursPerWeek,
+          workingDaysPerWeek: config.workingDaysPerWeek,
+        },
+      };
+    } catch (error) {
+      console.error("Error fetching weekly time summary:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch weekly time summary",
+      };
+    }
   });

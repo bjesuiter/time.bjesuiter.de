@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
 import {
   Sparkles,
@@ -6,11 +7,18 @@ import {
   Calendar,
   Target,
   ArrowRight,
+  AlertCircle,
+  Loader2,
   Rocket,
 } from "lucide-react";
-import { checkClockifySetup } from "@/server/clockifyServerFns";
+import {
+  checkClockifySetup,
+  getClockifyConfig,
+  getWeeklyTimeSummary,
+} from "@/server/clockifyServerFns";
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
+import { WeeklyTimeTable } from "@/components/WeeklyTimeTable";
 
 export const Route = createFileRoute("/")({
   component: App,
@@ -71,7 +79,50 @@ function App() {
   );
 }
 
+function getWeekStartDate(weekStart: "MONDAY" | "SUNDAY"): string {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  
+  let daysToSubtract: number;
+  if (weekStart === "MONDAY") {
+    daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  } else {
+    daysToSubtract = dayOfWeek;
+  }
+  
+  const weekStartDate = new Date(today);
+  weekStartDate.setDate(today.getDate() - daysToSubtract);
+  weekStartDate.setHours(0, 0, 0, 0);
+  
+  return weekStartDate.toISOString().split("T")[0];
+}
+
+function formatWeekRange(weekStartDate: string): string {
+  const start = new Date(weekStartDate);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  return `${start.toLocaleDateString("en-US", options)} - ${end.toLocaleDateString("en-US", options)}, ${end.getFullYear()}`;
+}
+
 function DashboardView() {
+  const configQuery = useQuery({
+    queryKey: ["clockifyConfig"],
+    queryFn: () => getClockifyConfig(),
+  });
+
+  const weekStart = configQuery.data?.success
+    ? (configQuery.data.config.weekStart as "MONDAY" | "SUNDAY")
+    : "MONDAY";
+  const weekStartDate = getWeekStartDate(weekStart);
+
+  const weeklyQuery = useQuery({
+    queryKey: ["weeklyTimeSummary", weekStartDate],
+    queryFn: () => getWeeklyTimeSummary({ data: { weekStartDate } }),
+    enabled: configQuery.isSuccess && configQuery.data?.success,
+  });
+
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -81,36 +132,61 @@ function DashboardView() {
         </div>
 
         <div className="space-y-6">
-          {/* Main Dashboard Content */}
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-8 transition-all hover:shadow-md">
-            <div className="text-center py-12">
-              <div className="bg-indigo-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-10 h-10 text-indigo-600" />
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900" data-testid="weekly-summary-heading">
+                  Weekly Time Summary
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {formatWeekRange(weekStartDate)}
+                </p>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3" data-testid="dashboard-welcome-message">
-                Welcome to Your Dashboard
-              </h2>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Your time tracking hub is ready. We're currently building out
-                more features to help you visualize your productivity.
-              </p>
+              <Calendar className="w-6 h-6 text-indigo-500" />
+            </div>
 
-              <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 max-w-2xl mx-auto" data-testid="dashboard-coming-soon-section">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    <Rocket className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-blue-900 mb-1">
-                      Coming Soon: Phase 2
-                    </h3>
-                    <p className="text-sm text-blue-700 leading-relaxed">
-                      Get ready for detailed weekly time summaries, granular
-                      project tracking, and smart overtime calculations.
-                    </p>
-                  </div>
+            {configQuery.isPending || weeklyQuery.isPending ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                <span className="ml-3 text-gray-600">Loading time data...</span>
+              </div>
+            ) : weeklyQuery.data?.success ? (
+              <WeeklyTimeTable
+                weekStartDate={weeklyQuery.data.data.weekStartDate}
+                weekStart={weeklyQuery.data.data.weekStart as "MONDAY" | "SUNDAY"}
+                dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
+                trackedProjects={weeklyQuery.data.data.trackedProjects}
+              />
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                <div>
+                  <p className="text-amber-800 font-medium">Setup Required</p>
+                  <p className="text-amber-700 text-sm">
+                    {weeklyQuery.data?.error || configQuery.data?.error || "Please complete your Clockify setup to view time data."}
+                  </p>
+                  <Link
+                    to="/settings"
+                    className="text-amber-800 underline text-sm mt-1 inline-block hover:text-amber-900"
+                  >
+                    Go to Settings
+                  </Link>
                 </div>
               </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-8 transition-all hover:shadow-md">
+            <div className="text-center py-8">
+              <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Rocket className="w-8 h-8 text-indigo-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                More Features Coming Soon
+              </h3>
+              <p className="text-gray-600 text-sm max-w-md mx-auto">
+                Month navigation, overtime calculations, and extra work tracking are on the way.
+              </p>
             </div>
           </div>
         </div>
