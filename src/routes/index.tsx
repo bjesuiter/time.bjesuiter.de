@@ -1,6 +1,8 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
+import { zodValidator } from "@tanstack/zod-adapter";
+import z from "zod/v4";
 import {
   Sparkles,
   BarChart3,
@@ -9,7 +11,6 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
-  Rocket,
 } from "lucide-react";
 import {
   checkClockifySetup,
@@ -19,28 +20,38 @@ import {
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
 import { WeeklyTimeTable } from "@/components/WeeklyTimeTable";
+import { MonthNavigation } from "@/components/MonthNavigation";
+import { WeekSelector } from "@/components/WeekSelector";
+import {
+  toISOMonth,
+  getWeeksForMonth,
+  getDefaultWeekForMonth,
+  formatWeekRange,
+  parseMonthString,
+} from "@/lib/date-utils";
+
+const dashboardSearchSchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/).optional(),
+  week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
 
 export const Route = createFileRoute("/")({
   component: App,
+  validateSearch: zodValidator(dashboardSearchSchema),
   loader: async () => {
     const { allowUserSignup } = await getPublicEnv();
     return { allowUserSignup };
   },
   beforeLoad: async () => {
-    // Only check Clockify setup if user is authenticated
-    // If not authenticated, let the component handle showing sign-in UI
     try {
       const setupStatus = await checkClockifySetup();
       if (setupStatus && !setupStatus.hasSetup) {
         throw redirect({ to: "/settings" });
       }
-    } catch (error: any) {
-      // If it's a TanStack Router redirect, re-throw it
-      if (error?.routerCode === "BEFORE_LOAD") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "routerCode" in error && error.routerCode === "BEFORE_LOAD") {
         throw error;
       }
-      // If checkClockifySetup fails (e.g., user not authenticated),
-      // let the component handle it - don't redirect
       console.log(
         "beforeLoad: Could not check Clockify setup, continuing to component",
       );
@@ -79,34 +90,10 @@ function App() {
   );
 }
 
-function getWeekStartDate(weekStart: "MONDAY" | "SUNDAY"): string {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  
-  let daysToSubtract: number;
-  if (weekStart === "MONDAY") {
-    daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  } else {
-    daysToSubtract = dayOfWeek;
-  }
-  
-  const weekStartDate = new Date(today);
-  weekStartDate.setDate(today.getDate() - daysToSubtract);
-  weekStartDate.setHours(0, 0, 0, 0);
-  
-  return weekStartDate.toISOString().split("T")[0];
-}
-
-function formatWeekRange(weekStartDate: string): string {
-  const start = new Date(weekStartDate);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  
-  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return `${start.toLocaleDateString("en-US", options)} - ${end.toLocaleDateString("en-US", options)}, ${end.getFullYear()}`;
-}
-
 function DashboardView() {
+  const navigate = useNavigate({ from: "/" });
+  const search = Route.useSearch();
+
   const configQuery = useQuery({
     queryKey: ["clockifyConfig"],
     queryFn: () => getClockifyConfig(),
@@ -115,13 +102,43 @@ function DashboardView() {
   const weekStart = configQuery.data?.success
     ? (configQuery.data.config.weekStart as "MONDAY" | "SUNDAY")
     : "MONDAY";
-  const weekStartDate = getWeekStartDate(weekStart);
+
+  const currentMonth = search.month || toISOMonth(new Date());
+  const { year, month } = parseMonthString(currentMonth);
+  const weeksInMonth = getWeeksForMonth(year, month, weekStart);
+  
+  const selectedWeek = search.week && weeksInMonth.some(w => w.startDate === search.week)
+    ? search.week
+    : getDefaultWeekForMonth(currentMonth, weekStart);
 
   const weeklyQuery = useQuery({
-    queryKey: ["weeklyTimeSummary", weekStartDate],
-    queryFn: () => getWeeklyTimeSummary({ data: { weekStartDate } }),
+    queryKey: ["weeklyTimeSummary", selectedWeek],
+    queryFn: () => getWeeklyTimeSummary({ data: { weekStartDate: selectedWeek } }),
     enabled: configQuery.isSuccess && configQuery.data?.success,
   });
+
+  const handleMonthChange = (newMonth: string) => {
+    const { year: newYear, month: newMonthNum } = parseMonthString(newMonth);
+    const newWeeks = getWeeksForMonth(newYear, newMonthNum, weekStart);
+    const defaultWeek = getDefaultWeekForMonth(newMonth, weekStart);
+    const weekExists = newWeeks.some(w => w.startDate === search.week);
+    
+    navigate({
+      search: {
+        month: newMonth,
+        week: weekExists ? search.week : defaultWeek,
+      },
+    });
+  };
+
+  const handleWeekSelect = (weekStartDate: string) => {
+    navigate({
+      search: {
+        month: currentMonth,
+        week: weekStartDate,
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
@@ -132,6 +149,19 @@ function DashboardView() {
         </div>
 
         <div className="space-y-6">
+          <MonthNavigation
+            currentMonth={currentMonth}
+            onMonthChange={handleMonthChange}
+          />
+
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4">
+            <WeekSelector
+              weeks={weeksInMonth}
+              selectedWeek={selectedWeek}
+              onWeekSelect={handleWeekSelect}
+            />
+          </div>
+
           <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -139,7 +169,7 @@ function DashboardView() {
                   Weekly Time Summary
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  {formatWeekRange(weekStartDate)}
+                  {formatWeekRange(selectedWeek)}
                 </p>
               </div>
               <Calendar className="w-6 h-6 text-indigo-500" />
@@ -175,20 +205,6 @@ function DashboardView() {
               </div>
             )}
           </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-8 transition-all hover:shadow-md">
-            <div className="text-center py-8">
-              <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Rocket className="w-8 h-8 text-indigo-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                More Features Coming Soon
-              </h3>
-              <p className="text-gray-600 text-sm max-w-md mx-auto">
-                Month navigation, overtime calculations, and extra work tracking are on the way.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -198,7 +214,6 @@ function DashboardView() {
 function LandingPage({ allowSignup }: { allowSignup: boolean }) {
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
       <div className="relative overflow-hidden bg-linear-to-b from-indigo-50/50">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-24 sm:pb-20">
@@ -212,7 +227,7 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
               A personal Clockify-powered dashboard that brings joy to your
               productivity tracking. Visualization, summaries, and a touch of
-              sparkle. ✨
+              sparkle.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -228,7 +243,6 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
         </div>
       </div>
 
-      {/* Features Section */}
       <div className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
@@ -254,7 +268,6 @@ function LandingPage({ allowSignup }: { allowSignup: boolean }) {
         </div>
       </div>
 
-      {/* Social Proof / Footer */}
       <div className="bg-gray-50 py-16 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-gray-600 mb-6 font-medium">
