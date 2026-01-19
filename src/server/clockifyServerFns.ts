@@ -565,11 +565,13 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       };
 
       const firstWeekStart = getWeekStartForDate(startDate);
-      const currentWeekStart = new Date(data.currentWeekStartDate);
+      const currentWeekStart = getWeekStartForDate(
+        new Date(data.currentWeekStartDate),
+      );
 
       const weekStarts: Date[] = [];
       const weekIter = new Date(firstWeekStart);
-      while (weekIter <= currentWeekStart) {
+      while (weekIter.getTime() <= currentWeekStart.getTime()) {
         weekStarts.push(new Date(weekIter));
         weekIter.setDate(weekIter.getDate() + 7);
       }
