@@ -229,7 +229,7 @@ Use ultrawork.
 Get the most important ticket from your perspective from beans and work on it. Work ONLY on one ticket at the same time.
 If you realize you need to do another thing, create a new ticket for this. 
 When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards. 
-You're done when all tickets are implemented.
+You're done when all tickets are implemented or if the user stops you explicitely.
 Use ultrawork.
 
 ## Integration Testing Ralph-Loop 
