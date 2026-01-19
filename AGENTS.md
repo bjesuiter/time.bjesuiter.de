@@ -233,7 +233,7 @@ You're done when all tickets are implemented or if the user stops you explicitel
 Use ultrawork.
 
 ## Integration Testing Ralph-Loop 
-Look at the served website at http://localhost:3001 via agent-browser. 
+Look at the served website via playwrighter. Caution: you do not have exclusive access to playwrighter! ALWAYS verify that you use the right tab with your website in it (basically based on the port number, or the header on the page).
 Test every ticket in beans, which is marked as done and validate it as a user would. 
 If the test works, add this result to the ticket and mark it as "ai verified".
 If it does not, create a new ticket in beans as a bug for later inspection, 
