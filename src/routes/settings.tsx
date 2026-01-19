@@ -17,10 +17,12 @@ import {
   Plus,
   Edit2,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import {
   checkClockifySetup,
   getClockifyDetails,
+  getClockifyProjects,
   refreshClockifySettings,
 } from "@/server/clockifyServerFns";
 import {
@@ -55,8 +57,12 @@ function SettingsPage() {
 
   // State for configuration chronicle
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
+  const [editingProjectsConfigId, setEditingProjectsConfigId] = useState<
+    string | null
+  >(null);
   const [editValidFrom, setEditValidFrom] = useState("");
   const [editValidUntil, setEditValidUntil] = useState<string | null>(null);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
 
   // Get configuration history
   const { data: configHistory, isLoading: isLoadingHistory } = useQuery({
@@ -66,12 +72,37 @@ function SettingsPage() {
     enabled: !!session?.user && !!setupStatus?.hasSetup,
   });
 
-  // Mutation to update config dates
+  // Get available projects from Clockify for validation and editing
+  const { data: availableProjects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: [
+      "clockify-projects",
+      clockifyDetails?.config?.clockifyWorkspaceId,
+      clockifyDetails?.config?.selectedClientId,
+    ],
+    queryFn: () =>
+      getClockifyProjects({
+        data: {
+          workspaceId: clockifyDetails?.config?.clockifyWorkspaceId ?? "",
+          clientId: clockifyDetails?.config?.selectedClientId ?? undefined,
+        },
+      }),
+    enabled:
+      !!clockifyDetails?.success &&
+      !!clockifyDetails?.config?.clockifyWorkspaceId,
+  });
+
+  const availableProjectIds = new Set(
+    availableProjects?.projects?.map((p) => p.id) ?? [],
+  );
+
+  // Mutation to update config dates and/or projects
   const updateConfigMutation = useMutation({
     mutationFn: async (data: {
       configId: string;
       validFrom?: string;
       validUntil?: string | null;
+      projectIds?: string[];
+      projectNames?: string[];
     }) => {
       const result = await updateConfig({ data });
       if (!result.success) {
@@ -86,8 +117,10 @@ function SettingsPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["current-config"] });
       setEditingConfigId(null);
+      setEditingProjectsConfigId(null);
       setEditValidFrom("");
       setEditValidUntil(null);
+      setSelectedProjectIds([]);
     },
   });
 
@@ -119,7 +152,10 @@ function SettingsPage() {
             : result.message || "Settings are up to date",
         });
       } else {
-        setRefreshMessage({ type: "error", text: result.error || "Refresh failed" });
+        setRefreshMessage({
+          type: "error",
+          text: result.error || "Refresh failed",
+        });
       }
       setTimeout(() => setRefreshMessage(null), 5000);
     },
@@ -160,6 +196,44 @@ function SettingsPage() {
     setEditingConfigId(null);
     setEditValidFrom("");
     setEditValidUntil(null);
+  };
+
+  const handleStartEditProjects = (entry: {
+    id: string;
+    value: { projectIds: string[] };
+  }) => {
+    setEditingProjectsConfigId(entry.id);
+    setSelectedProjectIds(entry.value.projectIds || []);
+  };
+
+  const handleCancelEditProjects = () => {
+    setEditingProjectsConfigId(null);
+    setSelectedProjectIds([]);
+  };
+
+  const handleSaveProjects = () => {
+    if (!editingProjectsConfigId || !availableProjects?.success) return;
+
+    const selectedProjects =
+      availableProjects.projects?.filter((p) =>
+        selectedProjectIds.includes(p.id),
+      ) || [];
+
+    if (selectedProjects.length === 0) return;
+
+    updateConfigMutation.mutate({
+      configId: editingProjectsConfigId,
+      projectIds: selectedProjects.map((p) => p.id),
+      projectNames: selectedProjects.map((p) => p.name),
+    });
+  };
+
+  const toggleProjectSelection = (projectId: string) => {
+    setSelectedProjectIds((prev) =>
+      prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId)
+        : [...prev, projectId],
+    );
   };
 
   const handleSaveEdit = () => {
@@ -489,6 +563,8 @@ function SettingsPage() {
                               (validUntil === null || validUntil > now);
                             const isFuture = validFrom > now;
                             const isEditing = editingConfigId === entry.id;
+                            const isEditingProjects =
+                              editingProjectsConfigId === entry.id;
 
                             return (
                               <div
@@ -597,6 +673,118 @@ function SettingsPage() {
                                       </button>
                                     </div>
                                   </div>
+                                ) : isEditingProjects ? (
+                                  <div className="space-y-4">
+                                    <p className="text-sm font-medium text-gray-900">
+                                      Edit Tracked Projects
+                                    </p>
+                                    {isLoadingProjects ? (
+                                      <div className="flex items-center justify-center py-4 text-gray-600">
+                                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                        Loading projects...
+                                      </div>
+                                    ) : availableProjects?.success &&
+                                      availableProjects.projects ? (
+                                      <>
+                                        <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
+                                          {availableProjects.projects.map(
+                                            (project) => (
+                                              <label
+                                                key={project.id}
+                                                className={`flex items-start gap-3 p-3 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                                                  selectedProjectIds.includes(
+                                                    project.id,
+                                                  )
+                                                    ? "bg-indigo-50"
+                                                    : ""
+                                                }`}
+                                              >
+                                                <input
+                                                  type="checkbox"
+                                                  checked={selectedProjectIds.includes(
+                                                    project.id,
+                                                  )}
+                                                  onChange={() =>
+                                                    toggleProjectSelection(
+                                                      project.id,
+                                                    )
+                                                  }
+                                                  className="mt-0.5 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                                />
+                                                <div className="flex-1">
+                                                  <div className="flex items-center gap-2">
+                                                    <div
+                                                      className="w-3 h-3 rounded-full"
+                                                      style={{
+                                                        backgroundColor:
+                                                          project.color,
+                                                      }}
+                                                    />
+                                                    <p className="font-medium text-gray-900 text-sm">
+                                                      {project.name}
+                                                    </p>
+                                                  </div>
+                                                  {project.clientName && (
+                                                    <p className="text-xs text-gray-600 mt-0.5">
+                                                      {project.clientName}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              </label>
+                                            ),
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                          {selectedProjectIds.length} project(s)
+                                          selected
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <p className="text-sm text-red-600">
+                                        Unable to load projects
+                                      </p>
+                                    )}
+                                    {updateConfigMutation.isError && (
+                                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                        <p className="text-sm text-red-800">
+                                          {updateConfigMutation.error
+                                            ?.message ||
+                                            "Error updating configuration"}
+                                        </p>
+                                      </div>
+                                    )}
+                                    <div className="flex gap-3">
+                                      <button
+                                        onClick={handleSaveProjects}
+                                        disabled={
+                                          updateConfigMutation.isPending ||
+                                          selectedProjectIds.length === 0
+                                        }
+                                        className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                                      >
+                                        {updateConfigMutation.isPending ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Saving...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Save className="w-4 h-4" />
+                                            Save Projects
+                                          </>
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={handleCancelEditProjects}
+                                        disabled={
+                                          updateConfigMutation.isPending
+                                        }
+                                        className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
                                 ) : (
                                   <>
                                     <div className="flex items-start justify-between mb-2">
@@ -646,6 +834,15 @@ function SettingsPage() {
                                         >
                                           <Edit2 className="w-4 h-4" />
                                         </button>
+                                        <button
+                                          onClick={() =>
+                                            handleStartEditProjects(entry)
+                                          }
+                                          className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors"
+                                          title="Edit tracked projects"
+                                        >
+                                          <FolderKanban className="w-4 h-4" />
+                                        </button>
                                         {(isFuture || !isCurrentlyActive) && (
                                           <ConfirmPopover
                                             trigger={
@@ -682,20 +879,52 @@ function SettingsPage() {
                                       </p>
                                       {entry.value.projectNames.length > 0 ? (
                                         <div className="flex flex-wrap gap-2">
-                                          {entry.value.projectNames.map(
-                                            (name, nameIdx) => (
-                                              <span
-                                                key={nameIdx}
-                                                className="inline-flex items-center px-2 py-1 bg-white text-gray-800 rounded text-xs border border-gray-200"
-                                              >
-                                                {name}
-                                              </span>
-                                            ),
+                                          {entry.value.projectIds.map(
+                                            (projectId, idx) => {
+                                              const projectName =
+                                                entry.value.projectNames[idx];
+                                              const isInvalid =
+                                                availableProjectIds.size > 0 &&
+                                                !availableProjectIds.has(
+                                                  projectId,
+                                                );
+                                              return (
+                                                <span
+                                                  key={projectId}
+                                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${
+                                                    isInvalid
+                                                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                                                      : "bg-white text-gray-800 border-gray-200"
+                                                  }`}
+                                                  title={
+                                                    isInvalid
+                                                      ? "Project not found in Clockify - may have been renamed or deleted"
+                                                      : undefined
+                                                  }
+                                                >
+                                                  {isInvalid && (
+                                                    <AlertTriangle className="w-3 h-3" />
+                                                  )}
+                                                  {projectName}
+                                                </span>
+                                              );
+                                            },
                                           )}
                                         </div>
                                       ) : (
                                         <p className="text-xs text-gray-500">
                                           No projects tracked
+                                        </p>
+                                      )}
+                                      {entry.value.projectIds.some(
+                                        (id) =>
+                                          availableProjectIds.size > 0 &&
+                                          !availableProjectIds.has(id),
+                                      ) && (
+                                        <p className="text-xs text-amber-700 mt-2 flex items-center gap-1">
+                                          <AlertTriangle className="w-3 h-3" />
+                                          Some projects not found in Clockify.
+                                          Click the folder icon to update.
                                         </p>
                                       )}
                                     </div>

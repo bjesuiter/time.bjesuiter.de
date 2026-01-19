@@ -285,6 +285,8 @@ export const updateConfig = createServerFn({ method: "POST" })
       configId: string;
       validFrom?: string; // ISO date string
       validUntil?: string | null; // ISO date string or null
+      projectIds?: string[]; // Optional: new project IDs to track
+      projectNames?: string[]; // Optional: new project names (must match projectIds order)
     }) => data,
   )
   .handler(async ({ data, request }) => {
@@ -396,13 +398,31 @@ export const updateConfig = createServerFn({ method: "POST" })
         }
       }
 
-      // Update the config
+      const updatePayload: {
+        validFrom: Date;
+        validUntil: Date | null;
+        value?: string;
+      } = {
+        validFrom: newValidFrom,
+        validUntil: newValidUntil,
+      };
+
+      if (
+        data.projectIds &&
+        data.projectNames &&
+        data.projectIds.length > 0 &&
+        data.projectIds.length === data.projectNames.length
+      ) {
+        const newValue: TrackedProjectsValue = {
+          projectIds: data.projectIds,
+          projectNames: data.projectNames,
+        };
+        updatePayload.value = JSON.stringify(newValue);
+      }
+
       const updated = await db
         .update(configChronic)
-        .set({
-          validFrom: newValidFrom,
-          validUntil: newValidUntil,
-        })
+        .set(updatePayload)
         .where(eq(configChronic.id, data.configId))
         .returning();
 
