@@ -578,6 +578,9 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const regularHoursPerWeek = config.regularHoursPerWeek;
       const expectedSecondsPerWeek = regularHoursPerWeek * 3600;
 
+      const workingDaysPerWeek = config.workingDaysPerWeek;
+      const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;
+
       for (const weekStartDate of weekStarts) {
         const weekEnd = new Date(weekStartDate);
         weekEnd.setDate(weekEnd.getDate() + 6);
@@ -587,7 +590,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
           where: and(
             eq(configChronic.userId, userId),
             eq(configChronic.configType, "tracked_projects"),
-            lte(configChronic.validFrom, weekStartDate),
+            lte(configChronic.validFrom, weekEnd),
             or(
               isNull(configChronic.validUntil),
               gt(configChronic.validUntil, weekStartDate),
@@ -621,7 +624,22 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
           weekTotalSeconds += day.totalSeconds;
         }
 
-        const weekOvertime = weekTotalSeconds - expectedSecondsPerWeek;
+        let eligibleWorkdays = 0;
+        for (let i = 0; i < 7; i++) {
+          const dayDate = new Date(weekStartDate);
+          dayDate.setDate(dayDate.getDate() + i);
+          const dayOfWeek = dayDate.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const isBeforeConfigStart = dayDate < startDate;
+
+          if (!isWeekend && !isBeforeConfigStart) {
+            eligibleWorkdays++;
+            if (eligibleWorkdays >= workingDaysPerWeek) break;
+          }
+        }
+
+        const weekExpectedSeconds = eligibleWorkdays * expectedSecondsPerDay;
+        const weekOvertime = weekTotalSeconds - weekExpectedSeconds;
         cumulativeOvertimeSeconds += weekOvertime;
       }
 
