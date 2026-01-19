@@ -135,6 +135,18 @@ export function getAdjacentMonth(
 }
 
 /**
+ * Get adjacent week start date in YYYY-MM-DD format
+ */
+export function getAdjacentWeek(
+  currentWeekStartDate: string,
+  direction: -1 | 1,
+): string {
+  const date = new Date(currentWeekStartDate);
+  date.setDate(date.getDate() + direction * 7);
+  return toISODate(date);
+}
+
+/**
  * Format month for display
  * e.g., "January 2026"
  */

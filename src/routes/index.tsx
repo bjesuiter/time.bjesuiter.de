@@ -26,8 +26,7 @@ import {
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
 import { WeeklyTimeTable } from "@/components/WeeklyTimeTable";
-import { MonthNavigation } from "@/components/MonthNavigation";
-import { WeekSelector } from "@/components/WeekSelector";
+import { WeekNavigationBar } from "@/components/WeekNavigationBar";
 import { OvertimeSummary } from "@/components/OvertimeSummary";
 import { CumulativeOvertimeSummary } from "@/components/CumulativeOvertimeSummary";
 import { QueryErrorMessage } from "@/components/QueryErrorMessage";
@@ -165,6 +164,15 @@ function DashboardView() {
     });
   };
 
+  const handleWeekChange = (newWeek: string, newMonth?: string) => {
+    navigate({
+      search: {
+        month: newMonth || currentMonth,
+        week: newWeek,
+      },
+    });
+  };
+
   const handleWeekSelect = (weekStartDate: string) => {
     navigate({
       search: {
@@ -188,18 +196,14 @@ function DashboardView() {
         </div>
 
         <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-          <MonthNavigation
+          <WeekNavigationBar
+            weeks={weeksInMonth}
             currentMonth={currentMonth}
+            selectedWeek={selectedWeek}
             onMonthChange={handleMonthChange}
+            onWeekChange={handleWeekChange}
+            onWeekSelect={handleWeekSelect}
           />
-
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-3 sm:p-4">
-            <WeekSelector
-              weeks={weeksInMonth}
-              selectedWeek={selectedWeek}
-              onWeekSelect={handleWeekSelect}
-            />
-          </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 sm:p-6 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">

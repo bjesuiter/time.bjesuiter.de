@@ -8,6 +8,7 @@ import {
   formatWeekRange,
   getWeeksForMonth,
   getAdjacentMonth,
+  getAdjacentWeek,
   formatMonthYear,
   parseMonthString,
   getDefaultWeekForMonth,
@@ -205,5 +206,35 @@ describe("getCurrentWeekStart", () => {
     const result = getCurrentWeekStart("SUNDAY");
     const expected = getWeekStartForDate(new Date(), "SUNDAY");
     expect(result).toBe(toISODate(expected));
+  });
+});
+
+describe("getAdjacentWeek", () => {
+  test("date-utils-029: gets next week", () => {
+    expect(getAdjacentWeek("2026-01-19", 1)).toBe("2026-01-26");
+  });
+
+  test("date-utils-030: gets previous week", () => {
+    expect(getAdjacentWeek("2026-01-26", -1)).toBe("2026-01-19");
+  });
+
+  test("date-utils-031: handles week boundary within same month", () => {
+    expect(getAdjacentWeek("2026-01-05", 1)).toBe("2026-01-12");
+  });
+
+  test("date-utils-032: handles crossing into previous month", () => {
+    expect(getAdjacentWeek("2026-01-05", -1)).toBe("2025-12-29");
+  });
+
+  test("date-utils-033: handles crossing into next month", () => {
+    expect(getAdjacentWeek("2026-01-26", 1)).toBe("2026-02-02");
+  });
+
+  test("date-utils-034: handles year boundary going forward", () => {
+    expect(getAdjacentWeek("2025-12-29", 1)).toBe("2026-01-05");
+  });
+
+  test("date-utils-035: handles year boundary going backward", () => {
+    expect(getAdjacentWeek("2026-01-05", -1)).toBe("2025-12-29");
   });
 });

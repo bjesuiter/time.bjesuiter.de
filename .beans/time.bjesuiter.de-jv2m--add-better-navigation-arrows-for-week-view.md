@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-jv2m
 title: Add better navigation arrows for week view
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-01-19T21:38:38Z
-updated_at: 2026-01-19T21:38:38Z
+updated_at: 2026-01-19T21:44:56Z
 ---
 
 Implement improved navigation arrows for week view using the following pattern:
