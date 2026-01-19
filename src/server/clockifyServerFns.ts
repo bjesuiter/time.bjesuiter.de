@@ -509,3 +509,139 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
       };
     }
   });
+
+export const getCumulativeOvertime = createServerFn({ method: "POST" })
+  .inputValidator((data: { currentWeekStartDate: string }) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    try {
+      const config = await db.query.userClockifyConfig.findFirst({
+        where: eq(userClockifyConfig.userId, userId),
+      });
+
+      if (!config) {
+        return {
+          success: false,
+          error: "No Clockify configuration found.",
+        };
+      }
+
+      if (!config.cumulativeOvertimeStartDate) {
+        return {
+          success: true,
+          data: {
+            hasStartDate: false,
+            cumulativeOvertimeSeconds: 0,
+            weeksIncluded: 0,
+          },
+        };
+      }
+
+      if (!config.selectedClientId) {
+        return {
+          success: false,
+          error: "No client selected.",
+        };
+      }
+
+      const startDateStr = config.cumulativeOvertimeStartDate;
+      const startDate = new Date(startDateStr);
+      const weekStart = config.weekStart as "MONDAY" | "SUNDAY";
+
+      const getWeekStartForDate = (date: Date): Date => {
+        const d = new Date(date);
+        const dayOfWeek = d.getDay();
+        const daysToSubtract =
+          weekStart === "MONDAY"
+            ? dayOfWeek === 0
+              ? 6
+              : dayOfWeek - 1
+            : dayOfWeek;
+        d.setDate(d.getDate() - daysToSubtract);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+
+      const firstWeekStart = getWeekStartForDate(startDate);
+      const currentWeekStart = new Date(data.currentWeekStartDate);
+
+      const weekStarts: Date[] = [];
+      const weekIter = new Date(firstWeekStart);
+      while (weekIter <= currentWeekStart) {
+        weekStarts.push(new Date(weekIter));
+        weekIter.setDate(weekIter.getDate() + 7);
+      }
+
+      let cumulativeOvertimeSeconds = 0;
+      const regularHoursPerWeek = config.regularHoursPerWeek;
+      const expectedSecondsPerWeek = regularHoursPerWeek * 3600;
+
+      for (const weekStartDate of weekStarts) {
+        const weekEnd = new Date(weekStartDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+
+        const trackedProjectsConfig = await db.query.configChronic.findFirst({
+          where: and(
+            eq(configChronic.userId, userId),
+            eq(configChronic.configType, "tracked_projects"),
+            lte(configChronic.validFrom, weekStartDate),
+            or(
+              isNull(configChronic.validUntil),
+              gt(configChronic.validUntil, weekStartDate),
+            ),
+          ),
+        });
+
+        if (!trackedProjectsConfig) continue;
+
+        const trackedProjects = JSON.parse(
+          trackedProjectsConfig.value,
+        ) as TrackedProjectsValue;
+
+        if (trackedProjects.projectIds.length === 0) continue;
+
+        const reportResult = await clockifyClient.getWeeklyTimeReport(
+          config.clockifyApiKey,
+          {
+            workspaceId: config.clockifyWorkspaceId,
+            clientId: config.selectedClientId,
+            projectIds: trackedProjects.projectIds,
+            startDate: weekStartDate.toISOString(),
+            endDate: weekEnd.toISOString(),
+          },
+        );
+
+        if (!reportResult.success) continue;
+
+        let weekTotalSeconds = 0;
+        for (const day of Object.values(reportResult.data.dailyBreakdown)) {
+          weekTotalSeconds += day.totalSeconds;
+        }
+
+        const weekOvertime = weekTotalSeconds - expectedSecondsPerWeek;
+        cumulativeOvertimeSeconds += weekOvertime;
+      }
+
+      return {
+        success: true,
+        data: {
+          hasStartDate: true,
+          startDate: startDateStr,
+          cumulativeOvertimeSeconds,
+          weeksIncluded: weekStarts.length,
+          regularHoursPerWeek,
+        },
+      };
+    } catch (error) {
+      console.error("Error calculating cumulative overtime:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to calculate cumulative overtime",
+      };
+    }
+  });

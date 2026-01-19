@@ -21,6 +21,7 @@ import {
   checkClockifySetup,
   getClockifyConfig,
   getWeeklyTimeSummary,
+  getCumulativeOvertime,
 } from "@/server/clockifyServerFns";
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
@@ -28,6 +29,7 @@ import { WeeklyTimeTable } from "@/components/WeeklyTimeTable";
 import { MonthNavigation } from "@/components/MonthNavigation";
 import { WeekSelector } from "@/components/WeekSelector";
 import { OvertimeSummary } from "@/components/OvertimeSummary";
+import { CumulativeOvertimeSummary } from "@/components/CumulativeOvertimeSummary";
 import {
   toISOMonth,
   getWeeksForMonth,
@@ -136,6 +138,13 @@ function DashboardView() {
     enabled: configQuery.isSuccess && configQuery.data?.success,
   });
 
+  const cumulativeOvertimeQuery = useQuery({
+    queryKey: ["cumulativeOvertime", selectedWeek],
+    queryFn: () =>
+      getCumulativeOvertime({ data: { currentWeekStartDate: selectedWeek } }),
+    enabled: configQuery.isSuccess && configQuery.data?.success,
+  });
+
   const handleMonthChange = (newMonth: string) => {
     const { year: newYear, month: newMonthNum } = parseMonthString(newMonth);
     const newWeeks = getWeeksForMonth(newYear, newMonthNum, weekStart);
@@ -226,6 +235,27 @@ function DashboardView() {
                     }
                     workingDaysPerWeek={
                       weeklyQuery.data.data.workingDaysPerWeek
+                    }
+                  />
+                </div>
+                <div className="mt-4">
+                  <CumulativeOvertimeSummary
+                    isLoading={cumulativeOvertimeQuery.isPending}
+                    hasStartDate={
+                      cumulativeOvertimeQuery.data?.data?.hasStartDate ?? false
+                    }
+                    startDate={cumulativeOvertimeQuery.data?.data?.startDate}
+                    cumulativeOvertimeSeconds={
+                      cumulativeOvertimeQuery.data?.data
+                        ?.cumulativeOvertimeSeconds ?? 0
+                    }
+                    weeksIncluded={
+                      cumulativeOvertimeQuery.data?.data?.weeksIncluded ?? 0
+                    }
+                    error={
+                      cumulativeOvertimeQuery.data?.success === false
+                        ? cumulativeOvertimeQuery.data?.error
+                        : undefined
                     }
                   />
                 </div>
