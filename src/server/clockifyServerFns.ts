@@ -430,11 +430,15 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
       }
 
       const weekStart = new Date(data.weekStartDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
       const trackedProjectsConfig = await db.query.configChronic.findFirst({
         where: and(
           eq(configChronic.userId, userId),
           eq(configChronic.configType, "tracked_projects"),
-          lte(configChronic.validFrom, weekStart),
+          lte(configChronic.validFrom, weekEnd),
           or(
             isNull(configChronic.validUntil),
             gt(configChronic.validUntil, weekStart),
@@ -460,10 +464,6 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           error: "No projects selected for tracking.",
         };
       }
-
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
 
       const startDate = new Date(weekStart);
       startDate.setHours(0, 0, 0, 0);
