@@ -23,3 +23,5 @@ local/*
 reports/
 .playwright-mcp/
 agent/tmp
+
+tmp/
