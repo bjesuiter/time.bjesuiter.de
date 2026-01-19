@@ -38,10 +38,9 @@ export function UserMenu({ user }: UserMenuProps) {
 
   return (
     <div className="relative" ref={menuRef}>
-      {/* User Menu Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors min-h-[44px]"
         aria-label="User menu"
         data-testid="user-menu-button"
       >
@@ -67,23 +66,20 @@ export function UserMenu({ user }: UserMenuProps) {
         />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-          {/* User Info Header */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">
+        <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+          <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100">
+            <p className="text-sm font-medium text-gray-900 truncate">
               {user.name || "User"}
             </p>
             <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
 
-          {/* Menu Items */}
-          <div className="py-2">
+          <div className="py-1 sm:py-2">
             <Link
               to="/settings"
               onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors min-h-[44px]"
               data-testid="user-menu-settings-link"
             >
               <Settings className="w-4 h-4" />
@@ -92,7 +88,7 @@ export function UserMenu({ user }: UserMenuProps) {
 
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-2 text-sm text-red-600 hover:bg-red-50 transition-colors min-h-[44px]"
               data-testid="user-menu-sign-out-button"
             >
               <LogOut className="w-4 h-4" />

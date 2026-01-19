@@ -174,24 +174,24 @@ function DashboardView() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 lg:mb-8">
           <h1
-            className="text-3xl font-bold text-gray-900"
+            className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900"
             data-testid="dashboard-heading"
           >
             Dashboard
           </h1>
-          <Sparkles className="w-6 h-6 text-yellow-500" />
+          <Sparkles className="w-5 sm:w-6 h-5 sm:h-6 text-yellow-500" />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-4 lg:space-y-6">
           <MonthNavigation
             currentMonth={currentMonth}
             onMonthChange={handleMonthChange}
           />
 
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4">
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-3 sm:p-4">
             <WeekSelector
               weeks={weeksInMonth}
               selectedWeek={selectedWeek}
@@ -199,24 +199,24 @@ function DashboardView() {
             />
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-6 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-6">
-              <div>
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 sm:p-6 transition-all hover:shadow-md">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
+              <div className="min-w-0">
                 <h2
-                  className="text-xl font-bold text-gray-900"
+                  className="text-base sm:text-lg lg:text-xl font-bold text-gray-900"
                   data-testid="weekly-summary-heading"
                 >
                   Weekly Time Summary
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">
                   {formatWeekRange(selectedWeek)}
                 </p>
               </div>
-              <Calendar className="w-6 h-6 text-indigo-500" />
+              <Calendar className="w-5 sm:w-6 h-5 sm:h-6 text-indigo-500 shrink-0" />
             </div>
 
             {configQuery.isPending || weeklyQuery.isPending ? (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <TableSkeleton rows={2} columns={9} />
                 <OvertimeSkeleton />
                 <CumulativeOvertimeSkeleton />
@@ -232,7 +232,7 @@ function DashboardView() {
                   trackedProjects={weeklyQuery.data.data.trackedProjects}
                   clientName={weeklyQuery.data.data.clientName}
                 />
-                <div className="mt-6">
+                <div className="mt-4 sm:mt-6">
                   <OvertimeSummary
                     dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
                     regularHoursPerWeek={
@@ -243,7 +243,7 @@ function DashboardView() {
                     }
                   />
                 </div>
-                <div className="mt-4">
+                <div className="mt-3 sm:mt-4">
                   <CumulativeOvertimeSummary
                     isLoading={cumulativeOvertimeQuery.isPending}
                     hasStartDate={
@@ -266,18 +266,20 @@ function DashboardView() {
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                <div>
-                  <p className="text-amber-800 font-medium">Setup Required</p>
-                  <p className="text-amber-700 text-sm">
+              <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-amber-800 font-medium text-sm sm:text-base">
+                    Setup Required
+                  </p>
+                  <p className="text-amber-700 text-xs sm:text-sm">
                     {weeklyQuery.data?.error ||
                       configQuery.data?.error ||
                       "Please complete your Clockify setup to view time data."}
                   </p>
                   <Link
                     to="/settings"
-                    className="text-amber-800 underline text-sm mt-1 inline-block hover:text-amber-900"
+                    className="text-amber-800 underline text-xs sm:text-sm mt-1 inline-block hover:text-amber-900 min-h-[44px] flex items-center"
                   >
                     Go to Settings
                   </Link>
