@@ -15,6 +15,7 @@ import {
   Target,
   ArrowRight,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   checkClockifySetup,
@@ -213,7 +214,23 @@ function DashboardView() {
                   {formatWeekRange(selectedWeek)}
                 </p>
               </div>
-              <Calendar className="w-5 sm:w-6 h-5 sm:h-6 text-indigo-500 shrink-0" />
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    weeklyQuery.refetch();
+                    cumulativeOvertimeQuery.refetch();
+                  }}
+                  disabled={weeklyQuery.isRefetching}
+                  className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-500 transition-colors disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  title="Refresh data from Clockify"
+                  aria-label="Refresh data from Clockify"
+                >
+                  <RefreshCw
+                    className={`w-5 sm:w-5 h-5 sm:h-5 ${weeklyQuery.isRefetching ? "animate-spin" : ""}`}
+                  />
+                </button>
+                <Calendar className="w-5 sm:w-6 h-5 sm:h-6 text-indigo-500" />
+              </div>
             </div>
 
             {configQuery.isPending || weeklyQuery.isPending ? (
