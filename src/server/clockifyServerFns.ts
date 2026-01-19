@@ -547,8 +547,16 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       }
 
       const startDateStr = config.cumulativeOvertimeStartDate;
-      const startDate = new Date(startDateStr);
       const weekStart = config.weekStart as "MONDAY" | "SUNDAY";
+
+      // Parse date string as local time to avoid timezone issues
+      // "2025-10-01" -> Oct 1, 2025 00:00:00 local time
+      const parseLocalDate = (dateStr: string): Date => {
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return new Date(year, month - 1, day, 0, 0, 0, 0);
+      };
+
+      const startDate = parseLocalDate(startDateStr);
 
       const getWeekStartForDate = (date: Date): Date => {
         const d = new Date(date);
@@ -566,8 +574,20 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
 
       const firstWeekStart = getWeekStartForDate(startDate);
       const currentWeekStart = getWeekStartForDate(
-        new Date(data.currentWeekStartDate),
+        parseLocalDate(data.currentWeekStartDate),
       );
+
+      console.log("[DEBUG getCumulativeOvertime]", {
+        startDateStr,
+        startDate: startDate.toISOString(),
+        "data.currentWeekStartDate": data.currentWeekStartDate,
+        firstWeekStart: firstWeekStart.toISOString(),
+        currentWeekStart: currentWeekStart.toISOString(),
+        "firstWeekStart.getTime()": firstWeekStart.getTime(),
+        "currentWeekStart.getTime()": currentWeekStart.getTime(),
+        "condition (first <= current)":
+          firstWeekStart.getTime() <= currentWeekStart.getTime(),
+      });
 
       const weekStarts: Date[] = [];
       const weekIter = new Date(firstWeekStart);
