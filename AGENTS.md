@@ -110,7 +110,9 @@ return { success: false, error: "Error message" };
 - Use `bun:test` for unit/integration: `import { expect, test } from "bun:test"`
 - Use Playwright fixtures for E2E: `import { test, expect } from "../fixtures/test"`
 - Test names: `testName-001: description of what it tests`
-- **Browser testing**: Use the `agent-browser` skill, NOT `playwright-mcp`
+- **Browser testing**: Use the `playwrighter_exec` skill, if possible. Note, that this skill may have multiple tabs under its control from different projects, so take exceptional care that you use the right tab! (aka. right port and the main page heading is what you expect)
+- Fallback: Use the `agent-browser` skill
+- DO NOT use `playwright-mcp`, it's very token heavy
 
 ---
 
