@@ -13,6 +13,7 @@ function createDailyBreakdown(
   return {
     date,
     trackedProjects: {},
+    extraWorkProjects: {},
     totalSeconds,
     extraWorkSeconds: 0,
   };

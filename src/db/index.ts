@@ -3,6 +3,7 @@ import { envStore } from "@/lib/env/envStore";
 import { betterAuthSchemas } from "./schema/better-auth";
 import { clockifySchemas } from "./schema/clockify";
 import { configSchemas } from "./schema/config";
+import { cacheSchemas } from "./schema/cache";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { LibsqlError } from "@libsql/client";
 
@@ -16,6 +17,7 @@ const db = drizzle(dbPath, {
     ...betterAuthSchemas,
     ...clockifySchemas,
     ...configSchemas,
+    ...cacheSchemas,
   },
 });
 
