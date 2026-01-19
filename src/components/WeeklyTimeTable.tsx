@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { DailyBreakdown, ProjectTime } from "@/lib/clockify/types";
 import type { TrackedProjectsValue } from "@/server/configServerFns";
 
@@ -16,66 +17,26 @@ function formatSecondsToHHMM(seconds: number): string {
   return `${hours}:${minutes.toString().padStart(2, "0")}`;
 }
 
-function ExtraWorkTooltip({
-  extraWorkProjects,
-  clientName,
-}: {
-  extraWorkProjects: Record<string, ProjectTime>;
-  clientName?: string | null;
-}) {
-  const projects = Object.values(extraWorkProjects);
-  if (projects.length === 0) return null;
+function getUniqueExtraWorkProjects(
+  dailyBreakdown: Record<string, DailyBreakdown>,
+  days: string[],
+): ProjectTime[] {
+  const projectMap = new Map<string, ProjectTime>();
 
-  return (
-    <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap">
-      <div className="font-medium mb-1 text-amber-300">Extra Work Breakdown:</div>
-      {projects.map((project) => (
-        <div key={project.projectId} className="flex justify-between gap-4">
-          <span className="text-gray-300">
-            {clientName ? `${clientName} - ${project.projectName}` : project.projectName}
-          </span>
-          <span className="font-mono">{formatSecondsToHHMM(project.seconds)}</span>
-        </div>
-      ))}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-    </div>
-  );
-}
+  for (const date of days) {
+    const dayData = dailyBreakdown[date];
+    if (!dayData?.extraWorkProjects) continue;
 
-function ExtraWorkCell({
-  seconds,
-  extraWorkProjects,
-  clientName,
-}: {
-  seconds: number;
-  extraWorkProjects: Record<string, ProjectTime>;
-  clientName?: string | null;
-}) {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const hasProjects = Object.keys(extraWorkProjects).length > 0;
-
-  if (seconds <= 0) {
-    return (
-      <td className="px-1.5 sm:px-3 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-amber-700 text-center">
-        -
-      </td>
-    );
+    for (const [projectId, project] of Object.entries(dayData.extraWorkProjects)) {
+      if (!projectMap.has(projectId)) {
+        projectMap.set(projectId, { ...project, seconds: 0 });
+      }
+      const existing = projectMap.get(projectId)!;
+      existing.seconds += project.seconds;
+    }
   }
 
-  return (
-    <td
-      className="px-1.5 sm:px-3 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-amber-700 text-center relative"
-      onMouseEnter={() => hasProjects && setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <span className={hasProjects ? "cursor-help underline decoration-dotted" : ""}>
-        {formatSecondsToHHMM(seconds)}
-      </span>
-      {showTooltip && (
-        <ExtraWorkTooltip extraWorkProjects={extraWorkProjects} clientName={clientName} />
-      )}
-    </td>
-  );
+  return Array.from(projectMap.values()).sort((a, b) => b.seconds - a.seconds);
 }
 
 function getDaysOfWeek(
@@ -111,6 +72,8 @@ export function WeeklyTimeTable({
   trackedProjects,
   clientName,
 }: WeeklyTimeTableProps) {
+  const [isExtraWorkExpanded, setIsExtraWorkExpanded] = useState(false);
+
   const formatProjectName = (name: string) =>
     clientName ? `${clientName} - ${name}` : name;
   const days = getDaysOfWeek(weekStartDate, weekStart);
@@ -136,13 +99,6 @@ export function WeeklyTimeTable({
   const getExtraWorkForDay = (date: string): number => {
     const dayData = dailyBreakdown[date];
     return dayData?.extraWorkSeconds || 0;
-  };
-
-  const getExtraWorkProjectsForDay = (
-    date: string,
-  ): Record<string, ProjectTime> => {
-    const dayData = dailyBreakdown[date];
-    return dayData?.extraWorkProjects || {};
   };
 
   const getExtraWorkWeeklyTotal = (): number => {
@@ -210,28 +166,72 @@ export function WeeklyTimeTable({
               );
             })}
             {hasExtraWork && (
-              <tr className="bg-amber-50 hover:bg-amber-100">
-                <td className="sticky left-0 z-10 bg-amber-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-amber-800 min-w-[100px] sm:min-w-[140px]">
-                  <span className="line-clamp-2 sm:whitespace-nowrap">
-                    {formatProjectName("Extra Work")}
-                  </span>
-                </td>
-                {days.map((date) => {
-                  const seconds = getExtraWorkForDay(date);
-                  const extraWorkProjects = getExtraWorkProjectsForDay(date);
-                  return (
-                    <ExtraWorkCell
-                      key={date}
-                      seconds={seconds}
-                      extraWorkProjects={extraWorkProjects}
-                      clientName={clientName}
-                    />
-                  );
-                })}
-                <td className="sticky right-0 z-10 bg-amber-100 px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm font-semibold text-amber-800 text-center">
-                  {formatSecondsToHHMM(getExtraWorkWeeklyTotal())}
-                </td>
-              </tr>
+              <>
+                <tr
+                  className="bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                  onClick={() => setIsExtraWorkExpanded(!isExtraWorkExpanded)}
+                >
+                  <td className="sticky left-0 z-10 bg-amber-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-amber-800 min-w-[100px] sm:min-w-[140px]">
+                    <span className="flex items-center gap-1">
+                      {isExtraWorkExpanded ? (
+                        <ChevronDown className="w-4 h-4 shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 shrink-0" />
+                      )}
+                      <span className="line-clamp-2 sm:whitespace-nowrap">
+                        {formatProjectName("Extra Work")}
+                      </span>
+                    </span>
+                  </td>
+                  {days.map((date) => {
+                    const seconds = getExtraWorkForDay(date);
+                    return (
+                      <td
+                        key={date}
+                        className="px-1.5 sm:px-3 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-amber-700 text-center"
+                      >
+                        {seconds > 0 ? formatSecondsToHHMM(seconds) : "-"}
+                      </td>
+                    );
+                  })}
+                  <td className="sticky right-0 z-10 bg-amber-100 px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm font-semibold text-amber-800 text-center">
+                    {formatSecondsToHHMM(getExtraWorkWeeklyTotal())}
+                  </td>
+                </tr>
+                {isExtraWorkExpanded &&
+                  getUniqueExtraWorkProjects(dailyBreakdown, days).map(
+                    (project) => (
+                      <tr
+                        key={project.projectId}
+                        className="bg-amber-50/50 border-l-4 border-amber-300"
+                      >
+                        <td className="sticky left-0 z-10 bg-amber-50/50 pl-8 pr-3 sm:pl-10 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm text-amber-700 min-w-[100px] sm:min-w-[140px]">
+                          <span className="line-clamp-2 sm:whitespace-nowrap">
+                            {formatProjectName(project.projectName)}
+                          </span>
+                        </td>
+                        {days.map((date) => {
+                          const dayProject =
+                            dailyBreakdown[date]?.extraWorkProjects?.[
+                              project.projectId
+                            ];
+                          const seconds = dayProject?.seconds || 0;
+                          return (
+                            <td
+                              key={date}
+                              className="px-1.5 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap text-xs sm:text-sm text-amber-600 text-center"
+                            >
+                              {seconds > 0 ? formatSecondsToHHMM(seconds) : "-"}
+                            </td>
+                          );
+                        })}
+                        <td className="sticky right-0 z-10 bg-amber-100/50 px-2 sm:px-4 py-1.5 sm:py-2 whitespace-nowrap text-xs sm:text-sm font-medium text-amber-700 text-center">
+                          {formatSecondsToHHMM(project.seconds)}
+                        </td>
+                      </tr>
+                    ),
+                  )}
+              </>
             )}
             <tr className="bg-gray-100 font-semibold">
               <td className="sticky left-0 z-10 bg-gray-100 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 min-w-[100px] sm:min-w-[140px]">
