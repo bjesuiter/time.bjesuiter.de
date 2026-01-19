@@ -10,17 +10,23 @@ interface OvertimeSummaryProps {
   dailyBreakdown: Record<string, DailyBreakdown>;
   regularHoursPerWeek: number;
   workingDaysPerWeek: number;
+  configStartDate?: string | null;
+  weekStartDate: string;
 }
 
 export function OvertimeSummary({
   dailyBreakdown,
   regularHoursPerWeek,
   workingDaysPerWeek,
+  configStartDate,
+  weekStartDate,
 }: OvertimeSummaryProps) {
   const overtimeResult = calculateWeeklyOvertime(
     dailyBreakdown,
     regularHoursPerWeek,
     workingDaysPerWeek,
+    configStartDate,
+    weekStartDate,
   );
 
   const { totalWorkedSeconds, totalExpectedSeconds, totalOvertimeSeconds } =

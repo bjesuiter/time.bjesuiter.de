@@ -259,6 +259,8 @@ function DashboardView() {
                     workingDaysPerWeek={
                       weeklyQuery.data.data.workingDaysPerWeek
                     }
+                    configStartDate={weeklyQuery.data.data.configStartDate}
+                    weekStartDate={weeklyQuery.data.data.weekStartDate}
                   />
                 </div>
                 <div className="mt-3 sm:mt-4">

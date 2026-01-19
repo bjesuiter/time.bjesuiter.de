@@ -496,6 +496,7 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           regularHoursPerWeek: config.regularHoursPerWeek,
           workingDaysPerWeek: config.workingDaysPerWeek,
           clientName: config.selectedClientName,
+          configStartDate: config.cumulativeOvertimeStartDate,
         },
       };
     } catch (error) {

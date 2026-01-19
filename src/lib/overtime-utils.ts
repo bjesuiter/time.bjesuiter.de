@@ -4,6 +4,7 @@ export interface DailyOvertimeInfo {
   date: string;
   dayOfWeek: number;
   isWeekend: boolean;
+  isBeforeConfigStart: boolean;
   workedSeconds: number;
   expectedSeconds: number;
   overtimeSeconds: number;
@@ -22,38 +23,55 @@ function isWeekendDay(date: Date): boolean {
   return dayOfWeek === 0 || dayOfWeek === 6;
 }
 
+function getWeekDates(weekStartDate: string): string[] {
+  const dates: string[] = [];
+  const start = new Date(weekStartDate);
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    dates.push(date.toISOString().split("T")[0]);
+  }
+  return dates;
+}
+
 export function calculateWeeklyOvertime(
   dailyBreakdown: Record<string, DailyBreakdown>,
   regularHoursPerWeek: number,
   workingDaysPerWeek: number,
+  configStartDate?: string | null,
+  weekStartDate?: string,
 ): WeeklyOvertimeResult {
   const expectedSecondsPerWorkday = (regularHoursPerWeek * 3600) / workingDaysPerWeek;
-  const totalExpectedSeconds = regularHoursPerWeek * 3600;
   
   const dailyOvertime: Record<string, DailyOvertimeInfo> = {};
   let totalWorkedSeconds = 0;
-  let workdayCount = 0;
+  let eligibleWorkdayCount = 0;
 
-  const sortedDates = Object.keys(dailyBreakdown).sort();
+  const configStart = configStartDate ? new Date(configStartDate) : null;
+
+  const allDates = weekStartDate 
+    ? getWeekDates(weekStartDate) 
+    : Object.keys(dailyBreakdown).sort();
   
-  for (const dateStr of sortedDates) {
+  for (const dateStr of allDates) {
     const dayData = dailyBreakdown[dateStr];
     const date = new Date(dateStr);
     const dayOfWeek = date.getDay();
     const isWeekend = isWeekendDay(date);
-    const workedSeconds = dayData.totalSeconds;
+    const isBeforeConfigStart = configStart ? date < configStart : false;
+    const workedSeconds = dayData?.totalSeconds || 0;
     
     totalWorkedSeconds += workedSeconds;
 
     let expectedSeconds: number;
     let overtimeSeconds: number;
 
-    if (isWeekend) {
+    if (isWeekend || isBeforeConfigStart) {
       expectedSeconds = 0;
       overtimeSeconds = workedSeconds;
     } else {
-      workdayCount++;
-      if (workdayCount <= workingDaysPerWeek) {
+      eligibleWorkdayCount++;
+      if (eligibleWorkdayCount <= workingDaysPerWeek) {
         expectedSeconds = expectedSecondsPerWorkday;
         overtimeSeconds = workedSeconds - expectedSecondsPerWorkday;
       } else {
@@ -66,12 +84,15 @@ export function calculateWeeklyOvertime(
       date: dateStr,
       dayOfWeek,
       isWeekend,
+      isBeforeConfigStart,
       workedSeconds,
       expectedSeconds,
       overtimeSeconds,
     };
   }
 
+  const actualEligibleDays = Math.min(eligibleWorkdayCount, workingDaysPerWeek);
+  const totalExpectedSeconds = actualEligibleDays * expectedSecondsPerWorkday;
   const totalOvertimeSeconds = totalWorkedSeconds - totalExpectedSeconds;
 
   return {
