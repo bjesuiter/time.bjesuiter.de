@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-vekn
 title: Display Extra Work row for untracked projects
-status: todo
+status: completed
 type: feature
 priority: high
 created_at: 2026-01-19T18:51:56Z
-updated_at: 2026-01-19T18:51:56Z
+updated_at: 2026-01-19T19:13:22Z
 parent: time.bjesuiter.de-1ft8
 ---
 

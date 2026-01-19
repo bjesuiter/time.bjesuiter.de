@@ -60,9 +60,20 @@ export function WeeklyTimeTable({
     return dayData?.totalSeconds || 0;
   };
 
+  const getExtraWorkForDay = (date: string): number => {
+    const dayData = dailyBreakdown[date];
+    return dayData?.extraWorkSeconds || 0;
+  };
+
+  const getExtraWorkWeeklyTotal = (): number => {
+    return days.reduce((sum, date) => sum + getExtraWorkForDay(date), 0);
+  };
+
   const getWeeklyGrandTotal = (): number => {
     return days.reduce((sum, date) => sum + getDayTotal(date), 0);
   };
+
+  const hasExtraWork = getExtraWorkWeeklyTotal() > 0;
 
   return (
     <div className="overflow-x-auto">
@@ -113,6 +124,27 @@ export function WeeklyTimeTable({
               </tr>
             );
           })}
+          {hasExtraWork && (
+            <tr className="bg-amber-50 hover:bg-amber-100">
+              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-amber-800">
+                Extra Work
+              </td>
+              {days.map((date) => {
+                const seconds = getExtraWorkForDay(date);
+                return (
+                  <td
+                    key={date}
+                    className="px-3 py-3 whitespace-nowrap text-sm text-amber-700 text-center"
+                  >
+                    {seconds > 0 ? formatSecondsToHHMM(seconds) : "-"}
+                  </td>
+                );
+              })}
+              <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-amber-800 text-center bg-amber-100">
+                {formatSecondsToHHMM(getExtraWorkWeeklyTotal())}
+              </td>
+            </tr>
+          )}
           <tr className="bg-gray-100 font-semibold">
             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
               Total (All Client Projects)

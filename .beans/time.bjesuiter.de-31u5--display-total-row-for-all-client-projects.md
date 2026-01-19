@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-31u5
 title: Display total row for all client projects
-status: todo
+status: completed
 type: feature
 priority: high
 created_at: 2026-01-19T18:51:58Z
-updated_at: 2026-01-19T18:51:58Z
+updated_at: 2026-01-19T19:11:38Z
 parent: time.bjesuiter.de-1ft8
 ---
 
