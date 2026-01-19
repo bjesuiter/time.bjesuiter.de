@@ -15,7 +15,6 @@ import {
   Target,
   ArrowRight,
   AlertCircle,
-  Loader2,
 } from "lucide-react";
 import {
   checkClockifySetup,
@@ -30,6 +29,11 @@ import { MonthNavigation } from "@/components/MonthNavigation";
 import { WeekSelector } from "@/components/WeekSelector";
 import { OvertimeSummary } from "@/components/OvertimeSummary";
 import { CumulativeOvertimeSummary } from "@/components/CumulativeOvertimeSummary";
+import { TableSkeleton } from "@/components/ui/TableSkeleton";
+import {
+  OvertimeSkeleton,
+  CumulativeOvertimeSkeleton,
+} from "@/components/ui/OvertimeSkeleton";
 import {
   toISOMonth,
   getWeeksForMonth,
@@ -212,9 +216,10 @@ function DashboardView() {
             </div>
 
             {configQuery.isPending || weeklyQuery.isPending ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                <span className="ml-3 text-gray-600">Loading time data...</span>
+              <div className="space-y-6">
+                <TableSkeleton rows={2} columns={9} />
+                <OvertimeSkeleton />
+                <CumulativeOvertimeSkeleton />
               </div>
             ) : weeklyQuery.data?.success ? (
               <>
