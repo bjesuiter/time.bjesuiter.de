@@ -16,10 +16,12 @@ import {
   Trash2,
   Plus,
   Edit2,
+  RefreshCw,
 } from "lucide-react";
 import {
   checkClockifySetup,
   getClockifyDetails,
+  refreshClockifySettings,
 } from "@/server/clockifyServerFns";
 import {
   getConfigHistory,
@@ -97,6 +99,36 @@ function SettingsPage() {
         queryKey: ["config-history", "tracked_projects"],
       });
       queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
+    },
+  });
+
+  const [refreshMessage, setRefreshMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const refreshSettingsMutation = useMutation({
+    mutationFn: () => refreshClockifySettings(),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
+        setRefreshMessage({
+          type: "success",
+          text: result.updated
+            ? `Updated: timezone → ${result.timeZone}, week start → ${result.weekStart}`
+            : result.message || "Settings are up to date",
+        });
+      } else {
+        setRefreshMessage({ type: "error", text: result.error || "Refresh failed" });
+      }
+      setTimeout(() => setRefreshMessage(null), 5000);
+    },
+    onError: (error) => {
+      setRefreshMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Refresh failed",
+      });
+      setTimeout(() => setRefreshMessage(null), 5000);
     },
   });
 
@@ -266,6 +298,31 @@ function SettingsPage() {
                               </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-3 mt-3">
+                            <button
+                              onClick={() => refreshSettingsMutation.mutate()}
+                              disabled={refreshSettingsMutation.isPending}
+                              className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <RefreshCw
+                                className={`w-4 h-4 ${refreshSettingsMutation.isPending ? "animate-spin" : ""}`}
+                              />
+                              {refreshSettingsMutation.isPending
+                                ? "Refreshing..."
+                                : "Refresh from Clockify"}
+                            </button>
+                          </div>
+                          {refreshMessage && (
+                            <div
+                              className={`mt-3 p-3 rounded-lg text-sm ${
+                                refreshMessage.type === "success"
+                                  ? "bg-green-50 border border-green-200 text-green-800"
+                                  : "bg-red-50 border border-red-200 text-red-800"
+                              }`}
+                            >
+                              {refreshMessage.text}
+                            </div>
+                          )}
                         </div>
 
                         {/* Configuration Details */}

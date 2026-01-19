@@ -331,6 +331,79 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
     };
   });
 
+export const refreshClockifySettings = createServerFn({ method: "POST" }).handler(
+  async ({ request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    try {
+      const config = await db.query.userClockifyConfig.findFirst({
+        where: eq(userClockifyConfig.userId, userId),
+      });
+
+      if (!config) {
+        return {
+          success: false,
+          error: "No Clockify configuration found. Please complete setup first.",
+        };
+      }
+
+      const userResult = await clockifyClient.getUserInfo(config.clockifyApiKey);
+
+      if (!userResult.success) {
+        return {
+          success: false,
+          error: userResult.error.message || "Failed to fetch Clockify user info",
+        };
+      }
+
+      const clockifyUser = userResult.data;
+      const newTimeZone = clockifyUser.settings.timeZone;
+      const newWeekStart = clockifyUser.settings.weekStart;
+
+      const hasChanges =
+        config.timeZone !== newTimeZone || config.weekStart !== newWeekStart;
+
+      if (!hasChanges) {
+        return {
+          success: true,
+          message: "Settings are already up to date",
+          updated: false,
+          timeZone: newTimeZone,
+          weekStart: newWeekStart,
+        };
+      }
+
+      await db
+        .update(userClockifyConfig)
+        .set({
+          timeZone: newTimeZone,
+          weekStart: newWeekStart,
+          updatedAt: new Date(),
+        })
+        .where(eq(userClockifyConfig.userId, userId));
+
+      return {
+        success: true,
+        message: "Settings refreshed successfully",
+        updated: true,
+        timeZone: newTimeZone,
+        weekStart: newWeekStart,
+        previousTimeZone: config.timeZone,
+        previousWeekStart: config.weekStart,
+      };
+    } catch (error) {
+      console.error("Error refreshing Clockify settings:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to refresh Clockify settings",
+      };
+    }
+  },
+);
+
 export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
   .inputValidator((data: { weekStartDate: string }) => data)
   .handler(async ({ data, request }) => {
