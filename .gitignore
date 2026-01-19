@@ -25,3 +25,5 @@ reports/
 agent/tmp
 
 tmp/
+
+sqlite.db
