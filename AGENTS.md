@@ -217,6 +217,12 @@ Use `context7` tools for documentation lookups: resolve library ID first, then f
 
 Be concise. One-sentence summaries after tasks. No code examples unless requested.
 
+## Work on next ticket 
+If the user tells you to "work on the next ticket" or "next step" or "next phase", get the most important ticket from your perspective from beans and work on it. Work ONLY on one ticket at the same time.
+If you realize you need to do another thing, create a new ticket for this. 
+When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards. 
+Use ultrawork.
+
 ## Default Ralp-Loop Prompt 
 Get the most important ticket from your perspective from beans and work on it. Work ONLY on one ticket at the same time.
 If you realize you need to do another thing, create a new ticket for this. 
