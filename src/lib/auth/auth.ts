@@ -8,6 +8,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
+  trustedOrigins: ["http://localhost:3000", "http://localhost:3001"],
   emailAndPassword: {
     enabled: true,
   },
@@ -17,6 +18,7 @@ export const auth = betterAuth({
   //         clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
   //     },
   // },
+  //
   plugins: [
     // make sure this is the last plugin in the array
     reactStartCookies(),
