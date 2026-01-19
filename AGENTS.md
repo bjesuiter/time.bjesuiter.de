@@ -216,3 +216,19 @@ Use `context7` tools for documentation lookups: resolve library ID first, then f
 ## Communication
 
 Be concise. One-sentence summaries after tasks. No code examples unless requested.
+
+## Default Ralp-Loop Prompt 
+Get the most important ticket from your perspective from beans and work on it. Work ONLY on one ticket at the same time.
+If you realize you need to do another thing, create a new ticket for this. 
+When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards. 
+You're done when all tickets are implemented.
+Use ultrawork.
+
+## Integration Testing Ralph-Loop 
+Look at the served website at http://localhost:3001 via agent-browser. 
+Test every ticket in beans, which is marked as done and validate it as a user would. 
+If the test works, add this result to the ticket and mark it as "ai verified".
+If it does not, create a new ticket in beans as a bug for later inspection, 
+mark the ticket as "broken" and store the followup inspection ticket as a link, then go on to test the next ticket.
+You're done if every ticket which is currently marked as done is marked as "ai verified" or "broken".
+Use ultrawork.
