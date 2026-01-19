@@ -1,291 +1,218 @@
 # Agent Guidelines
 
-This document contains guidelines for AI agents working on this codebase.
+Guidelines for AI agents working on this codebase.
 
 ---
 
-## Agent Communication Rules
+## Commands
 
-### Be Concise by Default
+```bash
+# Development
+bun run dev                    # Dev server (port 3000)
+bun run dev2                   # Dev server (port 3001, memory mode)
+bun run build && bun run serve # Build and preview
 
-**Keep all responses brief and focused. The user will ask for more details if
-needed.**
+# Testing - Single file (RECOMMENDED)
+bun test <filename>            # Fuzzy match in tests/ (unit/integration)
+bun e2e <filename>             # Fuzzy match in tests/e2e/user-journeys/
 
-**General Conversation:**
+# Testing - All
+bun test:unit                  # All unit tests
+bun test:integration           # All integration tests  
+bun run e2e                    # All E2E tests (Playwright)
+bun run test:all               # Run all test layers
 
-- Give direct, concise answers
-- Avoid unnecessary explanations or elaboration
-- Don't show code examples unless specifically requested
-- Trust the user to ask follow-up questions
+# E2E extras
+bun run test:e2e:ui            # Interactive Playwright UI
+bun run test:e2e:debug         # Debug mode
+bun run e2e:report             # View HTML report
 
-**After Completing Tasks:**
+# Database
+bun run dbpush                 # Push schema to DB
+bun run dbstudio               # Open Drizzle Studio
+bun run dbgenerate             # Generate migrations
 
-- Summarize in one sentence: "Created 3 decision documents and updated
-  ARCHITECTURE.md."
-- Don't list every file change or explain each decision unprompted
-- Don't show code snippets unless relevant and requested
+# Formatting
+bunx prettier --write <filepath>
 
-**Examples:**
+# Other
+bun run auth-schema            # Regenerate better-auth schema
+```
 
-✅ **Good** (Concise):
-
-> "Added authentication check to the API endpoint."
-
-❌ **Bad** (Too verbose):
-
-> "I've added an authentication check to the API endpoint. This is important
-> because we need to ensure that only authenticated users can access this
-> resource. I used the Better-auth session validation pattern, which checks the
-> session headers and returns a 401 error if the user is not authenticated.
-> Here's the code I added: [long code block]..."
-
-**When to be detailed:**
-
-- User explicitly asks "how?", "why?", or "show me"
-- Explaining complex architectural decisions (but still be structured and clear)
-- User asks for clarification or more information
+**Before starting dev server**: Check if port 3000/3001 is in use.
 
 ---
 
-### Agent Documentation
+## Tech Stack
 
-The `agent/` folder is the workspace for the LLM. It can store plans, temporary documents, summaries, or similar documents there at free will.
-
-- **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
-- **Summaries**: `agent/summaries/` (implementation notes, test strategies)
-- **Temporary files**: `agent/tmp/` (not committed)
-- Keep `agent/ARCHITECTURE.md` high-level; details go in decision files
-
----
-
-### Documentation Search
-
-Use `context7` tools: resolve library ID first, then fetch docs.
-
----
-
-## Project-Specific Guidelines
-
-### Development Workflow
-
-**Common Commands:**
-
-- `bun run dev` - Dev server (port 3000)
-- `bun run build` / `bun run serve` - Build and preview
-- `bun test <filename>` - Run specific unit or integration test file via bun
-  (fuzzy matches in `tests/`)
-- `bun test:unit` - Run all unit tests
-- `bun test:integration` - Run all integration tests
-- `bun e2e` - E2E tests (Playwright)
-- `bun e2e <filename>` - One specific E2E test file (fuzzy matches in
-  `tests/e2e/user-journeys/`)
-- `bun run dbpush` / `bun run dbstudio` - Database tools
-- `bunx prettier --write <filepath>` - Format code
-- Check port 3000 or 3001 before starting dev server
-
----
-
----
-
-## Tech Stack Overview
-
-### Core Technologies
-
-- **Runtime**: Bun (fast JavaScript runtime)
-- **Framework**: TanStack Start (full-stack React framework with file-based
-  routing)
-- **Frontend**: React 19 with TypeScript
+- **Runtime**: Bun
+- **Framework**: TanStack Start (file-based routing)
+- **Frontend**: React 19 + TypeScript
 - **Styling**: Tailwind CSS v4
-- **Database**: SQLite with Drizzle ORM
-- **Authentication**: Better-auth (email authentication)
+- **Database**: SQLite + Drizzle ORM
+- **Auth**: Better-auth (email)
 - **Data Fetching**: TanStack Query
-- **Testing**: Vitest (use vitest for all testing, no other test libraries)
-- **E2E Testing**: Playwright with per-test server isolation
+- **Testing**: Bun test (unit/integration), Playwright (E2E)
 
 ---
 
-## Database (SQLite + Drizzle)
+## Code Style
 
-**Better-auth tables** (DO NOT modify): `user`, `session`, `account`,
-`verification`
+### Imports
 
-**Custom tables:**
+Order imports consistently:
+1. External packages (`react`, `@tanstack/*`, etc.)
+2. Internal aliases (`@/server/*`, `@/lib/*`, `@/components/*`)
+3. Relative imports
+
+```typescript
+import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+
+import { myServerFn } from "@/server/myServerFns";
+import { authClient } from "@/client/auth-client";
+import { MyComponent } from "@/components/MyComponent";
+```
+
+### Naming
+
+| Type | Convention | Example |
+|------|------------|---------|
+| Components | PascalCase | `UserMenu.tsx`, `function UserMenu()` |
+| Utilities/hooks | camelCase | `useAuth.ts`, `formatDate.ts` |
+| Server functions | camelCase | `getUserData`, `checkClockifySetup` |
+| DB tables | snake_case | `user_clockify_config` |
+| DB columns | snake_case | `clockify_api_key` |
+| Test files | `*.test.ts` | `validateApiKey.test.ts` |
+| E2E test files | `*.spec.ts` | `auth.spec.ts` |
+
+### TypeScript
+
+- **Strict mode enabled** - no `as any`, `@ts-ignore`, `@ts-expect-error`
+- Prefer explicit types for function parameters
+- Use Zod for runtime validation (see `src/lib/env/envStore.ts`)
+
+### Error Handling
+
+```typescript
+// Server functions: throw Response for HTTP errors
+if (!envStore.ADMIN_EMAIL) {
+  throw new Response("Admin not configured", { status: 500 });
+}
+
+// Or return structured errors
+return { success: false, error: "Error message" };
+```
+
+### Testing
+
+- Use `bun:test` for unit/integration: `import { expect, test } from "bun:test"`
+- Use Playwright fixtures for E2E: `import { test, expect } from "../fixtures/test"`
+- Test names: `testName-001: description of what it tests`
+- **Browser testing**: Use the `agent-browser` skill, NOT `playwright-mcp`
+
+---
+
+## Architecture
+
+### Directory Structure
+
+```
+src/
+├── server/       # Server functions (safe for db, envStore, auth)
+├── routes/       # File-based routes (NEVER import server-only modules)
+├── components/   # React components
+├── client/       # Client-side utilities (auth-client)
+├── db/
+│   ├── schema/   # Drizzle schemas (one file per domain)
+│   └── types/    # Custom DB types
+└── lib/
+    ├── auth/     # Auth configuration
+    └── env/      # Environment variables (envStore)
+```
+
+### Server-Only Modules (CRITICAL)
+
+These modules must ONLY be imported in `src/server/` files:
+
+- `@/lib/env/envStore` - Environment variables
+- `@/db` - Database instance
+- `@/lib/auth/auth` - Auth instance
+- `@/db/schema/*` - Database schemas
+- `drizzle-orm` - ORM utilities
+
+**Why**: Route files are bundled for both client and server. Server-only imports in routes cause runtime errors in browser.
+
+### Correct Pattern
+
+```typescript
+// src/server/myServerFns.ts
+import { createServerFn } from "@tanstack/react-start";
+import { envStore } from "@/lib/env/envStore"; // OK - server file
+import { db } from "@/db";                       // OK - server file
+
+export const getData = createServerFn({ method: "GET" }).handler(async () => {
+  return await db.query.myTable.findFirst();
+});
+
+// src/routes/myroute.tsx  
+import { getData } from "@/server/myServerFns"; // OK - imports function only
+// import { db } from "@/db";                   // WRONG - will fail in browser
+```
+
+### Client-Safe Modules
+
+Can be imported anywhere:
+- `@/client/auth-client`
+- `@tanstack/react-router`, `@tanstack/react-start`
+- `react`, `lucide-react`
+- UI components
+
+---
+
+## Database
+
+### Better-auth Tables (DO NOT modify)
+
+`user`, `session`, `account`, `verification`
+
+### Custom Tables
 
 - Reference `user.id` as foreign key
-- Use snake_case naming
+- Use snake_case for tables and columns
 - Define in `src/db/schema/` (one file per domain)
 
-**Custom types:** `src/db/types/` (customIsoDate, customUint8Array)
-
 ---
 
-## Authentication (Better-auth)
+## Authentication
 
-**Server-side:** Check `auth.api.getSession()` in server functions
-
-**Client-side:** Use `authClient` from `src/client/auth-client.ts`
-
-**Route protection:** Check auth in `beforeLoad`, redirect to `/signin` if
-needed
-
-**Notes:**
-
-- Auto password hashing, HTTP-only cookies
-- Auth config: `src/lib/auth/auth.ts` (auto-discovered)
-- API route: `src/routes/api/auth/$.ts`
-
----
-
-## E2E Testing
-
-- **Run tests**: `bun e2e <filename>` (fuzzy matches in
-  `tests/e2e/user-journeys/`)
-- **Architecture**: Per-test server isolation with in-memory SQLite database
-- See `tests/e2e/README.md` for detailed documentation
-
----
-
-## Code Organization
-
-**Key directories:**
-
-- `src/server/` - ⭐ Server functions (safe for envStore, db, auth imports)
-- `src/routes/` - File-based routes (never import server-only modules here)
-- `src/db/schema/` - Database schemas (separate by domain)
-- `src/components/` - React components
-- `src/lib/` - Shared utilities
-- `src/client/` - Client-side utilities
-
-**Naming:** PascalCase (components), camelCase (utilities), snake_case (DB
-tables)
-
----
-
-## TanStack Router
-
-**File-based routing:** `src/routes/` (auto-generates `routeTree.gen.ts`)
-
-**Server functions:** Use `createServerFn` in `src/server/` files
-
-**Loaders vs Server Functions:**
-
-- Loaders: Initial page data, pre-navigation fetch, runs on client and server
-- Server functions: Mutations, user interaction data, runs directly on server,
-  REST call from client to server
-
-**Route protection:** Check auth in `beforeLoad` hook
+**Server-side**: `auth.api.getSession()` in server functions  
+**Client-side**: `authClient` from `@/client/auth-client`  
+**Route protection**: Check auth in `beforeLoad` hook
 
 ---
 
 ## Environment Variables
 
-**Validated with Zod in `src/lib/env/envStore.ts`:**
+Validated with Zod in `src/lib/env/envStore.ts`:
+- `DATABASE_URL`, `ALLOW_USER_SIGNUP`, `ADMIN_EMAIL`, `ADMIN_LABEL`, `ADMIN_PASSWORD`
 
-- `DATABASE_URL`, `ALLOW_USER_SIGNUP`, `ADMIN_EMAIL`, `ADMIN_LABEL`,
-  `ADMIN_PASSWORD`
-
-**Adding new variables:** Update envStore schema, tell user to add to `.env`
-file, document here
-
-### ⚠️ Critical: Server-Only Access
-
-**The `envStore` module should ONLY be imported in server-only files.**
-
-#### ✅ Correct Pattern: Server Functions in `src/server/`
-
-Create server functions in `src/server/` and import server-only modules at the
-top level:
-
-```typescript
-// src/server/myServerFns.ts
-import { createServerFn } from "@tanstack/react-start";
-import { envStore } from "@/lib/env/envStore"; // ✅ Safe - server-only file
-import { db } from "@/db"; // ✅ Safe - server-only file
-import { auth } from "@/lib/auth/auth"; // ✅ Safe - server-only file
-
-export const myServerFunction = createServerFn({ method: "POST" })
-  .inputValidator((data: MyType) => data)
-  .handler(async ({ data }) => {
-    // Access envStore, db, auth directly
-    if (!envStore.SOME_SETTING) {
-      throw new Error("Setting disabled");
-    }
-
-    const result = await db.query.myTable.findFirst();
-    return result;
-  });
-```
-
-Then import and use in route files:
-
-```typescript
-// src/routes/myroute.tsx
-import { createFileRoute } from "@tanstack/react-router";
-import { myServerFunction } from "@/server/myServerFns"; // ✅ Safe - imports server function only
-
-export const Route = createFileRoute("/myroute")({
-  loader: async () => {
-    return await myServerFunction({
-      data: {
-        /* ... */
-      },
-    });
-  },
-  component: MyComponent,
-});
-```
-
-#### ❌ Incorrect Pattern: Direct Imports in Route Files
-
-```typescript
-// ❌ DON'T DO THIS
-import { createFileRoute } from "@tanstack/react-router";
-import { envStore } from "@/lib/env/envStore"; // ❌ Will run on client!
-import { db } from "@/db"; // ❌ Will run on client!
-
-export const Route = createFileRoute("/myroute")({
-  loader: async () => {
-    // Even though this runs server-side, the imports above
-    // are evaluated when the module loads on the client!
-    return { data: envStore.SOME_VALUE };
-  },
-});
-```
-
-#### Why This Matters
-
-TanStack Start uses code splitting and bundles route files for both client and
-server. When you import a module at the top level:
-
-1. The import runs when the module loads
-2. Route modules load on BOTH client and server
-3. Server-only modules (envStore, db, auth) fail in the browser
-4. Result: Runtime errors about undefined `process.env`
-
-By isolating server-only imports to `src/server/` files, we ensure they never
-get bundled for the client.
-
-### Server-Only Modules List
-
-These modules should ONLY be imported in `src/server/` files:
-
-- `@/lib/env/envStore` - Environment variables
-- `@/db` - Database instance
-- `@/lib/auth/auth` - Auth instance (for `auth.api.*` calls)
-- `@/db/schema/*` - Database schemas
-- `drizzle-orm` - ORM utilities (eq, and, or, etc.)
-- `better-sqlite3` - SQLite driver
-- Node.js built-ins (fs, path, crypto, etc.)
-
-### Client-Safe Modules
-
-These can be imported anywhere (client or server):
-
-- `@/client/auth-client` - Better-auth client
-- `@tanstack/react-router` - Router utilities
-- `@tanstack/react-start` - Server function utilities
-- `react` - React library
-- `lucide-react` - Icons
-- UI components
+To add new variables: Update envStore schema, add to `.env`, document here.
 
 ---
+
+## Agent Workspace
+
+The `agent/` folder is for LLM workspace:
+- **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
+- **Summaries**: `agent/summaries/`
+- **Temporary**: `agent/tmp/` (not committed)
+
+Use `context7` tools for documentation lookups: resolve library ID first, then fetch docs.
+
+---
+
+## Communication
+
+Be concise. One-sentence summaries after tasks. No code examples unless requested.
