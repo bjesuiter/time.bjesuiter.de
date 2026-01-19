@@ -1,4 +1,5 @@
-import type { DailyBreakdown } from "@/lib/clockify/types";
+import { useState } from "react";
+import type { DailyBreakdown, ProjectTime } from "@/lib/clockify/types";
 import type { TrackedProjectsValue } from "@/server/configServerFns";
 
 export interface WeeklyTimeTableProps {
@@ -13,6 +14,68 @@ function formatSecondsToHHMM(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   return `${hours}:${minutes.toString().padStart(2, "0")}`;
+}
+
+function ExtraWorkTooltip({
+  extraWorkProjects,
+  clientName,
+}: {
+  extraWorkProjects: Record<string, ProjectTime>;
+  clientName?: string | null;
+}) {
+  const projects = Object.values(extraWorkProjects);
+  if (projects.length === 0) return null;
+
+  return (
+    <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap">
+      <div className="font-medium mb-1 text-amber-300">Extra Work Breakdown:</div>
+      {projects.map((project) => (
+        <div key={project.projectId} className="flex justify-between gap-4">
+          <span className="text-gray-300">
+            {clientName ? `${clientName} - ${project.projectName}` : project.projectName}
+          </span>
+          <span className="font-mono">{formatSecondsToHHMM(project.seconds)}</span>
+        </div>
+      ))}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+    </div>
+  );
+}
+
+function ExtraWorkCell({
+  seconds,
+  extraWorkProjects,
+  clientName,
+}: {
+  seconds: number;
+  extraWorkProjects: Record<string, ProjectTime>;
+  clientName?: string | null;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const hasProjects = Object.keys(extraWorkProjects).length > 0;
+
+  if (seconds <= 0) {
+    return (
+      <td className="px-1.5 sm:px-3 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-amber-700 text-center">
+        -
+      </td>
+    );
+  }
+
+  return (
+    <td
+      className="px-1.5 sm:px-3 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-amber-700 text-center relative"
+      onMouseEnter={() => hasProjects && setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span className={hasProjects ? "cursor-help underline decoration-dotted" : ""}>
+        {formatSecondsToHHMM(seconds)}
+      </span>
+      {showTooltip && (
+        <ExtraWorkTooltip extraWorkProjects={extraWorkProjects} clientName={clientName} />
+      )}
+    </td>
+  );
 }
 
 function getDaysOfWeek(
@@ -73,6 +136,13 @@ export function WeeklyTimeTable({
   const getExtraWorkForDay = (date: string): number => {
     const dayData = dailyBreakdown[date];
     return dayData?.extraWorkSeconds || 0;
+  };
+
+  const getExtraWorkProjectsForDay = (
+    date: string,
+  ): Record<string, ProjectTime> => {
+    const dayData = dailyBreakdown[date];
+    return dayData?.extraWorkProjects || {};
   };
 
   const getExtraWorkWeeklyTotal = (): number => {
@@ -148,13 +218,14 @@ export function WeeklyTimeTable({
                 </td>
                 {days.map((date) => {
                   const seconds = getExtraWorkForDay(date);
+                  const extraWorkProjects = getExtraWorkProjectsForDay(date);
                   return (
-                    <td
+                    <ExtraWorkCell
                       key={date}
-                      className="px-1.5 sm:px-3 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm text-amber-700 text-center"
-                    >
-                      {seconds > 0 ? formatSecondsToHHMM(seconds) : "-"}
-                    </td>
+                      seconds={seconds}
+                      extraWorkProjects={extraWorkProjects}
+                      clientName={clientName}
+                    />
                   );
                 })}
                 <td className="sticky right-0 z-10 bg-amber-100 px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-xs sm:text-sm font-semibold text-amber-800 text-center">

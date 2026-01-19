@@ -252,6 +252,7 @@ export interface WeeklyTimeReportOutput {
 export interface DailyBreakdown {
   date: string; // Date in YYYY-MM-DD format (e.g., "2025-11-18")
   trackedProjects: Record<string, ProjectTime>; // Key: projectId
+  extraWorkProjects: Record<string, ProjectTime>; // Key: projectId - non-tracked projects
   totalSeconds: number; // Total time logged for all projects on this day
   extraWorkSeconds: number; // Difference: totalSeconds - sum of tracked projects
 }

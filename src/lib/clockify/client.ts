@@ -146,16 +146,17 @@ export async function getProjects(
 
 /**
  * Fetches weekly time report with daily breakdown per project
- * Makes two API calls:
+ * Makes three API calls:
  * 1. Get total time per day (all projects for the client)
  * 2. Get time per day per tracked project
+ * 3. Get time per day per ALL projects (to identify extra work projects)
  * Then calculates "extra work" as the difference
  * 
  * Note: Clockify API returns durations in seconds (not milliseconds as some docs suggest)
  * 
  * @param apiKey - The Clockify API key
  * @param input - Report parameters (workspaceId, clientId, projectIds, date range)
- * @returns Daily breakdown with tracked projects, totals, and extra work
+ * @returns Daily breakdown with tracked projects, totals, extra work, and extra work project breakdown
  */
 export async function getWeeklyTimeReport(
   apiKey: string,
@@ -179,12 +180,6 @@ export async function getWeeklyTimeReport(
       exportType: "JSON",
     };
 
-    const totalTimeResponse = await reportsApi
-      .post(`workspaces/${workspaceId}/reports/summary`, {
-        json: totalTimeRequest,
-      })
-      .json<ClockifySummaryReportResponse>();
-
     // Call 2: Get time per day per tracked project
     const trackedProjectsRequest: ClockifySummaryReportRequest = {
       dateRangeStart: startDate,
@@ -203,14 +198,45 @@ export async function getWeeklyTimeReport(
       exportType: "JSON",
     };
 
-    const trackedProjectsResponse = await reportsApi
-      .post(`workspaces/${workspaceId}/reports/summary`, {
-        json: trackedProjectsRequest,
-      })
-      .json<ClockifySummaryReportResponse>();
+    // Call 3: Get time per day per ALL projects (to identify extra work projects)
+    const allProjectsRequest: ClockifySummaryReportRequest = {
+      dateRangeStart: startDate,
+      dateRangeEnd: endDate,
+      summaryFilter: {
+        groups: ["DATE", "PROJECT"],
+      },
+      clients: {
+        ids: [clientId],
+        contains: "CONTAINS",
+      },
+      exportType: "JSON",
+    };
+
+    // Execute all three API calls in parallel
+    const [totalTimeResponse, trackedProjectsResponse, allProjectsResponse] =
+      await Promise.all([
+        reportsApi
+          .post(`workspaces/${workspaceId}/reports/summary`, {
+            json: totalTimeRequest,
+          })
+          .json<ClockifySummaryReportResponse>(),
+        reportsApi
+          .post(`workspaces/${workspaceId}/reports/summary`, {
+            json: trackedProjectsRequest,
+          })
+          .json<ClockifySummaryReportResponse>(),
+        reportsApi
+          .post(`workspaces/${workspaceId}/reports/summary`, {
+            json: allProjectsRequest,
+          })
+          .json<ClockifySummaryReportResponse>(),
+      ]);
 
     // Transform the responses into the output format
     const dailyBreakdown: Record<string, DailyBreakdown> = {};
+
+    // Create a Set of tracked project IDs for fast lookup
+    const trackedProjectIdSet = new Set(projectIds);
 
     // Process total time per day (Call 1 response)
     const totalTimeByDate: Record<string, number> = {};
@@ -218,6 +244,30 @@ export async function getWeeklyTimeReport(
       const date = extractDateFromId(group._id);
       const seconds = group.duration; // Already in seconds
       totalTimeByDate[date] = seconds;
+    }
+
+    // Process ALL projects per day (Call 3 response) to identify extra work projects
+    const extraWorkProjectsByDate: Record<
+      string,
+      Record<string, { projectId: string; projectName: string; seconds: number }>
+    > = {};
+    for (const dateGroup of allProjectsResponse.groupOne) {
+      const date = extractDateFromId(dateGroup._id);
+      extraWorkProjectsByDate[date] = {};
+
+      if (dateGroup.children) {
+        for (const projectGroup of dateGroup.children) {
+          const projectId = projectGroup._id;
+          // Only include if NOT in tracked projects
+          if (!trackedProjectIdSet.has(projectId)) {
+            extraWorkProjectsByDate[date][projectId] = {
+              projectId,
+              projectName: projectGroup.name,
+              seconds: projectGroup.duration,
+            };
+          }
+        }
+      }
     }
 
     // Process tracked projects per day (Call 2 response)
@@ -229,6 +279,7 @@ export async function getWeeklyTimeReport(
         dailyBreakdown[date] = {
           date,
           trackedProjects: {},
+          extraWorkProjects: extraWorkProjectsByDate[date] || {},
           totalSeconds: totalTimeByDate[date] || 0,
           extraWorkSeconds: 0,
         };
@@ -264,6 +315,7 @@ export async function getWeeklyTimeReport(
         dailyBreakdown[date] = {
           date,
           trackedProjects: {},
+          extraWorkProjects: extraWorkProjectsByDate[date] || {},
           totalSeconds: totalTimeByDate[date],
           extraWorkSeconds: totalTimeByDate[date], // All time is extra work
         };
