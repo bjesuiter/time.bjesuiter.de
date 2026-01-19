@@ -29,6 +29,7 @@ import { MonthNavigation } from "@/components/MonthNavigation";
 import { WeekSelector } from "@/components/WeekSelector";
 import { OvertimeSummary } from "@/components/OvertimeSummary";
 import { CumulativeOvertimeSummary } from "@/components/CumulativeOvertimeSummary";
+import { QueryErrorMessage } from "@/components/QueryErrorMessage";
 import { TableSkeleton } from "@/components/ui/TableSkeleton";
 import {
   OvertimeSkeleton,
@@ -265,6 +266,16 @@ function DashboardView() {
                   />
                 </div>
               </>
+            ) : weeklyQuery.isError ? (
+              <QueryErrorMessage
+                error={
+                  weeklyQuery.error instanceof Error
+                    ? weeklyQuery.error.message
+                    : "Failed to load time data"
+                }
+                onRetry={() => weeklyQuery.refetch()}
+                isRetrying={weeklyQuery.isRefetching}
+              />
             ) : (
               <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />

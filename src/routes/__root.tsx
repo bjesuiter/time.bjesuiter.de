@@ -6,7 +6,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
-import Header from "../components/Header";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -50,11 +50,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {/* TODO: adjust the header to my own liking! */}
-        {/* <Header /> */}
-
-        {/* Children rendered by routes*/}
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
 
         <TanStackDevtools
           config={{
