@@ -22,6 +22,7 @@ import { Toolbar } from "@/components/Toolbar";
 import { WeeklyTimeTable } from "@/components/WeeklyTimeTable";
 import { MonthNavigation } from "@/components/MonthNavigation";
 import { WeekSelector } from "@/components/WeekSelector";
+import { OvertimeSummary } from "@/components/OvertimeSummary";
 import {
   toISOMonth,
   getWeeksForMonth,
@@ -181,12 +182,21 @@ function DashboardView() {
                 <span className="ml-3 text-gray-600">Loading time data...</span>
               </div>
             ) : weeklyQuery.data?.success ? (
-              <WeeklyTimeTable
-                weekStartDate={weeklyQuery.data.data.weekStartDate}
-                weekStart={weeklyQuery.data.data.weekStart as "MONDAY" | "SUNDAY"}
-                dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
-                trackedProjects={weeklyQuery.data.data.trackedProjects}
-              />
+              <>
+                <WeeklyTimeTable
+                  weekStartDate={weeklyQuery.data.data.weekStartDate}
+                  weekStart={weeklyQuery.data.data.weekStart as "MONDAY" | "SUNDAY"}
+                  dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
+                  trackedProjects={weeklyQuery.data.data.trackedProjects}
+                />
+                <div className="mt-6">
+                  <OvertimeSummary
+                    dailyBreakdown={weeklyQuery.data.data.dailyBreakdown}
+                    regularHoursPerWeek={weeklyQuery.data.data.regularHoursPerWeek}
+                    workingDaysPerWeek={weeklyQuery.data.data.workingDaysPerWeek}
+                  />
+                </div>
+              </>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />

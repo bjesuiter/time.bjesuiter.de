@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-a8tc
 title: Daily-based overtime calculation
-status: todo
+status: completed
 type: feature
 priority: high
 created_at: 2026-01-19T18:52:02Z
-updated_at: 2026-01-19T18:52:02Z
+updated_at: 2026-01-19T19:37:31Z
 parent: time.bjesuiter.de-1ft8
 ---
 
