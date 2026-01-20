@@ -1,4 +1,5 @@
 import { HTTPError } from "ky";
+import { format, parseISO, isValid } from "date-fns";
 import { createClockifyApi } from "./api-instance";
 import { createClockifyReportsApi } from "./reports-api-instance";
 import type {
@@ -333,17 +334,11 @@ export async function getWeeklyTimeReport(
   }
 }
 
-/**
- * Helper function to extract date in YYYY-MM-DD format from Clockify date group ID
- * Clockify can return dates in various formats, this normalizes them
- */
 function extractDateFromId(dateId: string): string {
-  // The _id field when grouping by DATE can be in different formats
-  // Try to parse it and return YYYY-MM-DD format
   try {
-    const date = new Date(dateId);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split("T")[0];
+    const date = parseISO(dateId);
+    if (isValid(date)) {
+      return format(date, "yyyy-MM-dd");
     }
   } catch {
     // If parsing fails, assume it's already in a usable format

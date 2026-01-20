@@ -1,7 +1,26 @@
 /**
  * Date utilities for week and month navigation
  * All dates use YYYY-MM-DD format for consistency
+ *
+ * Uses date-fns for reliable timezone handling
  */
+
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  addWeeks,
+  addMonths,
+  endOfMonth,
+  isWithinInterval,
+  parseISO,
+  getDay,
+  setHours,
+  setMinutes,
+  setSeconds,
+  setMilliseconds,
+} from "date-fns";
 
 export interface WeekInfo {
   startDate: string; // YYYY-MM-DD
@@ -12,19 +31,27 @@ export interface WeekInfo {
 
 /**
  * Convert Date to YYYY-MM-DD string (local timezone safe)
+ * Uses date-fns format to avoid timezone issues with toISOString()
  */
 export function toISODate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return format(date, "yyyy-MM-dd");
 }
 
 /**
  * Convert Date to YYYY-MM string
  */
 export function toISOMonth(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  return format(date, "yyyy-MM");
+}
+
+/**
+ * Parse a YYYY-MM-DD string to a Date object at midnight local time
+ * This avoids timezone issues that occur with new Date(string)
+ */
+export function parseLocalDate(dateStr: string): Date {
+  // parseISO handles the string correctly, but we need to ensure midnight local time
+  const parsed = parseISO(dateStr);
+  return setMilliseconds(setSeconds(setMinutes(setHours(parsed, 0), 0), 0), 0);
 }
 
 /**
@@ -34,13 +61,10 @@ export function getWeekStartForDate(
   date: Date,
   weekStart: "MONDAY" | "SUNDAY",
 ): Date {
-  const d = new Date(date);
-  const dayOfWeek = d.getDay();
-  const daysToSubtract =
-    weekStart === "MONDAY" ? (dayOfWeek === 0 ? 6 : dayOfWeek - 1) : dayOfWeek;
-  d.setDate(d.getDate() - daysToSubtract);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+  const result = startOfWeek(date, { weekStartsOn });
+  // Ensure midnight local time
+  return setMilliseconds(setSeconds(setMinutes(setHours(result, 0), 0), 0), 0);
 }
 
 /**
@@ -55,12 +79,17 @@ export function getCurrentWeekStart(weekStart: "MONDAY" | "SUNDAY"): string {
  */
 export function isCurrentWeek(weekStartDate: string): boolean {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const weekStart = new Date(weekStartDate);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-  return today >= weekStart && today <= weekEnd;
+  const weekStart = parseLocalDate(weekStartDate);
+  const weekEnd = endOfWeek(weekStart, {
+    weekStartsOn: getDay(weekStart) === 1 ? 1 : 0,
+  });
+  // Set weekEnd to end of day
+  const weekEndEOD = setMilliseconds(
+    setSeconds(setMinutes(setHours(weekEnd, 23), 59), 59),
+    999,
+  );
+
+  return isWithinInterval(today, { start: weekStart, end: weekEndEOD });
 }
 
 /**
@@ -68,12 +97,14 @@ export function isCurrentWeek(weekStartDate: string): boolean {
  * e.g., "Jan 13 - Jan 19, 2026"
  */
 export function formatWeekRange(weekStartDate: string): string {
-  const start = new Date(weekStartDate);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
+  const start = parseLocalDate(weekStartDate);
+  const end = addDays(start, 6);
 
-  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return `${start.toLocaleDateString("en-US", options)} - ${end.toLocaleDateString("en-US", options)}, ${end.getFullYear()}`;
+  const startFormatted = format(start, "MMM d");
+  const endFormatted = format(end, "MMM d");
+  const year = format(end, "yyyy");
+
+  return `${startFormatted} - ${endFormatted}, ${year}`;
 }
 
 /**
@@ -86,16 +117,16 @@ export function getWeeksForMonth(
   weekStart: "MONDAY" | "SUNDAY",
 ): WeekInfo[] {
   const weeks: WeekInfo[] = [];
+  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
 
   // 1. Get the first day of the month
   const firstOfMonth = new Date(year, month, 1);
 
   // 2. Find the week that contains the first day
-  const firstWeekStart = getWeekStartForDate(firstOfMonth, weekStart);
+  const firstWeekStart = startOfWeek(firstOfMonth, { weekStartsOn });
 
   // 3. Include previous week (always show "last week" for context)
-  const prevWeekStart = new Date(firstWeekStart);
-  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+  const prevWeekStart = addWeeks(firstWeekStart, -1);
   const prevWeekStartStr = toISODate(prevWeekStart);
   weeks.push({
     startDate: prevWeekStartStr,
@@ -105,8 +136,8 @@ export function getWeeksForMonth(
   });
 
   // 4. Add all weeks that start within or overlap with this month
-  const currentWeek = new Date(firstWeekStart);
-  const lastOfMonth = new Date(year, month + 1, 0); // Last day of month
+  let currentWeek = firstWeekStart;
+  const lastOfMonth = endOfMonth(firstOfMonth);
 
   while (currentWeek <= lastOfMonth) {
     const weekStartStr = toISODate(currentWeek);
@@ -116,7 +147,7 @@ export function getWeeksForMonth(
       isInPreviousMonth: false,
       isCurrentWeek: isCurrentWeek(weekStartStr),
     });
-    currentWeek.setDate(currentWeek.getDate() + 7);
+    currentWeek = addWeeks(currentWeek, 1);
   }
 
   return weeks;
@@ -130,8 +161,9 @@ export function getAdjacentMonth(
   direction: -1 | 1,
 ): string {
   const [year, month] = currentMonth.split("-").map(Number);
-  const date = new Date(year, month - 1 + direction, 1);
-  return toISOMonth(date);
+  const date = new Date(year, month - 1, 1);
+  const adjacentDate = addMonths(date, direction);
+  return toISOMonth(adjacentDate);
 }
 
 /**
@@ -141,9 +173,9 @@ export function getAdjacentWeek(
   currentWeekStartDate: string,
   direction: -1 | 1,
 ): string {
-  const date = new Date(currentWeekStartDate);
-  date.setDate(date.getDate() + direction * 7);
-  return toISODate(date);
+  const date = parseLocalDate(currentWeekStartDate);
+  const adjacentDate = addWeeks(date, direction);
+  return toISODate(adjacentDate);
 }
 
 /**
@@ -153,13 +185,16 @@ export function getAdjacentWeek(
 export function formatMonthYear(monthStr: string): string {
   const [year, month] = monthStr.split("-").map(Number);
   const date = new Date(year, month - 1, 1);
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return format(date, "MMMM yyyy");
 }
 
 /**
  * Parse YYYY-MM string to year and month (0-indexed)
  */
-export function parseMonthString(monthStr: string): { year: number; month: number } {
+export function parseMonthString(monthStr: string): {
+  year: number;
+  month: number;
+} {
   const [year, month] = monthStr.split("-").map(Number);
   return { year, month: month - 1 };
 }
@@ -177,7 +212,9 @@ export function getDefaultWeekForMonth(
   const weeks = getWeeksForMonth(year, month, weekStart);
 
   // Find current week if it exists in this month
-  const currentWeekInfo = weeks.find((w) => w.isCurrentWeek && !w.isInPreviousMonth);
+  const currentWeekInfo = weeks.find(
+    (w) => w.isCurrentWeek && !w.isInPreviousMonth,
+  );
   if (currentWeekInfo) {
     return currentWeekInfo.startDate;
   }

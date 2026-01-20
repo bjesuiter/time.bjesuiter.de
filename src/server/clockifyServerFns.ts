@@ -6,6 +6,19 @@ import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
+import {
+  addDays,
+  addWeeks,
+  getDay,
+  isBefore,
+  isAfter,
+  startOfWeek,
+  setHours,
+  setMinutes,
+  setSeconds,
+  setMilliseconds,
+} from "date-fns";
+import { parseLocalDate } from "@/lib/date-utils";
 
 /**
  * Helper to get authenticated user ID
@@ -429,10 +442,11 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
-      const weekStart = new Date(data.weekStartDate);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
+      const weekStartDate = parseLocalDate(data.weekStartDate);
+      const weekEnd = setMilliseconds(
+        setSeconds(setMinutes(setHours(addDays(weekStartDate, 6), 23), 59), 59),
+        999,
+      );
 
       const trackedProjectsConfig = await db.query.configChronic.findFirst({
         where: and(
@@ -441,7 +455,7 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           lte(configChronic.validFrom, weekEnd),
           or(
             isNull(configChronic.validUntil),
-            gt(configChronic.validUntil, weekStart),
+            gt(configChronic.validUntil, weekStartDate),
           ),
         ),
       });
@@ -465,16 +479,13 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
-      const startDate = new Date(weekStart);
-      startDate.setHours(0, 0, 0, 0);
-
       const reportResult = await clockifyClient.getWeeklyTimeReport(
         config.clockifyApiKey,
         {
           workspaceId: config.clockifyWorkspaceId,
           clientId: config.selectedClientId,
           projectIds: trackedProjects.projectIds,
-          startDate: startDate.toISOString(),
+          startDate: weekStartDate.toISOString(),
           endDate: weekEnd.toISOString(),
         },
       );
@@ -547,33 +558,21 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       }
 
       const startDateStr = config.cumulativeOvertimeStartDate;
-      const weekStart = config.weekStart as "MONDAY" | "SUNDAY";
-
-      // Parse date string as local time to avoid timezone issues
-      // "2025-10-01" -> Oct 1, 2025 00:00:00 local time
-      const parseLocalDate = (dateStr: string): Date => {
-        const [year, month, day] = dateStr.split("-").map(Number);
-        return new Date(year, month - 1, day, 0, 0, 0, 0);
-      };
+      const weekStartSetting = config.weekStart as "MONDAY" | "SUNDAY";
+      const weekStartsOn = weekStartSetting === "MONDAY" ? 1 : 0;
 
       const startDate = parseLocalDate(startDateStr);
 
-      const getWeekStartForDate = (date: Date): Date => {
-        const d = new Date(date);
-        const dayOfWeek = d.getDay();
-        const daysToSubtract =
-          weekStart === "MONDAY"
-            ? dayOfWeek === 0
-              ? 6
-              : dayOfWeek - 1
-            : dayOfWeek;
-        d.setDate(d.getDate() - daysToSubtract);
-        d.setHours(0, 0, 0, 0);
-        return d;
+      const getWeekStartForDateLocal = (date: Date): Date => {
+        const result = startOfWeek(date, { weekStartsOn });
+        return setMilliseconds(
+          setSeconds(setMinutes(setHours(result, 0), 0), 0),
+          0,
+        );
       };
 
-      const firstWeekStart = getWeekStartForDate(startDate);
-      const currentWeekStart = getWeekStartForDate(
+      const firstWeekStart = getWeekStartForDateLocal(startDate);
+      const currentWeekStart = getWeekStartForDateLocal(
         parseLocalDate(data.currentWeekStartDate),
       );
 
@@ -590,10 +589,10 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       });
 
       const weekStarts: Date[] = [];
-      const weekIter = new Date(firstWeekStart);
+      let weekIter = firstWeekStart;
       while (weekIter.getTime() <= currentWeekStart.getTime()) {
-        weekStarts.push(new Date(weekIter));
-        weekIter.setDate(weekIter.getDate() + 7);
+        weekStarts.push(weekIter);
+        weekIter = addWeeks(weekIter, 1);
       }
 
       let cumulativeOvertimeSeconds = 0;
@@ -603,14 +602,19 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const workingDaysPerWeek = config.workingDaysPerWeek;
       const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;
 
-      // Get today's date at end of day for comparison (only count days that have passed)
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
+      const today = setMilliseconds(
+        setSeconds(setMinutes(setHours(new Date(), 23), 59), 59),
+        999,
+      );
 
-      for (const weekStartDate of weekStarts) {
-        const weekEnd = new Date(weekStartDate);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999);
+      for (const weekStartDateIter of weekStarts) {
+        const weekEnd = setMilliseconds(
+          setSeconds(
+            setMinutes(setHours(addDays(weekStartDateIter, 6), 23), 59),
+            59,
+          ),
+          999,
+        );
 
         const trackedProjectsConfig = await db.query.configChronic.findFirst({
           where: and(
@@ -619,7 +623,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
             lte(configChronic.validFrom, weekEnd),
             or(
               isNull(configChronic.validUntil),
-              gt(configChronic.validUntil, weekStartDate),
+              gt(configChronic.validUntil, weekStartDateIter),
             ),
           ),
         });
@@ -638,7 +642,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
             workspaceId: config.clockifyWorkspaceId,
             clientId: config.selectedClientId,
             projectIds: trackedProjects.projectIds,
-            startDate: weekStartDate.toISOString(),
+            startDate: weekStartDateIter.toISOString(),
             endDate: weekEnd.toISOString(),
           },
         );
@@ -652,13 +656,11 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
 
         let eligibleWorkdays = 0;
         for (let i = 0; i < 7; i++) {
-          const dayDate = new Date(weekStartDate);
-          dayDate.setDate(dayDate.getDate() + i);
-          const dayOfWeek = dayDate.getDay();
+          const dayDate = addDays(weekStartDateIter, i);
+          const dayOfWeek = getDay(dayDate);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const isBeforeConfigStart = dayDate < startDate;
-          // For partial weeks (current week), don't count future days
-          const isFutureDay = dayDate > today;
+          const isBeforeConfigStart = isBefore(dayDate, startDate);
+          const isFutureDay = isAfter(dayDate, today);
 
           if (!isWeekend && !isBeforeConfigStart && !isFutureDay) {
             eligibleWorkdays++;

@@ -1,4 +1,6 @@
+import { format, addDays, getDay, isBefore, isAfter } from "date-fns";
 import type { DailyBreakdown } from "@/lib/clockify/types";
+import { parseLocalDate } from "@/lib/date-utils";
 
 export interface DailyOvertimeInfo {
   date: string;
@@ -19,17 +21,16 @@ export interface WeeklyOvertimeResult {
 }
 
 function isWeekendDay(date: Date): boolean {
-  const dayOfWeek = date.getDay();
+  const dayOfWeek = getDay(date);
   return dayOfWeek === 0 || dayOfWeek === 6;
 }
 
 function getWeekDates(weekStartDate: string): string[] {
   const dates: string[] = [];
-  const start = new Date(weekStartDate);
+  const start = parseLocalDate(weekStartDate);
   for (let i = 0; i < 7; i++) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + i);
-    dates.push(date.toISOString().split("T")[0]);
+    const date = addDays(start, i);
+    dates.push(format(date, "yyyy-MM-dd"));
   }
   return dates;
 }
@@ -42,29 +43,32 @@ export function calculateWeeklyOvertime(
   weekStartDate?: string,
   referenceDate?: Date,
 ): WeeklyOvertimeResult {
-  const expectedSecondsPerWorkday = (regularHoursPerWeek * 3600) / workingDaysPerWeek;
-  
+  const expectedSecondsPerWorkday =
+    (regularHoursPerWeek * 3600) / workingDaysPerWeek;
+
   const dailyOvertime: Record<string, DailyOvertimeInfo> = {};
   let totalWorkedSeconds = 0;
   let eligibleWorkdayCount = 0;
 
-  const configStart = configStartDate ? new Date(configStartDate) : null;
+  const configStart = configStartDate
+    ? parseLocalDate(configStartDate)
+    : null;
   const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(23, 59, 59, 999);
 
-  const allDates = weekStartDate 
-    ? getWeekDates(weekStartDate) 
+  const allDates = weekStartDate
+    ? getWeekDates(weekStartDate)
     : Object.keys(dailyBreakdown).sort();
-  
+
   for (const dateStr of allDates) {
     const dayData = dailyBreakdown[dateStr];
-    const date = new Date(dateStr);
-    const dayOfWeek = date.getDay();
+    const date = parseLocalDate(dateStr);
+    const dayOfWeek = getDay(date);
     const isWeekend = isWeekendDay(date);
-    const isBeforeConfigStart = configStart ? date < configStart : false;
-    const isFutureDay = date > today;
+    const isBeforeConfigStart = configStart ? isBefore(date, configStart) : false;
+    const isFutureDay = isAfter(date, today);
     const workedSeconds = dayData?.totalSeconds || 0;
-    
+
     totalWorkedSeconds += workedSeconds;
 
     let expectedSeconds: number;
@@ -113,7 +117,7 @@ export function formatOvertimeDisplay(overtimeSeconds: number): string {
   const absoluteSeconds = Math.abs(overtimeSeconds);
   const hours = Math.floor(absoluteSeconds / 3600);
   const minutes = Math.floor((absoluteSeconds % 3600) / 60);
-  
+
   const timeStr = `${hours}:${minutes.toString().padStart(2, "0")}`;
   return isNegative ? `-${timeStr}` : `+${timeStr}`;
 }

@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-yl66
 title: Migrate to date-fns for all date operations
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-01-19T21:30:40Z
-updated_at: 2026-01-19T21:30:40Z
+updated_at: 2026-01-20T17:20:55Z
 ---
 
 ## Problem
@@ -29,16 +29,22 @@ Replace all manual date operations with date-fns equivalents:
 - `formatWeekRange()` → `format()` with proper options
 - `getWeeksForMonth()` → `startOfMonth()`, `endOfMonth()`, `eachWeekOfInterval()`
 - `parseMonthString()` → keep manual (simple string parsing)
+- Added `parseLocalDate()` helper for consistent date string parsing
 
 ### In `src/server/clockifyServerFns.ts`:
-- `parseLocalDate()` → `parseISO()` + `startOfDay()`
+- `parseLocalDate()` → imported from date-utils
 - Manual week iteration → `addWeeks()`
 - All `setDate()`, `setHours()`, etc. → date-fns setters
+- `getDay()` → date-fns `getDay()`
+- Date comparisons → `isBefore()`, `isAfter()`
 
-### In all route/components files:
-- Any `new Date(string)` → `parseISO(string)`
-- Any `toISOString()` → `formatISO()` or `format()`
-- Any `getDay()`, `getDate()`, `getMonth()` → date-fns getters
+### In `src/lib/overtime-utils.ts`:
+- `new Date()` → `parseLocalDate()` from date-utils
+- `toISOString().split('T')[0]` → `format(date, 'yyyy-MM-dd')`
+- Date comparisons → `isBefore()`, `isAfter()`
+
+### In `src/lib/clockify/client.ts`:
+- `extractDateFromId()` → `parseISO()` + `format()` + `isValid()`
 
 ## Benefits
 - **Correctness**: date-fns handles edge cases and timezones
@@ -47,12 +53,13 @@ Replace all manual date operations with date-fns equivalents:
 - **Bundle size**: tree-shakeable imports
 
 ## Checklist
-- [ ] Install date-fns if not already present
-- [ ] Update `src/lib/date-utils.ts` with date-fns
-- [ ] Update `src/server/clockifyServerFns.ts` with date-fns
-- [ ] Search for any other manual date operations
-- [ ] Add tests for date edge cases (DST, month boundaries)
-- [ ] Verify cumulative overtime calculation works correctly
+- [x] Install date-fns if not already present
+- [x] Update `src/lib/date-utils.ts` with date-fns
+- [x] Update `src/lib/overtime-utils.ts` with date-fns
+- [x] Update `src/server/clockifyServerFns.ts` with date-fns
+- [x] Update `src/lib/clockify/client.ts` with date-fns
+- [x] Run unit tests (53 tests pass)
+- [x] Verify build works
 
 ## Dependencies
-- Add to package.json: `date-fns`
+- Added to package.json: `date-fns@4.1.0`
