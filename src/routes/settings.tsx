@@ -146,6 +146,15 @@ function SettingsPage() {
     text: string;
   } | null>(null);
 
+  const [refreshingConfigId, setRefreshingConfigId] = useState<string | null>(
+    null,
+  );
+  const [refreshConfigMessage, setRefreshConfigMessage] = useState<{
+    configId: string;
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
   const refreshSettingsMutation = useMutation({
     mutationFn: () => refreshClockifySettings(),
     onSuccess: (result) => {
@@ -199,6 +208,46 @@ function SettingsPage() {
         text: error instanceof Error ? error.message : "Cache invalidation failed",
       });
       setTimeout(() => setInvalidateCacheMessage(null), 5000);
+    },
+  });
+
+  const refreshConfigEntryMutation = useMutation({
+    mutationFn: (params: { configId: string; fromDate: string }) => {
+      setRefreshingConfigId(params.configId);
+      setRefreshConfigMessage(null);
+      return invalidateCache({ data: { fromDate: params.fromDate } });
+    },
+    onSuccess: (result, variables) => {
+      setRefreshingConfigId(null);
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
+        queryClient.invalidateQueries({ queryKey: ["config-history"] });
+        queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
+        queryClient.invalidateQueries({ queryKey: ["weeklyTimeSummary"] });
+        queryClient.invalidateQueries({ queryKey: ["cumulativeOvertime"] });
+        setRefreshConfigMessage({
+          configId: variables.configId,
+          type: "success",
+          text: `Data refreshed from ${result.data.fromDate}`,
+        });
+      } else {
+        setRefreshConfigMessage({
+          configId: variables.configId,
+          type: "error",
+          text: "Failed to refresh data",
+        });
+      }
+      setTimeout(() => setRefreshConfigMessage(null), 5000);
+    },
+    onError: (error, variables) => {
+      setRefreshingConfigId(null);
+      setRefreshConfigMessage({
+        configId: variables.configId,
+        type: "error",
+        text:
+          error instanceof Error ? error.message : "Failed to refresh data",
+      });
+      setTimeout(() => setRefreshConfigMessage(null), 5000);
     },
   });
 
@@ -913,6 +962,51 @@ function SettingsPage() {
                                         </p>
                                       </div>
                                       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                                        <ConfirmPopover
+                                          trigger={
+                                            <button
+                                              disabled={
+                                                refreshingConfigId === entry.id
+                                              }
+                                              className="p-2.5 sm:p-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                              title="Refresh data from Clockify for this period"
+                                            >
+                                              <RefreshCw
+                                                className={`w-4 h-4 ${refreshingConfigId === entry.id ? "animate-spin" : ""}`}
+                                              />
+                                            </button>
+                                          }
+                                          okLabel="Refresh"
+                                          cancelLabel="Cancel"
+                                          onConfirm={() => {
+                                            const fromDate = new Date(
+                                              entry.validFrom,
+                                            )
+                                              .toISOString()
+                                              .split("T")[0];
+                                            refreshConfigEntryMutation.mutate({
+                                              configId: entry.id,
+                                              fromDate,
+                                            });
+                                          }}
+                                        >
+                                          <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-amber-600">
+                                              <AlertTriangle className="w-4 h-4 shrink-0" />
+                                              <p className="font-medium text-sm">
+                                                Refresh Clockify Data
+                                              </p>
+                                            </div>
+                                            <p className="text-gray-700 text-sm">
+                                              This will invalidate cached data
+                                              from{" "}
+                                              {new Date(
+                                                entry.validFrom,
+                                              ).toLocaleDateString()}{" "}
+                                              and re-fetch from Clockify.
+                                            </p>
+                                          </div>
+                                        </ConfirmPopover>
                                         <button
                                           onClick={() => handleStartEdit(entry)}
                                           className="p-2.5 sm:p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -1016,6 +1110,19 @@ function SettingsPage() {
                                         </p>
                                       )}
                                     </div>
+                                    {refreshConfigMessage?.configId ===
+                                      entry.id && (
+                                      <div
+                                        className={`mt-2 p-2 rounded-lg text-xs ${
+                                          refreshConfigMessage.type ===
+                                          "success"
+                                            ? "bg-green-50 border border-green-200 text-green-800"
+                                            : "bg-red-50 border border-red-200 text-red-800"
+                                        }`}
+                                      >
+                                        {refreshConfigMessage.text}
+                                      </div>
+                                    )}
                                   </>
                                 )}
                               </div>

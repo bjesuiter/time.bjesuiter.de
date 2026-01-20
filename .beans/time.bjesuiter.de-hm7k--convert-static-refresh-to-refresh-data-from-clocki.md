@@ -1,26 +1,33 @@
 ---
 # time.bjesuiter.de-hm7k
 title: Convert static refresh to 'Refresh Data from Clockify' button on chronic timeframe
-status: todo
+status: completed
 type: feature
+priority: normal
 created_at: 2026-01-20T22:31:38Z
-updated_at: 2026-01-20T22:31:38Z
+updated_at: 2026-01-20T22:38:51Z
 ---
 
 ## Description
 
-Currently there is a static "refresh all data from January 1st this year" functionality. This should be converted to an interactive "Refresh Data from Clockify" button on the chronic timeframe view.
+Add a "Refresh Data from Clockify" button per Configuration Chronicle entry that refreshes cached data from that entry's start date.
 
 ## Requirements
 
-- [ ] Locate the current static refresh mechanism for the chronic timeframe
-- [ ] Replace it with an interactive button labeled "Refresh Data from Clockify"
-- [ ] Button should trigger a refresh of Clockify data when clicked
-- [ ] Maintain the same date range logic (from January 1st of current year)
-- [ ] Add appropriate loading state while refresh is in progress
-- [ ] Handle errors gracefully with user feedback
+- [x] Add "Refresh Data from Clockify" button per Configuration Chronicle entry
+- [x] Button triggers cache invalidation from entry's validFrom date
+- [x] Add loading state (spinning icon) while refresh is in progress
+- [x] Show success/error message after operation completes
+- [x] Add exponential backoff retry logic for API throttling (429 errors)
+- [x] Confirmation popover warns user this is an expensive operation
 
-## Technical Notes
+## Implementation
 
-- Investigate existing refresh logic in the codebase
-- Ensure button follows existing UI patterns and styling
+- Added `refreshConfigEntryMutation` in settings.tsx for per-entry cache invalidation
+- Added RefreshCw button with ConfirmPopover to each Configuration Chronicle entry
+- Tracks `refreshingConfigId` state to show loading spinner on correct entry
+- Shows `refreshConfigMessage` success/error feedback per entry
+- Updated `api-instance.ts` and `reports-api-instance.ts` with exponential backoff:
+  - 5 retry attempts
+  - Base delay 1s, max 30s
+  - Jitter added to prevent thundering herd
