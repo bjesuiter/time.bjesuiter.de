@@ -93,7 +93,14 @@ export function WeekNavigationBar({
 
   const nowWeek = toISODate(getWeekStartForDate(new Date(), weekStart));
   const starts = timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
+  const ends = timelineBoundaries?.ends ?? (configValidUntil ? [configValidUntil] : []);
   const earliestStartWeek = starts.length > 0 ? getWeekForDate(starts[0]) : null;
+  
+  const nextEndAfterCurrent = ends.find(endDate => {
+    const endWeek = getWeekForDate(endDate);
+    return endWeek > selectedWeek && endWeek <= nowWeek;
+  });
+  const showEndLabel = !!nextEndAfterCurrent;
   
   const isStartDisabled = !earliestStartWeek || selectedWeek <= earliestStartWeek;
   const isEndDisabled = selectedWeek >= nowWeek;
@@ -288,7 +295,7 @@ export function WeekNavigationBar({
               »|
             </span>
             <span className="flex items-center justify-center text-[9px] sm:text-[10px] text-gray-400 leading-tight text-center">
-              {configValidUntil ? "End" : "Now"}
+              {showEndLabel ? "End" : "Now"}
             </span>
           </button>
         </div>
