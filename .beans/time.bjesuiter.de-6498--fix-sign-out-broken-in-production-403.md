@@ -26,5 +26,5 @@ trustedOrigins: [
 ```
 
 ## Checklist
-- [ ] Add production domain to trustedOrigins
+- [x] Add production domain to trustedOrigins
 - [ ] Deploy and verify sign-out works in prod
