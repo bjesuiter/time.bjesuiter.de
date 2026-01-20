@@ -100,7 +100,7 @@ export function WeekNavigationBar({
           <button
             onClick={handleJumpToConfigStart}
             disabled={!configValidFrom}
-            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] grid grid-rows-[auto_1fr] place-items-center disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Jump to config start date"
             title={
               configValidFrom
@@ -205,7 +205,7 @@ export function WeekNavigationBar({
           </button>
           <button
             onClick={handleJumpToConfigEnd}
-            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] grid grid-rows-[auto_1fr] place-items-center"
             aria-label={
               configValidUntil
                 ? "Jump to config end date"
