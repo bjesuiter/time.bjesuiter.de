@@ -533,7 +533,7 @@ function SettingsPage() {
                             )}
                             {invalidateCacheMutation.isPending
                               ? "Invalidating..."
-                              : "Refresh All Data from January 1st"}
+                              : `Refresh All Data from January 1st, ${new Date().getFullYear()}`}
                           </button>
                         }
                         okLabel="Refresh Data"
