@@ -40,6 +40,7 @@ export function calculateWeeklyOvertime(
   workingDaysPerWeek: number,
   configStartDate?: string | null,
   weekStartDate?: string,
+  referenceDate?: Date,
 ): WeeklyOvertimeResult {
   const expectedSecondsPerWorkday = (regularHoursPerWeek * 3600) / workingDaysPerWeek;
   
@@ -48,6 +49,8 @@ export function calculateWeeklyOvertime(
   let eligibleWorkdayCount = 0;
 
   const configStart = configStartDate ? new Date(configStartDate) : null;
+  const today = referenceDate ? new Date(referenceDate) : new Date();
+  today.setHours(23, 59, 59, 999);
 
   const allDates = weekStartDate 
     ? getWeekDates(weekStartDate) 
@@ -59,6 +62,7 @@ export function calculateWeeklyOvertime(
     const dayOfWeek = date.getDay();
     const isWeekend = isWeekendDay(date);
     const isBeforeConfigStart = configStart ? date < configStart : false;
+    const isFutureDay = date > today;
     const workedSeconds = dayData?.totalSeconds || 0;
     
     totalWorkedSeconds += workedSeconds;
@@ -66,7 +70,7 @@ export function calculateWeeklyOvertime(
     let expectedSeconds: number;
     let overtimeSeconds: number;
 
-    if (isWeekend || isBeforeConfigStart) {
+    if (isWeekend || isBeforeConfigStart || isFutureDay) {
       expectedSeconds = 0;
       overtimeSeconds = workedSeconds;
     } else {

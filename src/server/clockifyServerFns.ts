@@ -603,6 +603,10 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const workingDaysPerWeek = config.workingDaysPerWeek;
       const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;
 
+      // Get today's date at end of day for comparison (only count days that have passed)
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
       for (const weekStartDate of weekStarts) {
         const weekEnd = new Date(weekStartDate);
         weekEnd.setDate(weekEnd.getDate() + 6);
@@ -653,8 +657,10 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
           const dayOfWeek = dayDate.getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const isBeforeConfigStart = dayDate < startDate;
+          // For partial weeks (current week), don't count future days
+          const isFutureDay = dayDate > today;
 
-          if (!isWeekend && !isBeforeConfigStart) {
+          if (!isWeekend && !isBeforeConfigStart && !isFutureDay) {
             eligibleWorkdays++;
             if (eligibleWorkdays >= workingDaysPerWeek) break;
           }

@@ -1,23 +1,27 @@
 ---
 # time.bjesuiter.de-e5mn
 title: Fix overtime calculation for partial current week
-status: todo
+status: completed
 type: bug
 priority: high
 created_at: 2026-01-19T22:06:14Z
-updated_at: 2026-01-19T22:06:14Z
+updated_at: 2026-01-20T17:08:18Z
 ---
 
-## Issue
-Current week (week 3, Monday 2026-01-19) shows overtime as -20:00, but it should be 0 since only Monday has passed.
+## Fix Summary
 
-**Expected behavior**:
-- Current week overtime: 0 (we're only on Monday)
-- Cumulative overtime: -10 (from previous week)
+Fixed overtime calculation for partial current week by checking if days are in the future before counting them as eligible workdays.
 
-**Actual behavior**:
-- Current week overtime: -20 (full week calculated as if complete)
-- Cumulative overtime: -30
+## Changes Made
 
-## Root Cause
-The overtime calculation is likely not accounting for the current day when calculating the current week's target hours. It should only calculate target hours up to the current day of the week.
+1. **`src/server/clockifyServerFns.ts`** - Added `isFutureDay` check in `getCumulativeOvertime` function to skip future days when counting eligible workdays
+
+2. **`src/lib/overtime-utils.ts`** - Added optional `referenceDate` parameter to `calculateWeeklyOvertime` function and added `isFutureDay` check to skip future days
+
+3. **`tests/unit/overtime-utils.test.ts`** - Updated tests to pass reference dates for full week tests, added new test `overtime-018` to verify partial week behavior
+
+## Behavior
+
+- Past weeks: Full 5 workdays counted as expected (no change)
+- Current partial week: Only days up to today are counted
+- Example: On Monday of current week, only 1 day of expected hours (5h), not full week (25h)

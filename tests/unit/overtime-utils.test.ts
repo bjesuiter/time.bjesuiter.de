@@ -50,6 +50,8 @@ describe("formatOvertimeDisplay", () => {
 });
 
 describe("calculateWeeklyOvertime", () => {
+  const endOfWeek = new Date("2026-01-26");
+
   test("overtime-006: calculates overtime for normal work week", () => {
     const dailyBreakdown: Record<string, DailyBreakdown> = {
       "2026-01-19": createDailyBreakdown("2026-01-19", 5 * 3600),
@@ -61,7 +63,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 0),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5, null, undefined, endOfWeek);
 
     expect(result.totalWorkedSeconds).toBe(25 * 3600);
     expect(result.totalExpectedSeconds).toBe(25 * 3600);
@@ -79,7 +81,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 0),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5, null, undefined, endOfWeek);
 
     expect(result.totalWorkedSeconds).toBe(30 * 3600);
     expect(result.totalOvertimeSeconds).toBe(5 * 3600);
@@ -96,7 +98,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 0),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5, null, undefined, endOfWeek);
 
     expect(result.totalWorkedSeconds).toBe(28 * 3600);
     expect(result.totalOvertimeSeconds).toBe(3 * 3600);
@@ -113,7 +115,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 0),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5, null, undefined, endOfWeek);
 
     expect(result.totalWorkedSeconds).toBe(20 * 3600);
     expect(result.totalOvertimeSeconds).toBe(-5 * 3600);
@@ -130,7 +132,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 0),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 40, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 40, 5, null, undefined, endOfWeek);
 
     expect(result.totalOvertimeSeconds).toBe(0);
     expect(result.expectedSecondsPerWorkday).toBe(8 * 3600);
@@ -142,7 +144,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 3600),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5, null, undefined, endOfWeek);
 
     expect(result.dailyOvertime["2026-01-24"].isWeekend).toBe(true);
     expect(result.dailyOvertime["2026-01-25"].isWeekend).toBe(true);
@@ -156,14 +158,14 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-20": createDailyBreakdown("2026-01-20", 5 * 3600),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 5, null, undefined, endOfWeek);
 
     expect(result.dailyOvertime["2026-01-19"].isWeekend).toBe(false);
     expect(result.dailyOvertime["2026-01-20"].isWeekend).toBe(false);
   });
 
   test("overtime-013: handles empty breakdown with weekStartDate (no work = negative overtime)", () => {
-    const result = calculateWeeklyOvertime({}, 25, 5, null, "2026-01-19");
+    const result = calculateWeeklyOvertime({}, 25, 5, null, "2026-01-19", endOfWeek);
 
     expect(result.totalWorkedSeconds).toBe(0);
     expect(result.totalOvertimeSeconds).toBe(-25 * 3600);
@@ -181,7 +183,7 @@ describe("calculateWeeklyOvertime", () => {
       "2026-01-25": createDailyBreakdown("2026-01-25", 0),
     };
 
-    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 4);
+    const result = calculateWeeklyOvertime(dailyBreakdown, 25, 4, null, undefined, endOfWeek);
 
     expect(result.expectedSecondsPerWorkday).toBe(6.25 * 3600);
     expect(result.totalOvertimeSeconds).toBe(0);
@@ -194,12 +196,14 @@ describe("calculateWeeklyOvertime", () => {
       "2025-10-03": createDailyBreakdown("2025-10-03", 5 * 3600),
     };
 
+    const endOf2025Week = new Date("2025-10-05");
     const result = calculateWeeklyOvertime(
       dailyBreakdown,
       25,
       5,
       "2025-10-01",
       "2025-09-28",
+      endOf2025Week,
     );
 
     expect(result.dailyOvertime["2025-09-28"].isBeforeConfigStart).toBe(true);
@@ -222,12 +226,14 @@ describe("calculateWeeklyOvertime", () => {
   test("overtime-016: marks days before config start correctly", () => {
     const dailyBreakdown: Record<string, DailyBreakdown> = {};
 
+    const endOf2025Week = new Date("2025-10-05");
     const result = calculateWeeklyOvertime(
       dailyBreakdown,
       25,
       5,
       "2025-10-01",
       "2025-09-28",
+      endOf2025Week,
     );
 
     expect(result.dailyOvertime["2025-09-28"].isBeforeConfigStart).toBe(true);
@@ -253,9 +259,31 @@ describe("calculateWeeklyOvertime", () => {
       5,
       null,
       "2026-01-19",
+      endOfWeek,
     );
 
     expect(result.totalExpectedSeconds).toBe(25 * 3600);
     expect(result.totalOvertimeSeconds).toBe(0);
+  });
+
+  test("overtime-018: partial current week only counts days up to today", () => {
+    const dailyBreakdown: Record<string, DailyBreakdown> = {
+      "2026-01-19": createDailyBreakdown("2026-01-19", 5 * 3600),
+      "2026-01-20": createDailyBreakdown("2026-01-20", 0),
+    };
+
+    const tuesday = new Date("2026-01-20");
+    const result = calculateWeeklyOvertime(
+      dailyBreakdown,
+      25,
+      5,
+      null,
+      "2026-01-19",
+      tuesday,
+    );
+
+    expect(result.totalExpectedSeconds).toBe(10 * 3600);
+    expect(result.totalWorkedSeconds).toBe(5 * 3600);
+    expect(result.totalOvertimeSeconds).toBe(-5 * 3600);
   });
 });
