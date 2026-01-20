@@ -82,9 +82,10 @@ export function WeekNavigationBar({
   };
 
   const handleJumpToConfigEnd = () => {
-    if (!configValidUntil) return;
-    const configEndDate = parseLocalDate(configValidUntil);
-    const weekStartDate = getWeekStartForDate(configEndDate, weekStart);
+    const targetDate = configValidUntil
+      ? parseLocalDate(configValidUntil)
+      : new Date();
+    const weekStartDate = getWeekStartForDate(targetDate, weekStart);
     const newWeek = toISODate(weekStartDate);
     const newWeekMonth = weekStartDate.getMonth() + 1;
     const newMonthStr = `${weekStartDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`;
@@ -187,13 +188,16 @@ export function WeekNavigationBar({
           </button>
           <button
             onClick={handleJumpToConfigEnd}
-            disabled={!configValidUntil}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="Jump to config end date"
+            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label={
+              configValidUntil
+                ? "Jump to config end date"
+                : "Jump to current week"
+            }
             title={
               configValidUntil
                 ? `Jump to config end (${configValidUntil})`
-                : "No config end date set"
+                : "Jump to current week"
             }
           >
             <span className="text-gray-600 font-bold text-sm">»|</span>
