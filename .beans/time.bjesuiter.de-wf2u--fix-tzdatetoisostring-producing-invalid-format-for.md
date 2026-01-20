@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-wf2u
 title: Fix TZDate.toISOString() producing invalid format for Clockify API
-status: in-progress
+status: completed
 type: bug
+priority: normal
 created_at: 2026-01-20T19:44:07Z
-updated_at: 2026-01-20T19:44:07Z
+updated_at: 2026-01-20T19:54:08Z
 ---
 
 ## Problem
@@ -33,4 +34,4 @@ Or add a utility function toUTCISOString() in date-utils.ts.
 - [x] Add toUTCISOString() utility function to date-utils.ts
 - [x] Update clockifyServerFns.ts to use new utility function
 - [x] Run unit tests to verify fix
-- [ ] Manual verification on dashboard
+- [x] Manual verification on dashboard
