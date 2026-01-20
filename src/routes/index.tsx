@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
@@ -150,9 +151,17 @@ function DashboardView() {
     },
   });
 
+  const [commitError, setCommitError] = useState<string | null>(null);
+
   const commitWeekMutation = useMutation({
     mutationFn: () => commitWeek({ data: { weekStartDate: selectedWeek } }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result.success) {
+        setCommitError(result.error);
+        setTimeout(() => setCommitError(null), 5000);
+        return;
+      }
+      setCommitError(null);
       queryClient.invalidateQueries({
         queryKey: ["weeklyTimeSummary", selectedWeek],
       });
@@ -161,7 +170,13 @@ function DashboardView() {
 
   const uncommitWeekMutation = useMutation({
     mutationFn: () => uncommitWeek({ data: { weekStartDate: selectedWeek } }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result.success) {
+        setCommitError(result.error);
+        setTimeout(() => setCommitError(null), 5000);
+        return;
+      }
+      setCommitError(null);
       queryClient.invalidateQueries({
         queryKey: ["weeklyTimeSummary", selectedWeek],
       });
@@ -321,6 +336,7 @@ function DashboardView() {
                       commitWeekMutation.isPending ||
                       uncommitWeekMutation.isPending
                     }
+                    error={commitError}
                   />
                 )}
                 <button
@@ -611,39 +627,55 @@ function CommitWeekButton({
   onCommit,
   onUncommit,
   isPending,
+  error,
 }: {
   status: "pending" | "committed";
   onCommit: () => void;
   onUncommit: () => void;
   isPending: boolean;
+  error?: string | null;
 }) {
   if (status === "committed") {
     return (
-      <button
-        onClick={onUncommit}
-        disabled={isPending}
-        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
-        title="Unlock this week to allow auto-refresh"
-        aria-label="Uncommit week"
-        data-testid="uncommit-week-button"
-      >
-        <Unlock className={`w-4 h-4 ${isPending ? "animate-pulse" : ""}`} />
-        <span className="hidden sm:inline">Unlock</span>
-      </button>
+      <div className="relative">
+        <button
+          onClick={onUncommit}
+          disabled={isPending}
+          className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
+          title="Unlock this week to allow auto-refresh"
+          aria-label="Uncommit week"
+          data-testid="uncommit-week-button"
+        >
+          <Unlock className={`w-4 h-4 ${isPending ? "animate-pulse" : ""}`} />
+          <span className="hidden sm:inline">Unlock</span>
+        </button>
+        {error && (
+          <div className="absolute top-full left-0 mt-1 px-2 py-1 bg-red-100 border border-red-300 text-red-700 text-xs rounded shadow-sm whitespace-nowrap z-10">
+            {error}
+          </div>
+        )}
+      </div>
     );
   }
 
   return (
-    <button
-      onClick={onCommit}
-      disabled={isPending}
-      className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-600 hover:text-indigo-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
-      title="Lock this week to prevent auto-refresh"
-      aria-label="Commit week"
-      data-testid="commit-week-button"
-    >
-      <Lock className={`w-4 h-4 ${isPending ? "animate-pulse" : ""}`} />
-      <span className="hidden sm:inline">Lock</span>
-    </button>
+    <div className="relative">
+      <button
+        onClick={onCommit}
+        disabled={isPending}
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-600 hover:text-indigo-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
+        title="Lock this week to prevent auto-refresh"
+        aria-label="Commit week"
+        data-testid="commit-week-button"
+      >
+        <Lock className={`w-4 h-4 ${isPending ? "animate-pulse" : ""}`} />
+        <span className="hidden sm:inline">Lock</span>
+      </button>
+      {error && (
+        <div className="absolute top-full left-0 mt-1 px-2 py-1 bg-red-100 border border-red-300 text-red-700 text-xs rounded shadow-sm whitespace-nowrap z-10">
+          {error}
+        </div>
+      )}
+    </div>
   );
 }
