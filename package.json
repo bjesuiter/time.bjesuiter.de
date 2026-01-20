@@ -8,6 +8,7 @@
     "build": "bunx vite build",
     "start": "bun .output/server/index.mjs",
     "serve": "bunx vite preview",
+    "test": "bun test tests/unit tests/integration",
     "test:unit": "bun test tests/unit",
     "testw:unit": "bun test --watch tests/unit",
     "test:integration": "bun test tests/integration",
