@@ -84,27 +84,27 @@ describe("formatWeekRange", () => {
 describe("getWeeksForMonth", () => {
   test("date-utils-012: returns weeks for January 2026 with MONDAY start", () => {
     const weeks = getWeeksForMonth(2026, 0, "MONDAY");
-    
+
     expect(weeks.length).toBeGreaterThan(0);
     expect(weeks[0].isInPreviousMonth).toBe(true);
     expect(weeks[1].isInPreviousMonth).toBe(false);
-    
-    const firstWeekOfMonth = weeks.find(w => !w.isInPreviousMonth);
+
+    const firstWeekOfMonth = weeks.find((w) => !w.isInPreviousMonth);
     expect(firstWeekOfMonth).toBeDefined();
     expect(firstWeekOfMonth!.startDate).toBe("2025-12-29");
   });
 
   test("date-utils-013: includes previous week for context", () => {
     const weeks = getWeeksForMonth(2026, 0, "MONDAY");
-    
-    const prevMonthWeeks = weeks.filter(w => w.isInPreviousMonth);
+
+    const prevMonthWeeks = weeks.filter((w) => w.isInPreviousMonth);
     expect(prevMonthWeeks.length).toBe(1);
     expect(prevMonthWeeks[0].startDate).toBe("2025-12-22");
   });
 
   test("date-utils-014: each week has label and isCurrentWeek flag", () => {
     const weeks = getWeeksForMonth(2026, 0, "MONDAY");
-    
+
     for (const week of weeks) {
       expect(week).toHaveProperty("startDate");
       expect(week).toHaveProperty("label");
@@ -164,21 +164,21 @@ describe("isCurrentWeek", () => {
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const monday = new Date(today);
     monday.setDate(today.getDate() - daysToMonday);
-    
+
     expect(isCurrentWeek(toISODate(monday))).toBe(true);
   });
 
   test("date-utils-024: returns false for past week", () => {
     const pastWeek = new Date();
     pastWeek.setDate(pastWeek.getDate() - 14);
-    
+
     expect(isCurrentWeek(toISODate(pastWeek))).toBe(false);
   });
 
   test("date-utils-025: returns false for future week", () => {
     const futureWeek = new Date();
     futureWeek.setDate(futureWeek.getDate() + 14);
-    
+
     expect(isCurrentWeek(toISODate(futureWeek))).toBe(false);
   });
 });
@@ -187,10 +187,10 @@ describe("getDefaultWeekForMonth", () => {
   test("date-utils-026: returns first week of month for non-current month", () => {
     const farFutureMonth = "2030-06";
     const result = getDefaultWeekForMonth(farFutureMonth, "MONDAY");
-    
+
     const weeks = getWeeksForMonth(2030, 5, "MONDAY");
-    const firstNonPrevWeek = weeks.find(w => !w.isInPreviousMonth);
-    
+    const firstNonPrevWeek = weeks.find((w) => !w.isInPreviousMonth);
+
     expect(result).toBe(firstNonPrevWeek!.startDate);
   });
 });
@@ -236,5 +236,28 @@ describe("getAdjacentWeek", () => {
 
   test("date-utils-035: handles year boundary going backward", () => {
     expect(getAdjacentWeek("2026-01-05", -1)).toBe("2025-12-29");
+  });
+});
+
+describe("toUTCISOString", () => {
+  test("date-utils-036: converts TZDate to UTC ISO string (ending with Z)", async () => {
+    const { TZDate } = await import("@date-fns/tz");
+    const { toUTCISOString } = await import("../../src/lib/date-utils");
+
+    const tzDate = new TZDate(2026, 0, 19, 0, 0, 0, "Europe/Berlin");
+    const result = toUTCISOString(tzDate);
+
+    expect(result).toEndWith("Z");
+    expect(result).toBe("2026-01-18T23:00:00.000Z");
+  });
+
+  test("date-utils-037: works with regular Date objects", async () => {
+    const { toUTCISOString } = await import("../../src/lib/date-utils");
+
+    const date = new Date("2026-01-19T00:00:00.000Z");
+    const result = toUTCISOString(date);
+
+    expect(result).toEndWith("Z");
+    expect(result).toBe("2026-01-19T00:00:00.000Z");
   });
 });

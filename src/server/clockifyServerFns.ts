@@ -22,6 +22,7 @@ import {
   parseLocalDateInTz,
   nowInTz,
   endOfDayInTz,
+  toUTCISOString,
 } from "@/lib/date-utils";
 
 /**
@@ -447,7 +448,10 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
       }
 
       const userTimeZone = config.timeZone;
-      const weekStartDate = parseLocalDateInTz(data.weekStartDate, userTimeZone);
+      const weekStartDate = parseLocalDateInTz(
+        data.weekStartDate,
+        userTimeZone,
+      );
       const weekEnd = endOfDayInTz(addDays(weekStartDate, 6), userTimeZone);
 
       const trackedProjectsConfig = await db.query.configChronic.findFirst({
@@ -487,8 +491,8 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           workspaceId: config.clockifyWorkspaceId,
           clientId: config.selectedClientId,
           projectIds: trackedProjects.projectIds,
-          startDate: weekStartDate.toISOString(),
-          endDate: weekEnd.toISOString(),
+          startDate: toUTCISOString(weekStartDate),
+          endDate: toUTCISOString(weekEnd),
         },
       );
 
@@ -609,7 +613,10 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const today = endOfDayInTz(nowInTz(userTimeZone), userTimeZone);
 
       for (const weekStartDateIter of weekStarts) {
-        const weekEnd = endOfDayInTz(addDays(weekStartDateIter, 6), userTimeZone);
+        const weekEnd = endOfDayInTz(
+          addDays(weekStartDateIter, 6),
+          userTimeZone,
+        );
 
         const trackedProjectsConfig = await db.query.configChronic.findFirst({
           where: and(
@@ -637,8 +644,8 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
             workspaceId: config.clockifyWorkspaceId,
             clientId: config.selectedClientId,
             projectIds: trackedProjects.projectIds,
-            startDate: weekStartDateIter.toISOString(),
-            endDate: weekEnd.toISOString(),
+            startDate: toUTCISOString(weekStartDateIter),
+            endDate: toUTCISOString(weekEnd),
           },
         );
 

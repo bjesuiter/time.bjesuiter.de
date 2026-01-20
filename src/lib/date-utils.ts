@@ -281,9 +281,13 @@ export function getWeekStartForDateInTz(
   timeZone: string,
 ): TZDate {
   const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
-  const tzDate = date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
+  const tzDate =
+    date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
   const result = startOfWeek(tzDate, { weekStartsOn });
-  return setMilliseconds(setSeconds(setMinutes(setHours(result, 0), 0), 0), 0) as TZDate;
+  return setMilliseconds(
+    setSeconds(setMinutes(setHours(result, 0), 0), 0),
+    0,
+  ) as TZDate;
 }
 
 /**
@@ -320,7 +324,8 @@ export function isCurrentWeekInTz(
  * Get the end of day in a specific timezone for a given date.
  */
 export function endOfDayInTz(date: Date | TZDate, timeZone: string): TZDate {
-  const tzDate = date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
+  const tzDate =
+    date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
   return setMilliseconds(
     setSeconds(setMinutes(setHours(tzDate, 23), 59), 59),
     999,
@@ -388,4 +393,16 @@ export function getDefaultWeekForMonthInTz(
 
   const firstWeek = weeks.find((w) => !w.isInPreviousMonth);
   return firstWeek?.startDate || weeks[0].startDate;
+}
+
+/**
+ * Convert a Date or TZDate to a UTC ISO 8601 string.
+ *
+ * IMPORTANT: TZDate.toISOString() returns timezone offset format (e.g., "2026-01-19T00:00:00.000+01:00")
+ * but many APIs (like Clockify) require UTC format (e.g., "2026-01-18T23:00:00.000Z").
+ *
+ * This function ensures the output is always in UTC format ending with 'Z'.
+ */
+export function toUTCISOString(date: Date | TZDate): string {
+  return new Date(date.getTime()).toISOString();
 }
