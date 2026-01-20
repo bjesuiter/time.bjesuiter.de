@@ -226,6 +226,16 @@ async function calculateWeeklySumsFromDaily(
   const expectedSeconds = regularHoursBaseline * 3600;
   const overtimeSeconds = totalSeconds - expectedSeconds;
 
+  const existing = await db.query.cachedWeeklySums.findFirst({
+    where: and(
+      eq(cachedWeeklySums.userId, userId),
+      eq(cachedWeeklySums.weekStart, weekStart),
+    ),
+  });
+
+  const preservedStatus = existing?.status === "committed" ? "committed" : "pending";
+  const preservedCommittedAt = existing?.status === "committed" ? existing.committedAt : null;
+
   await db
     .delete(cachedWeeklySums)
     .where(
@@ -245,7 +255,8 @@ async function calculateWeeklySumsFromDaily(
     regularHoursBaseline,
     overtimeSeconds,
     cumulativeOvertimeSeconds: null,
-    status: "pending",
+    status: preservedStatus,
+    committedAt: preservedCommittedAt,
     calculatedAt: now,
     invalidatedAt: null,
   });
@@ -258,7 +269,7 @@ async function calculateWeeklySumsFromDaily(
       totalSeconds,
       regularHoursBaseline,
       overtimeSeconds,
-      status: "pending" as const,
+      status: preservedStatus,
     },
   };
 }
