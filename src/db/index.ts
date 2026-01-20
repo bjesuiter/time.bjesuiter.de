@@ -1,18 +1,21 @@
 import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import { envStore } from "@/lib/env/envStore";
 import { betterAuthSchemas } from "./schema/better-auth";
 import { clockifySchemas } from "./schema/clockify";
 import { configSchemas } from "./schema/config";
 import { cacheSchemas } from "./schema/cache";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { LibsqlError } from "@libsql/client";
 
-// Validate DATABASE_URL is present (server-side only)
 if (!envStore.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
-const dbPath = envStore.DATABASE_URL;
-const db = drizzle(dbPath, {
+
+const client = createClient({
+  url: envStore.DATABASE_URL,
+});
+
+const db = drizzle(client, {
   schema: {
     ...betterAuthSchemas,
     ...clockifySchemas,
