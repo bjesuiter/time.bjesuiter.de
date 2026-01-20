@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "time-bjesuiter-de",
+  "compatibility_date": "2025-01-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "time-bjesuiter-de-db",
+      "database_id": "YOUR_D1_DATABASE_ID",
+      "migrations_dir": "drizzle"
+    }
+  ]
+}

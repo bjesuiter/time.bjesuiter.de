@@ -1,35 +1,35 @@
-import { drizzle } from "drizzle-orm/libsql";
-import { createClient } from "@libsql/client";
-import { envStore } from "@/lib/env/envStore";
+import { drizzle } from "drizzle-orm/d1";
 import { betterAuthSchemas } from "./schema/better-auth";
 import { clockifySchemas } from "./schema/clockify";
 import { configSchemas } from "./schema/config";
 import { cacheSchemas } from "./schema/cache";
-import { migrate } from "drizzle-orm/libsql/migrator";
 
-if (!envStore.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
+const schema = {
+  ...betterAuthSchemas,
+  ...clockifySchemas,
+  ...configSchemas,
+  ...cacheSchemas,
+};
+
+export type AppDb = ReturnType<typeof drizzle<typeof schema>>;
+
+let _db: AppDb | null = null;
+let _envPromise: Promise<Cloudflare.Env> | null = null;
+
+async function getEnv(): Promise<Cloudflare.Env> {
+  if (!_envPromise) {
+    // cloudflare:env is only available in Cloudflare Workers runtime
+    _envPromise = import("cloudflare:env").then((m) => m.env as Cloudflare.Env);
+  }
+  return _envPromise;
 }
 
-const client = createClient({
-  url: envStore.DATABASE_URL,
-});
-
-const db = drizzle(client, {
-  schema: {
-    ...betterAuthSchemas,
-    ...clockifySchemas,
-    ...configSchemas,
-    ...cacheSchemas,
-  },
-});
-
-// Only if not running in dev mode: Run migrations at module initialization
-// Dev mode: the default bun dev command
-if (envStore.ENVIRONMENT !== "dev") {
-  console.log("Migrating database...");
-  await migrate(db, { migrationsFolder: "./drizzle" });
-  console.log("Database migrated successfully");
+export async function getDb(): Promise<AppDb> {
+  if (!_db) {
+    const env = await getEnv();
+    _db = drizzle(env.DB, { schema });
+  }
+  return _db;
 }
 
-export { db };
+export { schema };
