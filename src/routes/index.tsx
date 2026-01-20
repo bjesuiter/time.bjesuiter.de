@@ -230,6 +230,9 @@ function DashboardView() {
             weeks={weeksInMonth}
             currentMonth={currentMonth}
             selectedWeek={selectedWeek}
+            configValidFrom={weeklyQuery.data?.data?.configValidFrom}
+            configValidUntil={weeklyQuery.data?.data?.configValidUntil}
+            weekStart={weekStart}
             onMonthChange={handleMonthChange}
             onWeekChange={handleWeekChange}
             onWeekSelect={handleWeekSelect}

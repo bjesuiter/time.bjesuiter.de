@@ -9,12 +9,18 @@ import {
   formatWeekRange,
   getAdjacentMonth,
   getAdjacentWeek,
+  getWeekStartForDate,
+  parseLocalDate,
+  toISODate,
 } from "@/lib/date-utils";
 
 interface WeekNavigationBarProps {
   weeks: WeekInfo[];
   currentMonth: string;
   selectedWeek: string;
+  configValidFrom?: string | null;
+  configValidUntil?: string | null;
+  weekStart?: "MONDAY" | "SUNDAY";
   onMonthChange: (month: string) => void;
   onWeekChange: (weekStartDate: string, newMonth?: string) => void;
   onWeekSelect: (weekStartDate: string) => void;
@@ -24,6 +30,9 @@ export function WeekNavigationBar({
   weeks,
   currentMonth,
   selectedWeek,
+  configValidFrom,
+  configValidUntil,
+  weekStart = "MONDAY",
   onMonthChange,
   onWeekChange,
   onWeekSelect,
@@ -62,11 +71,44 @@ export function WeekNavigationBar({
     onWeekChange(newWeek, newMonthStr);
   };
 
+  const handleJumpToConfigStart = () => {
+    if (!configValidFrom) return;
+    const configStartDate = parseLocalDate(configValidFrom);
+    const weekStartDate = getWeekStartForDate(configStartDate, weekStart);
+    const newWeek = toISODate(weekStartDate);
+    const newWeekMonth = weekStartDate.getMonth() + 1;
+    const newMonthStr = `${weekStartDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`;
+    onWeekChange(newWeek, newMonthStr);
+  };
+
+  const handleJumpToConfigEnd = () => {
+    if (!configValidUntil) return;
+    const configEndDate = parseLocalDate(configValidUntil);
+    const weekStartDate = getWeekStartForDate(configEndDate, weekStart);
+    const newWeek = toISODate(weekStartDate);
+    const newWeekMonth = weekStartDate.getMonth() + 1;
+    const newMonthStr = `${weekStartDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`;
+    onWeekChange(newWeek, newMonthStr);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-3 sm:p-4">
       <div className="flex items-center justify-between gap-4">
-        {/* Left side: Previous month (<<) and Previous week (<) */}
+        {/* Left side: Jump to config start (<<<), Previous month (<<) and Previous week (<) */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <button
+            onClick={handleJumpToConfigStart}
+            disabled={!configValidFrom}
+            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Jump to config start date"
+            title={
+              configValidFrom
+                ? `Jump to config start (${configValidFrom})`
+                : "No config start date set"
+            }
+          >
+            <span className="text-gray-600 font-bold text-sm">|«</span>
+          </button>
           <button
             onClick={handlePrevMonth}
             className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -125,7 +167,7 @@ export function WeekNavigationBar({
           </div>
         </div>
 
-        {/* Right side: Next week (>) and Next month (>>) */}
+        {/* Right side: Next week (>), Next month (>>) and Jump to config end (>>>) */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             onClick={handleNextWeek}
@@ -142,6 +184,19 @@ export function WeekNavigationBar({
             title="Next month"
           >
             <ChevronsRight className="w-5 h-5 text-gray-600" />
+          </button>
+          <button
+            onClick={handleJumpToConfigEnd}
+            disabled={!configValidUntil}
+            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Jump to config end date"
+            title={
+              configValidUntil
+                ? `Jump to config end (${configValidUntil})`
+                : "No config end date set"
+            }
+          >
+            <span className="text-gray-600 font-bold text-sm">»|</span>
           </button>
         </div>
       </div>

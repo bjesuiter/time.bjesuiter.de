@@ -616,6 +616,10 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
               clientName: config.selectedClientName,
               configStartDate: config.cumulativeOvertimeStartDate,
               cachedAt: oldestCacheEntry.calculatedAt.getTime(),
+              configValidFrom: toISODate(trackedProjectsConfig.validFrom),
+              configValidUntil: trackedProjectsConfig.validUntil
+                ? toISODate(trackedProjectsConfig.validUntil)
+                : null,
             },
           };
         }
@@ -706,6 +710,10 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           clientName: config.selectedClientName,
           configStartDate: config.cumulativeOvertimeStartDate,
           cachedAt: now.getTime(),
+          configValidFrom: toISODate(trackedProjectsConfig.validFrom),
+          configValidUntil: trackedProjectsConfig.validUntil
+            ? toISODate(trackedProjectsConfig.validUntil)
+            : null,
         },
       };
     } catch (error) {
