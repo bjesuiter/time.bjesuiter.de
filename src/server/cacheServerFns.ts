@@ -6,6 +6,7 @@ import { configChronic } from "@/db/schema/config";
 import {
   cachedDailyProjectSums,
   cachedWeeklySums,
+  weeklyDiscrepancies,
 } from "@/db/schema/cache";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
@@ -473,6 +474,205 @@ export const getWeekCommitStatus = createServerFn({ method: "POST" })
         status: cached.status as "pending" | "committed",
         hasCachedData: true,
         committedAt: cached.committedAt,
+      },
+    };
+  });
+
+/**
+ * Refreshes a committed week and tracks any discrepancies.
+ * This is the ONLY way to refresh committed weeks - ensures discrepancies are tracked.
+ */
+export const refreshCommittedWeek = createServerFn({ method: "POST" })
+  .inputValidator((data: { weekStartDate: string }) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const existing = await db.query.cachedWeeklySums.findFirst({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, data.weekStartDate),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: "No cached data found for this week. Cannot refresh.",
+      };
+    }
+
+    if (existing.status !== "committed") {
+      return {
+        success: false,
+        error: "This week is not committed. Use regular refresh instead.",
+      };
+    }
+
+    const oldTotalSeconds = existing.totalSeconds;
+    const oldOvertimeSeconds = existing.overtimeSeconds;
+
+    const dailyCalcResult = await calculateAndCacheDailySums({
+      data: { weekStartDate: data.weekStartDate },
+    });
+
+    if (!dailyCalcResult.success) {
+      return dailyCalcResult;
+    }
+
+    const config = await db.query.userClockifyConfig.findFirst({
+      where: eq(userClockifyConfig.userId, userId),
+    });
+
+    if (!config) {
+      return { success: false, error: "Configuration not found" };
+    }
+
+    const weekEndStr = toISODate(
+      addDays(parseLocalDateInTz(data.weekStartDate, config.timeZone), 6),
+    );
+
+    const freshDailySums = await db.query.cachedDailyProjectSums.findMany({
+      where: and(
+        eq(cachedDailyProjectSums.userId, userId),
+        gte(cachedDailyProjectSums.date, data.weekStartDate),
+        lte(cachedDailyProjectSums.date, weekEndStr),
+        isNull(cachedDailyProjectSums.invalidatedAt),
+      ),
+    });
+
+    const newTotalSeconds = freshDailySums.reduce(
+      (sum, entry) => sum + entry.seconds,
+      0,
+    );
+    const expectedSeconds = config.regularHoursPerWeek * 3600;
+    const newOvertimeSeconds = newTotalSeconds - expectedSeconds;
+
+    const now = new Date();
+    await db
+      .update(cachedWeeklySums)
+      .set({
+        totalSeconds: newTotalSeconds,
+        overtimeSeconds: newOvertimeSeconds,
+        calculatedAt: now,
+      })
+      .where(eq(cachedWeeklySums.id, existing.id));
+
+    let discrepancyCreated = false;
+    if (
+      newTotalSeconds !== oldTotalSeconds ||
+      newOvertimeSeconds !== oldOvertimeSeconds
+    ) {
+      await db.insert(weeklyDiscrepancies).values({
+        userId,
+        weekStart: data.weekStartDate,
+        originalTotalSeconds: oldTotalSeconds,
+        newTotalSeconds: newTotalSeconds,
+        differenceSeconds: newTotalSeconds - oldTotalSeconds,
+        detectedAt: now,
+        resolvedAt: null,
+        resolution: null,
+      });
+      discrepancyCreated = true;
+    }
+
+    return {
+      success: true,
+      data: {
+        weekStartDate: data.weekStartDate,
+        oldTotalSeconds,
+        newTotalSeconds,
+        oldOvertimeSeconds,
+        newOvertimeSeconds,
+        discrepancyCreated,
+        refreshedAt: now,
+      },
+    };
+  });
+
+/**
+ * Gets all unresolved discrepancies for the current user.
+ */
+export const getUnresolvedDiscrepancies = createServerFn({ method: "GET" })
+  .handler(async ({ request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const discrepancies = await db.query.weeklyDiscrepancies.findMany({
+      where: and(
+        eq(weeklyDiscrepancies.userId, userId),
+        isNull(weeklyDiscrepancies.resolvedAt),
+      ),
+      orderBy: (d, { desc }) => [desc(d.detectedAt)],
+    });
+
+    return {
+      success: true,
+      data: {
+        discrepancies: discrepancies.map((d) => ({
+          id: d.id,
+          weekStart: d.weekStart,
+          originalTotalSeconds: d.originalTotalSeconds,
+          newTotalSeconds: d.newTotalSeconds,
+          differenceSeconds: d.differenceSeconds,
+          detectedAt: d.detectedAt,
+        })),
+        hasUnresolved: discrepancies.length > 0,
+      },
+    };
+  });
+
+/**
+ * Resolves a discrepancy by accepting or dismissing it.
+ */
+export const resolveDiscrepancy = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { discrepancyId: string; resolution: "accepted" | "dismissed" }) =>
+      data,
+  )
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const discrepancy = await db.query.weeklyDiscrepancies.findFirst({
+      where: and(
+        eq(weeklyDiscrepancies.id, data.discrepancyId),
+        eq(weeklyDiscrepancies.userId, userId),
+      ),
+    });
+
+    if (!discrepancy) {
+      return {
+        success: false,
+        error: "Discrepancy not found or does not belong to you.",
+      };
+    }
+
+    if (discrepancy.resolvedAt) {
+      return {
+        success: true,
+        data: {
+          discrepancyId: data.discrepancyId,
+          alreadyResolved: true,
+          resolution: discrepancy.resolution,
+        },
+      };
+    }
+
+    const now = new Date();
+    await db
+      .update(weeklyDiscrepancies)
+      .set({
+        resolvedAt: now,
+        resolution: data.resolution,
+      })
+      .where(eq(weeklyDiscrepancies.id, data.discrepancyId));
+
+    return {
+      success: true,
+      data: {
+        discrepancyId: data.discrepancyId,
+        resolution: data.resolution,
+        resolvedAt: now,
+        alreadyResolved: false,
       },
     };
   });
