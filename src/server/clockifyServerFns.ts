@@ -203,18 +203,70 @@ export const getClockifyDetails = createServerFn({ method: "GET" }).handler(
 );
 
 /**
+ * Detailed setup status for the authenticated user
+ */
+export interface SetupStatus {
+  /** Whether all required setup is complete */
+  hasSetup: boolean;
+  /** Individual setup steps and their completion status */
+  steps: {
+    /** Clockify API key is configured */
+    hasApiKey: boolean;
+    /** Workspace is selected */
+    hasWorkspace: boolean;
+    /** Client is selected for filtering */
+    hasClient: boolean;
+    /** At least one tracked project is configured */
+    hasTrackedProjects: boolean;
+  };
+}
+
+/**
  * Checks if the authenticated user has Clockify setup completed
+ * Returns detailed status for each setup step
  */
 export const checkClockifySetup = createServerFn({ method: "GET" }).handler(
-  async ({ request }) => {
+  async ({ request }): Promise<SetupStatus> => {
     const userId = await getAuthenticatedUserId(request);
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),
     });
 
+    const hasApiKey = !!config?.clockifyApiKey;
+    const hasWorkspace = !!config?.clockifyWorkspaceId;
+    const hasClient = !!config?.selectedClientId;
+
+    const trackedProjectsConfig = await db.query.configChronic.findFirst({
+      where: and(
+        eq(configChronic.userId, userId),
+        eq(configChronic.configType, "tracked_projects"),
+      ),
+    });
+
+    let hasTrackedProjects = false;
+    if (trackedProjectsConfig) {
+      try {
+        const value = JSON.parse(trackedProjectsConfig.value) as {
+          projectIds?: string[];
+        };
+        hasTrackedProjects =
+          Array.isArray(value.projectIds) && value.projectIds.length > 0;
+      } catch {
+        hasTrackedProjects = false;
+      }
+    }
+
+    const hasSetup = hasApiKey && hasWorkspace && hasClient && hasTrackedProjects;
+
     return {
-      hasSetup: !!config,
+      hasSetup,
+      steps: {
+        hasApiKey,
+        hasWorkspace,
+        hasClient,
+        hasTrackedProjects,
+      },
     };
   },
 );

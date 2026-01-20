@@ -1,9 +1,4 @@
-import {
-  createFileRoute,
-  Link,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -24,6 +19,7 @@ import {
   getWeeklyTimeSummary,
   getCumulativeOvertime,
 } from "@/server/clockifyServerFns";
+import { SetupChecklist } from "@/components/SetupChecklist";
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
 import { WeeklyTimeTable } from "@/components/WeeklyTimeTable";
@@ -63,26 +59,6 @@ export const Route = createFileRoute("/")({
     const { allowUserSignup } = await getPublicEnv();
     return { allowUserSignup };
   },
-  beforeLoad: async () => {
-    try {
-      const setupStatus = await checkClockifySetup();
-      if (setupStatus && !setupStatus.hasSetup) {
-        throw redirect({ to: "/settings" });
-      }
-    } catch (error: unknown) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "routerCode" in error &&
-        error.routerCode === "BEFORE_LOAD"
-      ) {
-        throw error;
-      }
-      console.log(
-        "beforeLoad: Could not check Clockify setup, continuing to component",
-      );
-    }
-  },
 });
 
 function App() {
@@ -120,9 +96,15 @@ function DashboardView() {
   const navigate = useNavigate({ from: "/" });
   const search = Route.useSearch();
 
+  const setupQuery = useQuery({
+    queryKey: ["clockifySetup"],
+    queryFn: () => checkClockifySetup(),
+  });
+
   const configQuery = useQuery({
     queryKey: ["clockifyConfig"],
     queryFn: () => getClockifyConfig(),
+    enabled: setupQuery.data?.hasSetup,
   });
 
   const weekStart = configQuery.data?.success
@@ -142,14 +124,20 @@ function DashboardView() {
     queryKey: ["weeklyTimeSummary", selectedWeek],
     queryFn: () =>
       getWeeklyTimeSummary({ data: { weekStartDate: selectedWeek } }),
-    enabled: configQuery.isSuccess && configQuery.data?.success,
+    enabled:
+      setupQuery.data?.hasSetup &&
+      configQuery.isSuccess &&
+      configQuery.data?.success,
   });
 
   const cumulativeOvertimeQuery = useQuery({
     queryKey: ["cumulativeOvertime", selectedWeek],
     queryFn: () =>
       getCumulativeOvertime({ data: { currentWeekStartDate: selectedWeek } }),
-    enabled: configQuery.isSuccess && configQuery.data?.success,
+    enabled:
+      setupQuery.data?.hasSetup &&
+      configQuery.isSuccess &&
+      configQuery.data?.success,
   });
 
   const handleMonthChange = (newMonth: string) => {
@@ -183,6 +171,31 @@ function DashboardView() {
       },
     });
   };
+
+  if (setupQuery.isPending) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-8 w-8 bg-indigo-200 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (setupQuery.data && !setupQuery.data.hasSetup) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <div className="flex items-center gap-3 mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <Sparkles className="w-6 h-6 text-yellow-500" />
+          </div>
+          <SetupChecklist setupStatus={setupQuery.data} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
