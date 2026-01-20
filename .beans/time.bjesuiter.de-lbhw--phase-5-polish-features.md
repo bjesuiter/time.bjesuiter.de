@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-lbhw
 title: 'Phase 5: Polish & Features'
-status: todo
+status: scrapped
 type: milestone
 priority: low
 created_at: 2026-01-19T18:51:44Z
-updated_at: 2026-01-19T18:51:44Z
+updated_at: 2026-01-20T22:20:06Z
 ---
 
 Final polish, UX improvements, and additional features.
