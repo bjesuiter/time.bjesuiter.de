@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { and, eq, gt, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, gt, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
+import { cachedDailyProjectSums } from "@/db/schema/cache";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
+import type { DailyBreakdown } from "@/lib/clockify/types";
 import {
   addDays,
   addWeeks,
@@ -23,7 +25,48 @@ import {
   nowInTz,
   endOfDayInTz,
   toUTCISOString,
+  toISODate,
 } from "@/lib/date-utils";
+
+function buildDailyBreakdownFromCache(
+  cachedEntries: Array<typeof cachedDailyProjectSums.$inferSelect>,
+  trackedProjectIds: string[],
+): Record<string, DailyBreakdown> {
+  const trackedProjectIdSet = new Set(trackedProjectIds);
+  const dailyBreakdown: Record<string, DailyBreakdown> = {};
+
+  for (const entry of cachedEntries) {
+    if (!dailyBreakdown[entry.date]) {
+      dailyBreakdown[entry.date] = {
+        date: entry.date,
+        trackedProjects: {},
+        extraWorkProjects: {},
+        totalSeconds: 0,
+        extraWorkSeconds: 0,
+      };
+    }
+
+    const dayData = dailyBreakdown[entry.date];
+    dayData.totalSeconds += entry.seconds;
+
+    if (trackedProjectIdSet.has(entry.projectId)) {
+      dayData.trackedProjects[entry.projectId] = {
+        projectId: entry.projectId,
+        projectName: entry.projectName,
+        seconds: entry.seconds,
+      };
+    } else {
+      dayData.extraWorkProjects[entry.projectId] = {
+        projectId: entry.projectId,
+        projectName: entry.projectName,
+        seconds: entry.seconds,
+      };
+      dayData.extraWorkSeconds += entry.seconds;
+    }
+  }
+
+  return dailyBreakdown;
+}
 
 /**
  * Helper to get authenticated user ID
@@ -475,7 +518,9 @@ export const refreshClockifySettings = createServerFn({
 });
 
 export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
-  .inputValidator((data: { weekStartDate: string }) => data)
+  .inputValidator(
+    (data: { weekStartDate: string; forceRefresh?: boolean }) => data,
+  )
   .handler(async ({ data, request }) => {
     const userId = await getAuthenticatedUserId(request);
 
@@ -537,6 +582,45 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
+      if (!data.forceRefresh) {
+        const cachedDaily = await db.query.cachedDailyProjectSums.findMany({
+          where: and(
+            eq(cachedDailyProjectSums.userId, userId),
+            gte(cachedDailyProjectSums.date, data.weekStartDate),
+            lte(
+              cachedDailyProjectSums.date,
+              toISODate(addDays(weekStartDate, 6)),
+            ),
+            isNull(cachedDailyProjectSums.invalidatedAt),
+          ),
+        });
+
+        if (cachedDaily.length > 0) {
+          const dailyBreakdown = buildDailyBreakdownFromCache(
+            cachedDaily,
+            trackedProjects.projectIds,
+          );
+          const oldestCacheEntry = cachedDaily.reduce((oldest, entry) =>
+            entry.calculatedAt < oldest.calculatedAt ? entry : oldest,
+          );
+
+          return {
+            success: true,
+            data: {
+              weekStartDate: data.weekStartDate,
+              weekStart: config.weekStart,
+              dailyBreakdown,
+              trackedProjects: trackedProjects,
+              regularHoursPerWeek: config.regularHoursPerWeek,
+              workingDaysPerWeek: config.workingDaysPerWeek,
+              clientName: config.selectedClientName,
+              configStartDate: config.cumulativeOvertimeStartDate,
+              cachedAt: oldestCacheEntry.calculatedAt.getTime(),
+            },
+          };
+        }
+      }
+
       const reportResult = await clockifyClient.getWeeklyTimeReport(
         config.clockifyApiKey,
         {
@@ -555,6 +639,61 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
+      const now = new Date();
+      const dailyEntries: Array<typeof cachedDailyProjectSums.$inferInsert> =
+        [];
+
+      for (const [dateStr, dayData] of Object.entries(
+        reportResult.data.dailyBreakdown,
+      )) {
+        for (const [projectId, projectData] of Object.entries(
+          dayData.trackedProjects,
+        )) {
+          dailyEntries.push({
+            userId,
+            date: dateStr,
+            projectId,
+            projectName: projectData.projectName,
+            clientId: config.selectedClientId,
+            seconds: projectData.seconds,
+            calculatedAt: now,
+            invalidatedAt: null,
+          });
+        }
+
+        for (const [projectId, projectData] of Object.entries(
+          dayData.extraWorkProjects,
+        )) {
+          dailyEntries.push({
+            userId,
+            date: dateStr,
+            projectId,
+            projectName: projectData.projectName,
+            clientId: config.selectedClientId,
+            seconds: projectData.seconds,
+            calculatedAt: now,
+            invalidatedAt: null,
+          });
+        }
+      }
+
+      await db
+        .delete(cachedDailyProjectSums)
+        .where(
+          and(
+            eq(cachedDailyProjectSums.userId, userId),
+            gte(cachedDailyProjectSums.date, data.weekStartDate),
+            lte(
+              cachedDailyProjectSums.date,
+              toISODate(addDays(weekStartDate, 6)),
+            ),
+          ),
+        );
+
+      if (dailyEntries.length > 0) {
+        await db.insert(cachedDailyProjectSums).values(dailyEntries);
+      }
+
       return {
         success: true,
         data: {
@@ -566,6 +705,7 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           workingDaysPerWeek: config.workingDaysPerWeek,
           clientName: config.selectedClientName,
           configStartDate: config.cumulativeOvertimeStartDate,
+          cachedAt: now.getTime(),
         },
       };
     } catch (error) {

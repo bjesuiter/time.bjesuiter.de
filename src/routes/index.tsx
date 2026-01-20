@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
 import { zodValidator } from "@tanstack/zod-adapter";
 import z from "zod/v4";
@@ -12,6 +12,7 @@ import {
   AlertCircle,
   RefreshCw,
   Clock,
+  Database,
 } from "lucide-react";
 import {
   checkClockifySetup,
@@ -95,6 +96,7 @@ function App() {
 function DashboardView() {
   const navigate = useNavigate({ from: "/" });
   const search = Route.useSearch();
+  const queryClient = useQueryClient();
 
   const setupQuery = useQuery({
     queryKey: ["clockifySetup"],
@@ -128,6 +130,19 @@ function DashboardView() {
       setupQuery.data?.hasSetup &&
       configQuery.isSuccess &&
       configQuery.data?.success,
+  });
+
+  const forceRefreshMutation = useMutation({
+    mutationFn: () =>
+      getWeeklyTimeSummary({
+        data: { weekStartDate: selectedWeek, forceRefresh: true },
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["weeklyTimeSummary", selectedWeek], data);
+      queryClient.invalidateQueries({
+        queryKey: ["cumulativeOvertime", selectedWeek],
+      });
+    },
   });
 
   const cumulativeOvertimeQuery = useQuery({
@@ -234,24 +249,37 @@ function DashboardView() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {weeklyQuery.dataUpdatedAt > 0 && (
-                  <div className="hidden sm:flex items-center gap-1 text-[10px] sm:text-xs text-gray-400">
-                    <Clock className="w-3 h-3" />
-                    <span>{formatLastUpdated(weeklyQuery.dataUpdatedAt)}</span>
-                  </div>
-                )}
+                <div className="hidden sm:flex items-center gap-3 text-[10px] sm:text-xs text-gray-400">
+                  {weeklyQuery.data?.data?.cachedAt && (
+                    <div
+                      className="flex items-center gap-1"
+                      title="Data cached at this time"
+                    >
+                      <Database className="w-3 h-3" />
+                      <span>
+                        {formatLastUpdated(weeklyQuery.data.data.cachedAt)}
+                      </span>
+                    </div>
+                  )}
+                  {weeklyQuery.dataUpdatedAt > 0 && (
+                    <div
+                      className="flex items-center gap-1"
+                      title="Last fetched from server"
+                    >
+                      <Clock className="w-3 h-3" />
+                      <span>{formatLastUpdated(weeklyQuery.dataUpdatedAt)}</span>
+                    </div>
+                  )}
+                </div>
                 <button
-                  onClick={() => {
-                    weeklyQuery.refetch();
-                    cumulativeOvertimeQuery.refetch();
-                  }}
-                  disabled={weeklyQuery.isRefetching}
+                  onClick={() => forceRefreshMutation.mutate()}
+                  disabled={forceRefreshMutation.isPending}
                   className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-500 transition-colors disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  title={`Refresh data from Clockify${weeklyQuery.dataUpdatedAt > 0 ? ` (last updated: ${formatLastUpdated(weeklyQuery.dataUpdatedAt)})` : ""}`}
+                  title="Refresh data from Clockify (bypasses cache)"
                   aria-label="Refresh data from Clockify"
                 >
                   <RefreshCw
-                    className={`w-5 sm:w-5 h-5 sm:h-5 ${weeklyQuery.isRefetching ? "animate-spin" : ""}`}
+                    className={`w-5 sm:w-5 h-5 sm:h-5 ${forceRefreshMutation.isPending ? "animate-spin" : ""}`}
                   />
                 </button>
                 <Calendar className="w-5 sm:w-6 h-5 sm:h-6 text-indigo-500" />
