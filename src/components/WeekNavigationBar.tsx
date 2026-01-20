@@ -114,8 +114,6 @@ export function WeekNavigationBar({
               |«
             </span>
             <span className="flex items-center justify-center text-[9px] sm:text-[10px] text-gray-400 leading-tight text-center">
-              Phase
-              <br />
               Start
             </span>
           </button>
@@ -243,15 +241,7 @@ export function WeekNavigationBar({
               »|
             </span>
             <span className="flex items-center justify-center text-[9px] sm:text-[10px] text-gray-400 leading-tight text-center">
-              {configValidUntil ? (
-                <>
-                  Phase
-                  <br />
-                  End
-                </>
-              ) : (
-                "Now"
-              )}
+              {configValidUntil ? "End" : "Now"}
             </span>
           </button>
         </div>
