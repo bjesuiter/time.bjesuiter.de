@@ -204,35 +204,39 @@ function ClockifySetupWizard() {
 
           {/* Progress Indicator */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {[1, 2, 3, 4].map((step) => (
-                <div key={step} className="flex items-center flex-1">
-                  <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
-                      step < currentStep
-                        ? "bg-green-500 text-white"
-                        : step === currentStep
-                          ? "bg-indigo-600 text-white"
-                          : "bg-gray-300 text-gray-600"
-                    }`}
-                  >
-                    {step < currentStep ? "✓" : step}
-                  </div>
-                  {step < 4 && (
+            <div className="flex items-start">
+              {(
+                [
+                  { step: 1, label: "API Key" },
+                  { step: 2, label: "Workspace" },
+                  { step: 3, label: "Settings" },
+                  { step: 4, label: "Review" },
+                ] as const
+              ).map(({ step, label }, index) => (
+                <div key={step} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center">
                     <div
-                      className={`flex-1 h-1 mx-2 ${
+                      className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
+                        step < currentStep
+                          ? "bg-green-500 text-white"
+                          : step === currentStep
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-300 text-gray-600"
+                      }`}
+                    >
+                      {step < currentStep ? "✓" : step}
+                    </div>
+                    <span className="mt-2 text-xs text-gray-600">{label}</span>
+                  </div>
+                  {index < 3 && (
+                    <div
+                      className={`flex-1 h-1 mx-2 mt-5 ${
                         step < currentStep ? "bg-green-500" : "bg-gray-300"
                       }`}
                     />
                   )}
                 </div>
               ))}
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-600">
-              <span>API Key</span>
-              <span>Workspace</span>
-              <span>Settings</span>
-              <span>Review</span>
             </div>
           </div>
 
