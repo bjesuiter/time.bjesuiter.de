@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "bunx vite dev --port 3000",
     "dev2": "bunx vite dev --port 3001 --mode memory",
-    "build": "bunx vite build",
-    "start": "bun .output/server/index.mjs",
+    "build": "bunx vite build && cp -r drizzle .output/server/drizzle",
+    "start": "cd .output/server && bun index.mjs",
     "serve": "bunx vite preview",
     "test": "bun test tests/unit tests/integration",
     "test:unit": "bun test tests/unit",
