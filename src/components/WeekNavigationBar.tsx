@@ -95,12 +95,12 @@ export function WeekNavigationBar({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-3 sm:p-4">
       <div className="flex items-center justify-between gap-4">
-        {/* Left side: Jump to config start (<<<), Previous month (<<) and Previous week (<) */}
+        {/* Left side: Jump to config start, Previous month, Previous week */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             onClick={handleJumpToConfigStart}
             disabled={!configValidFrom}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Jump to config start date"
             title={
               configValidFrom
@@ -109,22 +109,33 @@ export function WeekNavigationBar({
             }
           >
             <span className="text-gray-600 font-bold text-sm">|«</span>
+            <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight text-center">
+              Phase
+              <br />
+              Start
+            </span>
           </button>
           <button
             onClick={handlePrevMonth}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center"
             aria-label="Go to previous month"
             title="Previous month"
           >
             <ChevronsLeft className="w-5 h-5 text-gray-600" />
+            <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight">
+              Month
+            </span>
           </button>
           <button
             onClick={handlePrevWeek}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center"
             aria-label="Go to previous week"
             title="Previous week"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight">
+              Week
+            </span>
           </button>
         </div>
 
@@ -168,27 +179,33 @@ export function WeekNavigationBar({
           </div>
         </div>
 
-        {/* Right side: Next week (>), Next month (>>) and Jump to config end (>>>) */}
+        {/* Right side: Next week, Next month, Jump to config end */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             onClick={handleNextWeek}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center"
             aria-label="Go to next week"
             title="Next week"
           >
             <ChevronRight className="w-5 h-5 text-gray-600" />
+            <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight">
+              Week
+            </span>
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center"
             aria-label="Go to next month"
             title="Next month"
           >
             <ChevronsRight className="w-5 h-5 text-gray-600" />
+            <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight">
+              Month
+            </span>
           </button>
           <button
             onClick={handleJumpToConfigEnd}
-            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex flex-col items-center justify-center"
             aria-label={
               configValidUntil
                 ? "Jump to config end date"
@@ -201,6 +218,17 @@ export function WeekNavigationBar({
             }
           >
             <span className="text-gray-600 font-bold text-sm">»|</span>
+            <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight text-center">
+              {configValidUntil ? (
+                <>
+                  Phase
+                  <br />
+                  End
+                </>
+              ) : (
+                "Now"
+              )}
+            </span>
           </button>
         </div>
       </div>
