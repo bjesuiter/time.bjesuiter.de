@@ -213,7 +213,7 @@ function ClockifySetupWizard() {
                   { step: 4, label: "Review" },
                 ] as const
               ).map(({ step, label }, index) => (
-                <div key={step} className="flex items-center flex-1 last:flex-none">
+                <div key={step} className="flex items-start flex-1 last:flex-none">
                   <div className="flex flex-col items-center">
                     <div
                       className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
@@ -230,7 +230,7 @@ function ClockifySetupWizard() {
                   </div>
                   {index < 3 && (
                     <div
-                      className={`flex-1 h-1 mx-2 mt-5 ${
+                      className={`flex-1 h-1 mx-2 mt-[1.2rem] ${
                         step < currentStep ? "bg-green-500" : "bg-gray-300"
                       }`}
                     />
