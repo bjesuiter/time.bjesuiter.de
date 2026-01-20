@@ -8,7 +8,11 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
-  trustedOrigins: ["http://localhost:3000", "http://localhost:3001"],
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://time.bjesuiter.de",
+  ],
   emailAndPassword: {
     enabled: true,
   },
