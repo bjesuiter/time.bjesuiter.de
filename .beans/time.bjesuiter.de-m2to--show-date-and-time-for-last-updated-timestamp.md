@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-m2to
 title: Show date and time for last updated timestamp
-status: todo
+status: completed
 type: task
 priority: normal
 created_at: 2026-01-20T17:11:56Z
-updated_at: 2026-01-20T17:11:56Z
+updated_at: 2026-01-20T17:29:24Z
 ---
 
 Currently the 'last updated' indicator only shows time (HH:MM). Add the date as well for clarity, especially when viewing data that was fetched on a previous day.

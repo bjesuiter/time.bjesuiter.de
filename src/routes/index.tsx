@@ -42,6 +42,7 @@ import {
   getDefaultWeekForMonth,
   formatWeekRange,
   parseMonthString,
+  formatLastUpdated,
 } from "@/lib/date-utils";
 
 const dashboardSearchSchema = z.object({
@@ -238,7 +239,7 @@ function DashboardView() {
                   }}
                   disabled={weeklyQuery.isRefetching}
                   className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-500 transition-colors disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  title={`Refresh data from Clockify${weeklyQuery.dataUpdatedAt > 0 ? ` (last updated: ${new Date(weeklyQuery.dataUpdatedAt).toLocaleTimeString()})` : ""}`}
+                  title={`Refresh data from Clockify${weeklyQuery.dataUpdatedAt > 0 ? ` (last updated: ${formatLastUpdated(weeklyQuery.dataUpdatedAt)})` : ""}`}
                   aria-label="Refresh data from Clockify"
                 >
                   <RefreshCw

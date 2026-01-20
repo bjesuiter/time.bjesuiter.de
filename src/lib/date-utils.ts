@@ -20,6 +20,8 @@ import {
   setMinutes,
   setSeconds,
   setMilliseconds,
+  isToday,
+  isYesterday,
 } from "date-fns";
 
 export interface WeekInfo {
@@ -222,4 +224,26 @@ export function getDefaultWeekForMonth(
   // Otherwise return the first non-previous-month week
   const firstWeek = weeks.find((w) => !w.isInPreviousMonth);
   return firstWeek?.startDate || weeks[0].startDate;
+}
+
+/**
+ * Format a timestamp for "last updated" display
+ * Uses relative day labels for recent times:
+ * - "Today 14:30"
+ * - "Yesterday 14:30"
+ * - "Jan 20, 14:30" (for older dates)
+ */
+export function formatLastUpdated(timestamp: number): string {
+  const date = new Date(timestamp);
+  const time = format(date, "HH:mm");
+
+  if (isToday(date)) {
+    return `Today ${time}`;
+  }
+
+  if (isYesterday(date)) {
+    return `Yesterday ${time}`;
+  }
+
+  return `${format(date, "MMM d")}, ${time}`;
 }
