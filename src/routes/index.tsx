@@ -16,6 +16,7 @@ import {
   ArrowRight,
   AlertCircle,
   RefreshCw,
+  Clock,
 } from "lucide-react";
 import {
   checkClockifySetup,
@@ -219,6 +220,17 @@ function DashboardView() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                {weeklyQuery.dataUpdatedAt > 0 && (
+                  <div className="hidden sm:flex items-center gap-1 text-[10px] sm:text-xs text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      {new Date(weeklyQuery.dataUpdatedAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
                 <button
                   onClick={() => {
                     weeklyQuery.refetch();
@@ -226,7 +238,7 @@ function DashboardView() {
                   }}
                   disabled={weeklyQuery.isRefetching}
                   className="p-2 rounded-lg hover:bg-indigo-50 text-indigo-500 transition-colors disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  title="Refresh data from Clockify"
+                  title={`Refresh data from Clockify${weeklyQuery.dataUpdatedAt > 0 ? ` (last updated: ${new Date(weeklyQuery.dataUpdatedAt).toLocaleTimeString()})` : ""}`}
                   aria-label="Refresh data from Clockify"
                 >
                   <RefreshCw
