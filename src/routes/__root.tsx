@@ -29,10 +29,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "Time Tracker",
       },
     ],
     links: [
+      {
+        rel: "icon",
+        href: "/favicon.ico",
+      },
+      {
+        rel: "manifest",
+        href: "/manifest.json",
+      },
       {
         rel: "stylesheet",
         href: appCss,
