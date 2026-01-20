@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { and, eq, gt, isNull, lt, lte, not, or } from "drizzle-orm";
 import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
+import { invalidateCacheFromDate } from "./cacheServerFns";
 
 /**
  * Helper to get authenticated user ID
@@ -254,6 +255,9 @@ export const createConfig = createServerFn({ method: "POST" })
         })
         .returning();
 
+      const fromDateStr = validFromDate.toISOString().split("T")[0];
+      await invalidateCacheFromDate(userId, fromDateStr);
+
       return {
         success: true,
         config: {
@@ -426,6 +430,11 @@ export const updateConfig = createServerFn({ method: "POST" })
         .where(eq(configChronic.id, data.configId))
         .returning();
 
+      const earliestAffectedDate =
+        newValidFrom < currentValidFrom ? newValidFrom : currentValidFrom;
+      const fromDateStr = earliestAffectedDate.toISOString().split("T")[0];
+      await invalidateCacheFromDate(userId, fromDateStr);
+
       return {
         success: true,
         config: {
@@ -537,6 +546,9 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
           validUntil: null, // New config is current until superseded
         })
         .returning();
+
+      const fromDateStr = validFromDate.toISOString().split("T")[0];
+      await invalidateCacheFromDate(userId, fromDateStr);
 
       return {
         success: true,
