@@ -240,3 +240,6 @@ If it does not, create a new ticket in beans as a bug for later inspection,
 mark the ticket as "broken" and store the followup inspection ticket as a link, then go on to test the next ticket.
 You're done if every ticket which is currently marked as done is marked as "ai verified" or "broken".
 Use ultrawork.
+
+## Bean Management
+Always commit and push after creating one or multiple beans. This ensures beans are tracked in version control immediately.
