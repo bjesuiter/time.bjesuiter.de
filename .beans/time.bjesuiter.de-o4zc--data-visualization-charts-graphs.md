@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-o4zc
 title: Data visualization (charts, graphs)
-status: todo
+status: scrapped
 type: feature
 priority: low
 created_at: 2026-01-19T18:52:40Z
-updated_at: 2026-01-19T18:52:40Z
+updated_at: 2026-01-20T22:17:35Z
 parent: time.bjesuiter.de-lbhw
 ---
 

@@ -5,10 +5,8 @@ status: todo
 type: feature
 priority: normal
 created_at: 2026-01-19T18:52:50Z
-updated_at: 2026-01-19T18:52:59Z
+updated_at: 2026-01-20T22:14:35Z
 parent: time.bjesuiter.de-lbhw
-blocking:
-    - time.bjesuiter.de-4kid
 ---
 
 User interface for viewing and acknowledging discrepancies.
