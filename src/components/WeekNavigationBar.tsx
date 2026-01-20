@@ -14,12 +14,18 @@ import {
   toISODate,
 } from "@/lib/date-utils";
 
+interface TimelineBoundaries {
+  starts: string[];
+  ends: string[];
+}
+
 interface WeekNavigationBarProps {
   weeks: WeekInfo[];
   currentMonth: string;
   selectedWeek: string;
   configValidFrom?: string | null;
   configValidUntil?: string | null;
+  timelineBoundaries?: TimelineBoundaries;
   weekStart?: "MONDAY" | "SUNDAY";
   onMonthChange: (month: string) => void;
   onWeekChange: (weekStartDate: string, newMonth?: string) => void;
@@ -32,6 +38,7 @@ export function WeekNavigationBar({
   selectedWeek,
   configValidFrom,
   configValidUntil,
+  timelineBoundaries,
   weekStart = "MONDAY",
   onMonthChange,
   onWeekChange,
@@ -71,25 +78,57 @@ export function WeekNavigationBar({
     onWeekChange(newWeek, newMonthStr);
   };
 
-  const handleJumpToConfigStart = () => {
-    if (!configValidFrom) return;
-    const configStartDate = parseLocalDate(configValidFrom);
-    const weekStartDate = getWeekStartForDate(configStartDate, weekStart);
+  const navigateToDate = (targetDate: Date) => {
+    const weekStartDate = getWeekStartForDate(targetDate, weekStart);
     const newWeek = toISODate(weekStartDate);
     const newWeekMonth = weekStartDate.getMonth() + 1;
     const newMonthStr = `${weekStartDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`;
     onWeekChange(newWeek, newMonthStr);
   };
 
+  const getWeekForDate = (dateStr: string) => {
+    const date = parseLocalDate(dateStr);
+    return toISODate(getWeekStartForDate(date, weekStart));
+  };
+
+  const handleJumpToConfigStart = () => {
+    if (!timelineBoundaries?.starts.length && !configValidFrom) return;
+
+    const starts = timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
+    const currentWeekStart = selectedWeek;
+
+    for (let i = starts.length - 1; i >= 0; i--) {
+      const startWeek = getWeekForDate(starts[i]);
+      if (startWeek < currentWeekStart) {
+        navigateToDate(parseLocalDate(starts[i]));
+        return;
+      }
+    }
+
+    if (starts.length > 0) {
+      navigateToDate(parseLocalDate(starts[0]));
+    }
+  };
+
   const handleJumpToConfigEnd = () => {
-    const targetDate = configValidUntil
-      ? parseLocalDate(configValidUntil)
-      : new Date();
-    const weekStartDate = getWeekStartForDate(targetDate, weekStart);
-    const newWeek = toISODate(weekStartDate);
-    const newWeekMonth = weekStartDate.getMonth() + 1;
-    const newMonthStr = `${weekStartDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`;
-    onWeekChange(newWeek, newMonthStr);
+    const ends = timelineBoundaries?.ends ?? [];
+    const currentWeekStart = selectedWeek;
+    const nowWeek = toISODate(getWeekStartForDate(new Date(), weekStart));
+
+    for (const endDate of ends) {
+      const endWeek = getWeekForDate(endDate);
+      if (endWeek > currentWeekStart) {
+        const targetWeek = endWeek > nowWeek ? nowWeek : endWeek;
+        if (targetWeek !== currentWeekStart) {
+          navigateToDate(parseLocalDate(endWeek > nowWeek ? toISODate(new Date()) : endDate));
+          return;
+        }
+      }
+    }
+
+    if (nowWeek > currentWeekStart) {
+      navigateToDate(new Date());
+    }
   };
 
   return (

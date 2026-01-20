@@ -686,3 +686,50 @@ export const deleteConfigEntry = createServerFn({ method: "POST" })
       };
     }
   });
+
+export const getConfigTimelineBoundaries = createServerFn({ method: "GET" })
+  .inputValidator((data: undefined) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    try {
+      const configs = await db.query.configChronic.findMany({
+        where: and(
+          eq(configChronic.userId, userId),
+          eq(configChronic.configType, "tracked_projects"),
+        ),
+        orderBy: (table, { asc }) => [asc(table.validFrom)],
+      });
+
+      const starts: string[] = [];
+      const ends: string[] = [];
+
+      for (const config of configs) {
+        const validFromStr = config.validFrom.toISOString().split("T")[0];
+        if (!starts.includes(validFromStr)) {
+          starts.push(validFromStr);
+        }
+
+        if (config.validUntil) {
+          const validUntilStr = config.validUntil.toISOString().split("T")[0];
+          if (!ends.includes(validUntilStr)) {
+            ends.push(validUntilStr);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        boundaries: { starts, ends },
+      };
+    } catch (error) {
+      console.error("Error getting config timeline boundaries:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get config timeline boundaries",
+      };
+    }
+  });

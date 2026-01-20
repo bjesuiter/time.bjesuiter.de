@@ -23,6 +23,7 @@ import {
   getWeeklyTimeSummary,
   getCumulativeOvertime,
 } from "@/server/clockifyServerFns";
+import { getConfigTimelineBoundaries } from "@/server/configServerFns";
 import { commitWeek, uncommitWeek } from "@/server/cacheServerFns";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import { getPublicEnv } from "@/server/envServerFns";
@@ -177,6 +178,12 @@ function DashboardView() {
       configQuery.data?.success,
   });
 
+  const boundariesQuery = useQuery({
+    queryKey: ["configTimelineBoundaries"],
+    queryFn: () => getConfigTimelineBoundaries(),
+    enabled: setupQuery.data?.hasSetup,
+  });
+
   const handleMonthChange = (newMonth: string) => {
     const { year: newYear, month: newMonthNum } = parseMonthString(newMonth);
     const newWeeks = getWeeksForMonth(newYear, newMonthNum, weekStart);
@@ -254,6 +261,7 @@ function DashboardView() {
             selectedWeek={selectedWeek}
             configValidFrom={weeklyQuery.data?.data?.configValidFrom}
             configValidUntil={weeklyQuery.data?.data?.configValidUntil}
+            timelineBoundaries={boundariesQuery.data?.success ? boundariesQuery.data.boundaries : undefined}
             weekStart={weekStart}
             onMonthChange={handleMonthChange}
             onWeekChange={handleWeekChange}
