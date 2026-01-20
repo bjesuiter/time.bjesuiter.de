@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { and, eq, gte, gt, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
-import { cachedDailyProjectSums } from "@/db/schema/cache";
+import { cachedDailyProjectSums, cachedWeeklySums } from "@/db/schema/cache";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
@@ -582,7 +582,20 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
-      if (!data.forceRefresh) {
+      const weeklyCache = await db.query.cachedWeeklySums.findFirst({
+        where: and(
+          eq(cachedWeeklySums.userId, userId),
+          eq(cachedWeeklySums.weekStart, data.weekStartDate),
+          isNull(cachedWeeklySums.invalidatedAt),
+        ),
+      });
+
+      const weekStatus = (weeklyCache?.status as "pending" | "committed") ?? "pending";
+      const committedAt = weeklyCache?.committedAt ?? null;
+
+      const shouldSkipRefresh = !data.forceRefresh && weekStatus === "committed";
+
+      if (!data.forceRefresh || shouldSkipRefresh) {
         const cachedDaily = await db.query.cachedDailyProjectSums.findMany({
           where: and(
             eq(cachedDailyProjectSums.userId, userId),
@@ -620,7 +633,16 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
               configValidUntil: trackedProjectsConfig.validUntil
                 ? toISODate(trackedProjectsConfig.validUntil)
                 : null,
+              weekStatus,
+              committedAt: committedAt?.getTime() ?? null,
             },
+          };
+        }
+
+        if (shouldSkipRefresh) {
+          return {
+            success: false,
+            error: "Week is committed but has no cached data. Use force refresh to fetch data.",
           };
         }
       }
@@ -698,6 +720,36 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         await db.insert(cachedDailyProjectSums).values(dailyEntries);
       }
 
+      const totalSeconds = dailyEntries.reduce((sum, entry) => sum + entry.seconds, 0);
+      const expectedSeconds = config.regularHoursPerWeek * 3600;
+      const overtimeSeconds = totalSeconds - expectedSeconds;
+      const weekEndStr = toISODate(addDays(weekStartDate, 6));
+
+      await db
+        .delete(cachedWeeklySums)
+        .where(
+          and(
+            eq(cachedWeeklySums.userId, userId),
+            eq(cachedWeeklySums.weekStart, data.weekStartDate),
+          ),
+        );
+
+      await db.insert(cachedWeeklySums).values({
+        userId,
+        weekStart: data.weekStartDate,
+        weekEnd: weekEndStr,
+        clientId: config.selectedClientId,
+        totalSeconds,
+        regularHoursBaseline: config.regularHoursPerWeek,
+        overtimeSeconds,
+        cumulativeOvertimeSeconds: null,
+        status: "pending",
+        calculatedAt: now,
+        invalidatedAt: null,
+      });
+
+      const refreshedWeekStatus = "pending" as const;
+
       return {
         success: true,
         data: {
@@ -714,6 +766,8 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           configValidUntil: trackedProjectsConfig.validUntil
             ? toISODate(trackedProjectsConfig.validUntil)
             : null,
+          weekStatus: refreshedWeekStatus,
+          committedAt: committedAt?.getTime() ?? null,
         },
       };
     } catch (error) {

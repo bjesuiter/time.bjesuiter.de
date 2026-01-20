@@ -13,6 +13,9 @@ import {
   RefreshCw,
   Clock,
   Database,
+  Lock,
+  Unlock,
+  CheckCircle,
 } from "lucide-react";
 import {
   checkClockifySetup,
@@ -20,6 +23,7 @@ import {
   getWeeklyTimeSummary,
   getCumulativeOvertime,
 } from "@/server/clockifyServerFns";
+import { commitWeek, uncommitWeek } from "@/server/cacheServerFns";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import { getPublicEnv } from "@/server/envServerFns";
 import { Toolbar } from "@/components/Toolbar";
@@ -145,6 +149,24 @@ function DashboardView() {
     },
   });
 
+  const commitWeekMutation = useMutation({
+    mutationFn: () => commitWeek({ data: { weekStartDate: selectedWeek } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["weeklyTimeSummary", selectedWeek],
+      });
+    },
+  });
+
+  const uncommitWeekMutation = useMutation({
+    mutationFn: () => uncommitWeek({ data: { weekStartDate: selectedWeek } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["weeklyTimeSummary", selectedWeek],
+      });
+    },
+  });
+
   const cumulativeOvertimeQuery = useQuery({
     queryKey: ["cumulativeOvertime", selectedWeek],
     queryFn: () =>
@@ -240,18 +262,26 @@ function DashboardView() {
 
           <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 sm:p-6 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
-              <div className="min-w-0">
-                <h2
-                  className="text-base sm:text-lg lg:text-xl font-bold text-gray-900"
-                  data-testid="weekly-summary-heading"
-                >
-                  Weekly Time Summary
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">
-                  {formatWeekRange(selectedWeek)}
-                </p>
+              <div className="min-w-0 flex items-center gap-2 sm:gap-3">
+                <div>
+                  <h2
+                    className="text-base sm:text-lg lg:text-xl font-bold text-gray-900"
+                    data-testid="weekly-summary-heading"
+                  >
+                    Weekly Time Summary
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 truncate">
+                    {formatWeekRange(selectedWeek)}
+                  </p>
+                </div>
+                {weeklyQuery.data?.success && (
+                  <WeekStatusBadge
+                    status={weeklyQuery.data.data.weekStatus}
+                    committedAt={weeklyQuery.data.data.committedAt}
+                  />
+                )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 <div className="hidden sm:flex items-center gap-3 text-[10px] sm:text-xs text-gray-400">
                   {weeklyQuery.data?.data?.cachedAt && (
                     <div
@@ -274,6 +304,17 @@ function DashboardView() {
                     </div>
                   )}
                 </div>
+                {weeklyQuery.data?.success && (
+                  <CommitWeekButton
+                    status={weeklyQuery.data.data.weekStatus}
+                    onCommit={() => commitWeekMutation.mutate()}
+                    onUncommit={() => uncommitWeekMutation.mutate()}
+                    isPending={
+                      commitWeekMutation.isPending ||
+                      uncommitWeekMutation.isPending
+                    }
+                  />
+                )}
                 <button
                   onClick={() => forceRefreshMutation.mutate()}
                   disabled={forceRefreshMutation.isPending}
@@ -519,5 +560,82 @@ function FeatureCard({
       <h3 className="text-xl font-bold text-gray-900 mb-3">{title}</h3>
       <p className="text-gray-600 leading-relaxed">{description}</p>
     </div>
+  );
+}
+
+function WeekStatusBadge({
+  status,
+  committedAt,
+}: {
+  status: "pending" | "committed";
+  committedAt: number | null;
+}) {
+  if (status === "committed") {
+    const committedDate = committedAt
+      ? new Date(committedAt).toLocaleDateString()
+      : null;
+    return (
+      <div
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs sm:text-sm font-medium"
+        title={committedDate ? `Committed on ${committedDate}` : "Week committed"}
+        data-testid="week-status-badge-committed"
+      >
+        <CheckCircle className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Committed</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-gray-500 text-xs sm:text-sm font-medium"
+      title="Week pending - data may auto-refresh"
+      data-testid="week-status-badge-pending"
+    >
+      <Clock className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">Pending</span>
+    </div>
+  );
+}
+
+function CommitWeekButton({
+  status,
+  onCommit,
+  onUncommit,
+  isPending,
+}: {
+  status: "pending" | "committed";
+  onCommit: () => void;
+  onUncommit: () => void;
+  isPending: boolean;
+}) {
+  if (status === "committed") {
+    return (
+      <button
+        onClick={onUncommit}
+        disabled={isPending}
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
+        title="Unlock this week to allow auto-refresh"
+        aria-label="Uncommit week"
+        data-testid="uncommit-week-button"
+      >
+        <Unlock className={`w-4 h-4 ${isPending ? "animate-pulse" : ""}`} />
+        <span className="hidden sm:inline">Unlock</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onCommit}
+      disabled={isPending}
+      className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-600 hover:text-indigo-700 text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px]"
+      title="Lock this week to prevent auto-refresh"
+      aria-label="Commit week"
+      data-testid="commit-week-button"
+    >
+      <Lock className={`w-4 h-4 ${isPending ? "animate-pulse" : ""}`} />
+      <span className="hidden sm:inline">Lock</span>
+    </button>
   );
 }

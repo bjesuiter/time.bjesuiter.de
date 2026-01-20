@@ -349,3 +349,151 @@ export const invalidateCache = createServerFn({ method: "POST" })
       },
     };
   });
+
+/**
+ * Commits a week, preventing auto-refresh on page load.
+ * Committed weeks can only be refreshed manually.
+ */
+export const commitWeek = createServerFn({ method: "POST" })
+  .inputValidator((data: { weekStartDate: string }) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+    const now = new Date();
+
+    const existing = await db.query.cachedWeeklySums.findFirst({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, data.weekStartDate),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: "No cached data found for this week. Refresh the data first.",
+      };
+    }
+
+    if (existing.status === "committed") {
+      return {
+        success: true,
+        data: {
+          weekStartDate: data.weekStartDate,
+          status: "committed" as const,
+          committedAt: existing.committedAt,
+          alreadyCommitted: true,
+        },
+      };
+    }
+
+    await db
+      .update(cachedWeeklySums)
+      .set({
+        status: "committed",
+        committedAt: now,
+      })
+      .where(eq(cachedWeeklySums.id, existing.id));
+
+    return {
+      success: true,
+      data: {
+        weekStartDate: data.weekStartDate,
+        status: "committed" as const,
+        committedAt: now,
+        alreadyCommitted: false,
+      },
+    };
+  });
+
+/**
+ * Uncommits a week, reverting it to pending status.
+ * This allows auto-refresh on page load again.
+ */
+export const uncommitWeek = createServerFn({ method: "POST" })
+  .inputValidator((data: { weekStartDate: string }) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const existing = await db.query.cachedWeeklySums.findFirst({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, data.weekStartDate),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: "No cached data found for this week.",
+      };
+    }
+
+    if (existing.status === "pending") {
+      return {
+        success: true,
+        data: {
+          weekStartDate: data.weekStartDate,
+          status: "pending" as const,
+          alreadyPending: true,
+        },
+      };
+    }
+
+    await db
+      .update(cachedWeeklySums)
+      .set({
+        status: "pending",
+        committedAt: null,
+      })
+      .where(eq(cachedWeeklySums.id, existing.id));
+
+    return {
+      success: true,
+      data: {
+        weekStartDate: data.weekStartDate,
+        status: "pending" as const,
+        alreadyPending: false,
+      },
+    };
+  });
+
+/**
+ * Gets the commit status for a specific week.
+ */
+export const getWeekCommitStatus = createServerFn({ method: "POST" })
+  .inputValidator((data: { weekStartDate: string }) => data)
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const cached = await db.query.cachedWeeklySums.findFirst({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, data.weekStartDate),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
+
+    if (!cached) {
+      return {
+        success: true,
+        data: {
+          weekStartDate: data.weekStartDate,
+          status: "pending" as const,
+          hasCachedData: false,
+          committedAt: null,
+        },
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        weekStartDate: data.weekStartDate,
+        status: cached.status as "pending" | "committed",
+        hasCachedData: true,
+        committedAt: cached.committedAt,
+      },
+    };
+  });
