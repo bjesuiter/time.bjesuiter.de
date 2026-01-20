@@ -2,7 +2,8 @@
  * Date utilities for week and month navigation
  * All dates use YYYY-MM-DD format for consistency
  *
- * Uses date-fns for reliable timezone handling
+ * Uses date-fns and @date-fns/tz for reliable timezone handling.
+ * Functions with "InTz" suffix accept a timezone parameter for user-specific calculations.
  */
 
 import {
@@ -23,6 +24,7 @@ import {
   isToday,
   isYesterday,
 } from "date-fns";
+import { TZDate } from "@date-fns/tz";
 
 export interface WeekInfo {
   startDate: string; // YYYY-MM-DD
@@ -246,4 +248,144 @@ export function formatLastUpdated(timestamp: number): string {
   }
 
   return `${format(date, "MMM d")}, ${time}`;
+}
+
+// ============================================================================
+// Timezone-Aware Functions (for server-side use with user's Clockify timezone)
+// ============================================================================
+
+/**
+ * Get the current date/time in a specific timezone.
+ * Use this instead of `new Date()` when you need the current time
+ * relative to a user's configured timezone.
+ */
+export function nowInTz(timeZone: string): TZDate {
+  return TZDate.tz(timeZone);
+}
+
+/**
+ * Parse a YYYY-MM-DD string to a TZDate in the specified timezone at midnight.
+ * This ensures date operations are performed in the user's timezone.
+ */
+export function parseLocalDateInTz(dateStr: string, timeZone: string): TZDate {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return TZDate.tz(timeZone, year, month - 1, day, 0, 0, 0);
+}
+
+/**
+ * Get the week start date for a given date in a specific timezone.
+ */
+export function getWeekStartForDateInTz(
+  date: Date | TZDate,
+  weekStart: "MONDAY" | "SUNDAY",
+  timeZone: string,
+): TZDate {
+  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+  const tzDate = date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
+  const result = startOfWeek(tzDate, { weekStartsOn });
+  return setMilliseconds(setSeconds(setMinutes(setHours(result, 0), 0), 0), 0) as TZDate;
+}
+
+/**
+ * Get the current week's start date in a specific timezone.
+ */
+export function getCurrentWeekStartInTz(
+  weekStart: "MONDAY" | "SUNDAY",
+  timeZone: string,
+): string {
+  const now = nowInTz(timeZone);
+  return toISODate(getWeekStartForDateInTz(now, weekStart, timeZone));
+}
+
+/**
+ * Check if a week contains today in a specific timezone.
+ */
+export function isCurrentWeekInTz(
+  weekStartDate: string,
+  timeZone: string,
+): boolean {
+  const today = nowInTz(timeZone);
+  const weekStart = parseLocalDateInTz(weekStartDate, timeZone);
+  const weekStartsOn = getDay(weekStart) === 1 ? 1 : 0;
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn });
+  const weekEndEOD = setMilliseconds(
+    setSeconds(setMinutes(setHours(weekEnd, 23), 59), 59),
+    999,
+  );
+
+  return isWithinInterval(today, { start: weekStart, end: weekEndEOD });
+}
+
+/**
+ * Get the end of day in a specific timezone for a given date.
+ */
+export function endOfDayInTz(date: Date | TZDate, timeZone: string): TZDate {
+  const tzDate = date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
+  return setMilliseconds(
+    setSeconds(setMinutes(setHours(tzDate, 23), 59), 59),
+    999,
+  ) as TZDate;
+}
+
+/**
+ * Get all weeks for a month with timezone awareness.
+ */
+export function getWeeksForMonthInTz(
+  year: number,
+  month: number,
+  weekStart: "MONDAY" | "SUNDAY",
+  timeZone: string,
+): WeekInfo[] {
+  const weeks: WeekInfo[] = [];
+  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+
+  const firstOfMonth = TZDate.tz(timeZone, year, month, 1, 0, 0, 0);
+  const firstWeekStart = startOfWeek(firstOfMonth, { weekStartsOn });
+
+  const prevWeekStart = addWeeks(firstWeekStart, -1);
+  const prevWeekStartStr = toISODate(prevWeekStart);
+  weeks.push({
+    startDate: prevWeekStartStr,
+    label: formatWeekRange(prevWeekStartStr),
+    isInPreviousMonth: true,
+    isCurrentWeek: isCurrentWeekInTz(prevWeekStartStr, timeZone),
+  });
+
+  let currentWeek = firstWeekStart;
+  const lastOfMonth = endOfMonth(firstOfMonth);
+
+  while (currentWeek <= lastOfMonth) {
+    const weekStartStr = toISODate(currentWeek);
+    weeks.push({
+      startDate: weekStartStr,
+      label: formatWeekRange(weekStartStr),
+      isInPreviousMonth: false,
+      isCurrentWeek: isCurrentWeekInTz(weekStartStr, timeZone),
+    });
+    currentWeek = addWeeks(currentWeek, 1);
+  }
+
+  return weeks;
+}
+
+/**
+ * Get the best default week for a month in a specific timezone.
+ */
+export function getDefaultWeekForMonthInTz(
+  monthStr: string,
+  weekStart: "MONDAY" | "SUNDAY",
+  timeZone: string,
+): string {
+  const { year, month } = parseMonthString(monthStr);
+  const weeks = getWeeksForMonthInTz(year, month, weekStart, timeZone);
+
+  const currentWeekInfo = weeks.find(
+    (w) => w.isCurrentWeek && !w.isInPreviousMonth,
+  );
+  if (currentWeekInfo) {
+    return currentWeekInfo.startDate;
+  }
+
+  const firstWeek = weeks.find((w) => !w.isInPreviousMonth);
+  return firstWeek?.startDate || weeks[0].startDate;
 }

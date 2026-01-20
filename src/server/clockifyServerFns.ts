@@ -18,7 +18,11 @@ import {
   setSeconds,
   setMilliseconds,
 } from "date-fns";
-import { parseLocalDate } from "@/lib/date-utils";
+import {
+  parseLocalDateInTz,
+  nowInTz,
+  endOfDayInTz,
+} from "@/lib/date-utils";
 
 /**
  * Helper to get authenticated user ID
@@ -442,11 +446,9 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
-      const weekStartDate = parseLocalDate(data.weekStartDate);
-      const weekEnd = setMilliseconds(
-        setSeconds(setMinutes(setHours(addDays(weekStartDate, 6), 23), 59), 59),
-        999,
-      );
+      const userTimeZone = config.timeZone;
+      const weekStartDate = parseLocalDateInTz(data.weekStartDate, userTimeZone);
+      const weekEnd = endOfDayInTz(addDays(weekStartDate, 6), userTimeZone);
 
       const trackedProjectsConfig = await db.query.configChronic.findFirst({
         where: and(
@@ -560,8 +562,9 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const startDateStr = config.cumulativeOvertimeStartDate;
       const weekStartSetting = config.weekStart as "MONDAY" | "SUNDAY";
       const weekStartsOn = weekStartSetting === "MONDAY" ? 1 : 0;
+      const userTimeZone = config.timeZone;
 
-      const startDate = parseLocalDate(startDateStr);
+      const startDate = parseLocalDateInTz(startDateStr, userTimeZone);
 
       const getWeekStartForDateLocal = (date: Date): Date => {
         const result = startOfWeek(date, { weekStartsOn });
@@ -573,11 +576,12 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
 
       const firstWeekStart = getWeekStartForDateLocal(startDate);
       const currentWeekStart = getWeekStartForDateLocal(
-        parseLocalDate(data.currentWeekStartDate),
+        parseLocalDateInTz(data.currentWeekStartDate, userTimeZone),
       );
 
       console.log("[DEBUG getCumulativeOvertime]", {
         startDateStr,
+        userTimeZone,
         startDate: startDate.toISOString(),
         "data.currentWeekStartDate": data.currentWeekStartDate,
         firstWeekStart: firstWeekStart.toISOString(),
@@ -602,19 +606,10 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const workingDaysPerWeek = config.workingDaysPerWeek;
       const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;
 
-      const today = setMilliseconds(
-        setSeconds(setMinutes(setHours(new Date(), 23), 59), 59),
-        999,
-      );
+      const today = endOfDayInTz(nowInTz(userTimeZone), userTimeZone);
 
       for (const weekStartDateIter of weekStarts) {
-        const weekEnd = setMilliseconds(
-          setSeconds(
-            setMinutes(setHours(addDays(weekStartDateIter, 6), 23), 59),
-            59,
-          ),
-          999,
-        );
+        const weekEnd = endOfDayInTz(addDays(weekStartDateIter, 6), userTimeZone);
 
         const trackedProjectsConfig = await db.query.configChronic.findFirst({
           where: and(
