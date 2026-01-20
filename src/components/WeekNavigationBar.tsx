@@ -91,6 +91,13 @@ export function WeekNavigationBar({
     return toISODate(getWeekStartForDate(date, weekStart));
   };
 
+  const nowWeek = toISODate(getWeekStartForDate(new Date(), weekStart));
+  const starts = timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
+  const earliestStartWeek = starts.length > 0 ? getWeekForDate(starts[0]) : null;
+  
+  const isStartDisabled = !earliestStartWeek || selectedWeek <= earliestStartWeek;
+  const isEndDisabled = selectedWeek >= nowWeek;
+
   const handleJumpToConfigStart = () => {
     if (!timelineBoundaries?.starts.length && !configValidFrom) return;
 
@@ -140,13 +147,13 @@ export function WeekNavigationBar({
           {/* Button 1: Phase Start */}
           <button
             onClick={handleJumpToConfigStart}
-            disabled={!configValidFrom}
+            disabled={isStartDisabled}
             className="row-span-2 grid grid-rows-subgrid p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Jump to config start date"
             title={
-              configValidFrom
-                ? `Jump to config start (${configValidFrom})`
-                : "No config start date set"
+              isStartDisabled
+                ? "Already at earliest config start"
+                : `Jump to previous config start`
             }
           >
             <span className="flex items-center justify-center text-gray-600 font-bold text-sm">
@@ -264,16 +271,17 @@ export function WeekNavigationBar({
           {/* Button 3: Phase End / Now */}
           <button
             onClick={handleJumpToConfigEnd}
-            className="row-span-2 grid grid-rows-subgrid p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px]"
+            disabled={isEndDisabled}
+            className="row-span-2 grid grid-rows-subgrid p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label={
-              configValidUntil
-                ? "Jump to config end date"
-                : "Jump to current week"
+              isEndDisabled
+                ? "Already at current week"
+                : "Jump to next config end or now"
             }
             title={
-              configValidUntil
-                ? `Jump to config end (${configValidUntil})`
-                : "Jump to current week"
+              isEndDisabled
+                ? "Already at current week"
+                : "Jump to next config end or now"
             }
           >
             <span className="flex items-center justify-center text-gray-600 font-bold text-sm">
