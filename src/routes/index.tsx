@@ -224,12 +224,7 @@ function DashboardView() {
                 {weeklyQuery.dataUpdatedAt > 0 && (
                   <div className="hidden sm:flex items-center gap-1 text-[10px] sm:text-xs text-gray-400">
                     <Clock className="w-3 h-3" />
-                    <span>
-                      {new Date(weeklyQuery.dataUpdatedAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                    <span>{formatLastUpdated(weeklyQuery.dataUpdatedAt)}</span>
                   </div>
                 )}
                 <button
