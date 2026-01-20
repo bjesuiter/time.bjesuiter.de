@@ -313,46 +313,11 @@ export const getCachedWeeklySummary = createServerFn({ method: "POST" })
     };
   });
 
-/**
- * Internal helper to invalidate cache from a specific date forward.
- * Can be called directly without going through server function auth.
- * Used by config functions when tracked projects change.
- */
-export async function invalidateCacheFromDate(
-  userId: string,
-  fromDate: string,
-): Promise<{ invalidatedAt: Date }> {
-  const now = new Date();
-
-  await db
-    .update(cachedDailyProjectSums)
-    .set({ invalidatedAt: now })
-    .where(
-      and(
-        eq(cachedDailyProjectSums.userId, userId),
-        gte(cachedDailyProjectSums.date, fromDate),
-        isNull(cachedDailyProjectSums.invalidatedAt),
-      ),
-    );
-
-  await db
-    .update(cachedWeeklySums)
-    .set({ invalidatedAt: now })
-    .where(
-      and(
-        eq(cachedWeeklySums.userId, userId),
-        gte(cachedWeeklySums.weekStart, fromDate),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    );
-
-  return { invalidatedAt: now };
-}
-
 export const invalidateCache = createServerFn({ method: "POST" })
   .inputValidator((data: { fromDate: string }) => data)
   .handler(async ({ data, request }) => {
     const userId = await getAuthenticatedUserId(request);
+    const { invalidateCacheFromDate } = await import("./cacheHelpers");
     const result = await invalidateCacheFromDate(userId, data.fromDate);
 
     return {

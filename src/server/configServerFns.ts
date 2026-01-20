@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { and, eq, gt, isNull, lt, lte, not, or } from "drizzle-orm";
 import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
-import { invalidateCacheFromDate } from "./cacheServerFns";
+import { invalidateCacheFromDate } from "./cacheHelpers";
 
 /**
  * Helper to get authenticated user ID
