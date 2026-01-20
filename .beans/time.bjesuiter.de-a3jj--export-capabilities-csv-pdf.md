@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-a3jj
 title: Export capabilities (CSV, PDF)
-status: todo
+status: scrapped
 type: feature
 priority: low
 created_at: 2026-01-19T18:52:38Z
-updated_at: 2026-01-19T18:52:38Z
+updated_at: 2026-01-20T22:18:13Z
 parent: time.bjesuiter.de-lbhw
 ---
 
