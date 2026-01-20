@@ -25,6 +25,7 @@ import {
   getClockifyProjects,
   refreshClockifySettings,
 } from "@/server/clockifyServerFns";
+import { invalidateCache } from "@/server/cacheServerFns";
 import {
   getConfigHistory,
   deleteConfigEntry,
@@ -140,6 +141,11 @@ function SettingsPage() {
     text: string;
   } | null>(null);
 
+  const [invalidateCacheMessage, setInvalidateCacheMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
   const refreshSettingsMutation = useMutation({
     mutationFn: () => refreshClockifySettings(),
     onSuccess: (result) => {
@@ -165,6 +171,34 @@ function SettingsPage() {
         text: error instanceof Error ? error.message : "Refresh failed",
       });
       setTimeout(() => setRefreshMessage(null), 5000);
+    },
+  });
+
+  const invalidateCacheMutation = useMutation({
+    mutationFn: (fromDate: string) => invalidateCache({ data: { fromDate } }),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
+        queryClient.invalidateQueries({ queryKey: ["config-history"] });
+        queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
+        setInvalidateCacheMessage({
+          type: "success",
+          text: `Cache invalidated from ${result.data.fromDate}`,
+        });
+      } else {
+        setInvalidateCacheMessage({
+          type: "error",
+          text: "Failed to invalidate cache",
+        });
+      }
+      setTimeout(() => setInvalidateCacheMessage(null), 5000);
+    },
+    onError: (error) => {
+      setInvalidateCacheMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Cache invalidation failed",
+      });
+      setTimeout(() => setInvalidateCacheMessage(null), 5000);
     },
   });
 
@@ -477,13 +511,63 @@ function SettingsPage() {
                       </p>
                     </div>
 
-                    <Link
-                      to="/setup/clockify"
-                      className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm sm:text-base min-h-[44px]"
-                    >
-                      <Settings2 className="w-4 h-4" />
-                      Update Configuration
-                    </Link>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                      <Link
+                        to="/setup/clockify"
+                        className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm sm:text-base min-h-[44px]"
+                      >
+                        <Settings2 className="w-4 h-4" />
+                        Update Configuration
+                      </Link>
+
+                      <ConfirmPopover
+                        trigger={
+                          <button
+                            disabled={invalidateCacheMutation.isPending}
+                            className="flex items-center gap-2 text-xs sm:text-sm text-amber-600 hover:text-amber-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+                          >
+                            {invalidateCacheMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                            {invalidateCacheMutation.isPending
+                              ? "Invalidating..."
+                              : "Refresh All Data from January 1st"}
+                          </button>
+                        }
+                        okLabel="Refresh Data"
+                        cancelLabel="Cancel"
+                        onConfirm={() => {
+                          const currentYear = new Date().getFullYear();
+                          invalidateCacheMutation.mutate(`${currentYear}-01-01`);
+                        }}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-amber-600">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <p className="font-medium text-sm">Expensive Operation</p>
+                          </div>
+                          <p className="text-gray-700 text-sm">
+                            This will invalidate all cached data from January 1st,{" "}
+                            {new Date().getFullYear()} and require re-fetching from Clockify.
+                            This may take a while depending on your data volume.
+                          </p>
+                        </div>
+                      </ConfirmPopover>
+                    </div>
+
+                    {invalidateCacheMessage && (
+                      <div
+                        className={`p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${
+                          invalidateCacheMessage.type === "success"
+                            ? "bg-green-50 border border-green-200 text-green-800"
+                            : "bg-red-50 border border-red-200 text-red-800"
+                        }`}
+                      >
+                        {invalidateCacheMessage.text}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
