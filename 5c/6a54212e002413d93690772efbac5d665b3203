@@ -1,0 +1,177 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.34",
+  "base_commit_sha": "5c6a54212e002413d93690772efbac5d665b3203",
+  "prompts": {
+    "082235c2661e751f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-369d8e21-0d0e-40af-8b2e-1a0e3721a826",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 4,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    },
+    "19384c27c563ec71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-c986cb6c-bf24-46ce-b93f-409f70041f8b",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "452e5214c2c5e8e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-adc58562-89f3-4314-bac9-b8bd80b4b10f",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    },
+    "47c6dfd43fedf5e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-c1efe3f1-5df4-45d0-8228-f26f0ef0eb9a",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 18,
+      "total_deletions": 43,
+      "accepted_lines": 15,
+      "overriden_lines": 0
+    },
+    "505212739fccbec7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-fe340879-f4ff-41b3-9ac6-b59747d833b0",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 6,
+      "accepted_lines": 9,
+      "overriden_lines": 0
+    },
+    "550c25fcc680caa2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-20e94b73-7207-4226-9a37-3aaf9fef8a18",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 1,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    },
+    "5faf47f6ecd9cf20": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-15e59c22-cd4e-4522-895b-b4b24f3ba76b",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    },
+    "7502eb288bf7fdbe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-ce904821-e5a5-4823-9da2-2b0b4d81ee7f",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 15,
+      "total_deletions": 0,
+      "accepted_lines": 14,
+      "overriden_lines": 0
+    },
+    "831f9f38f38e9d0b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-1b481247-5c10-4fae-9c8c-d5b835999a8b",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 120,
+      "total_deletions": 6,
+      "accepted_lines": 115,
+      "overriden_lines": 0
+    },
+    "85e03a433915806f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-d76c5f59-8c3d-46c0-918c-a40065291b6b",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 73,
+      "total_deletions": 0,
+      "accepted_lines": 73,
+      "overriden_lines": 0
+    },
+    "b199c592c443265a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-71efe050-4d60-4420-b987-ca0fb1e2697b",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 250,
+      "total_deletions": 0,
+      "accepted_lines": 250,
+      "overriden_lines": 0
+    },
+    "e7c81ac8388355ef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-ca1da025-8afc-47cc-aff6-09e8b9a521a0",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    },
+    "ed3ce316edc57a29": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-9f576195-f0e1-4691-b4ee-86d93cb6ca6a",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
