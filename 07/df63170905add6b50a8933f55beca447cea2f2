@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.37",
+  "base_commit_sha": "07df63170905add6b50a8933f55beca447cea2f2",
+  "prompts": {
+    "847719ab03ed1c7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "opencode-transcript-ses_41de0723bffexhpuCtolXnzg5c-7be0bf98-d60d-4c13-81d2-077bc04940f9",
+        "model": "unknown"
+      },
+      "human_author": "Benjamin Jesuiter <bjesuiter@gmail.com>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 0,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
