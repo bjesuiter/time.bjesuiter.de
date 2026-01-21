@@ -108,7 +108,7 @@ function SignInPage() {
 
         {/* Sign In Form Card */}
         <div className="bg-white rounded-lg shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* General Error */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3" data-testid="signin-general-error">
@@ -131,6 +131,7 @@ function SignInPage() {
                 </div>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange("email")}
@@ -165,6 +166,7 @@ function SignInPage() {
                 </div>
                 <input
                   id="password"
+                  name="password"
                   type="password"
                   value={formData.password}
                   onChange={handleInputChange("password")}

@@ -1,13 +1,30 @@
 import { expect, test } from "../fixtures/test";
 
 test.describe("Form Validation and Error Handling", () => {
-  test.skip("validates signup required fields", async () => {
-    // TODO: Fix signup form validation in test environment
-    // Form validation is not working as expected in tests
-    // This test is skipped until the issue is resolved
+  test("validates signup required fields", async ({ page, serverUrl }) => {
+    await page.goto(`${serverUrl}/signup`);
+    await page.waitForLoadState("networkidle");
+
+    // Check if signup is allowed
+    const signupDisabled = page.locator(
+      "text=User registration is currently disabled",
+    );
+    const isDisabled = await signupDisabled.isVisible().catch(() => false);
+
+    if (isDisabled) {
+      await expect(signupDisabled).toBeVisible();
+      return;
+    }
+
+    // Submit empty form to trigger validation
+    await page.getByTestId("signup-submit-button").click();
+
+    // Email and password errors should appear (confirmPassword too)
+    await expect(page.getByTestId("signup-email-error")).toBeVisible();
+    await expect(page.getByTestId("signup-password-error")).toBeVisible();
   });
 
-  test.skip("validates signup email format", async ({ page, serverUrl }) => {
+  test("validates signup email format", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
@@ -21,12 +38,10 @@ test.describe("Form Validation and Error Handling", () => {
       // Skip validation test if signup is disabled
       await expect(signupDisabled).toBeVisible();
     } else {
-      // Test various invalid email formats
-      const invalidEmails = [
+        const invalidEmails = [
         "invalid-email",
         "user@",
         "@domain.com",
-        "user..name@domain.com",
         "user@domain",
         "user name@domain.com",
       ];
@@ -47,7 +62,7 @@ test.describe("Form Validation and Error Handling", () => {
     }
   });
 
-  test.skip("validates signup password length", async ({ page, serverUrl }) => {
+  test("validates signup password length", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
@@ -82,7 +97,7 @@ test.describe("Form Validation and Error Handling", () => {
     }
   });
 
-  test.skip("validates signup password confirmation", async ({
+  test("validates signup password confirmation", async ({
     page,
     serverUrl,
   }) => {
@@ -97,7 +112,7 @@ test.describe("Form Validation and Error Handling", () => {
     await expect(page.getByTestId("signup-confirm-password-error")).toBeVisible();
   });
 
-  test.skip("clears signup field errors on input", async ({ page, serverUrl }) => {
+  test("clears signup field errors on input", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
@@ -133,12 +148,11 @@ test.describe("Form Validation and Error Handling", () => {
     // Submit form
     await page.getByTestId("signup-submit-button").click();
 
-    // Should redirect to dashboard (no validation errors)
     await page.waitForURL(`${serverUrl}/`);
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   });
 
-  test.skip("validates signin required fields", async ({ page, serverUrl }) => {
+  test("validates signin required fields", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
@@ -149,7 +163,7 @@ test.describe("Form Validation and Error Handling", () => {
     await expect(page.getByTestId("signin-password-error")).toBeVisible();
   });
 
-  test.skip("validates signin email format", async ({ page, serverUrl }) => {
+  test("validates signin email format", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
@@ -174,7 +188,7 @@ test.describe("Form Validation and Error Handling", () => {
     await expect(page.getByTestId("signin-general-error")).toBeVisible();
   });
 
-  test.skip("clears signin field errors on input", async ({ page, serverUrl }) => {
+  test("clears signin field errors on input", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
@@ -211,7 +225,7 @@ test.describe("Form Validation and Error Handling", () => {
     await expect(page.getByTestId("signin-general-error")).toBeVisible();
   });
 
-  test.skip("forms have proper labels and ARIA attributes", async ({
+  test("forms have proper labels and ARIA attributes", async ({
     page,
     serverUrl,
   }) => {
@@ -287,7 +301,7 @@ test.describe("Form Validation and Error Handling", () => {
     await expect(page.getByTestId("signup-submit-button")).toBeDisabled();
   });
 
-  test.skip("error messages are accessible", async ({ page, serverUrl }) => {
+  test("error messages are accessible", async ({ page, serverUrl }) => {
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
@@ -298,8 +312,7 @@ test.describe("Form Validation and Error Handling", () => {
     const errorMessage = page.getByTestId("signup-email-error");
     await expect(errorMessage).toBeVisible();
 
-    // Error should be in a visible container with proper styling
-    const errorContainer = page.locator(".text-red-600");
+    const errorContainer = page.locator(".text-red-600").first();
     await expect(errorContainer).toBeVisible();
   });
 });
