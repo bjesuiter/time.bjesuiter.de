@@ -650,14 +650,6 @@ function SettingsPage() {
                       </div>
                     ) : null}
 
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-                      <p className="text-xs sm:text-sm text-blue-800">
-                        <strong>Coming in Phase 2:</strong> Weekly time
-                        summaries, project tracking, and overtime calculations
-                        will be available soon.
-                      </p>
-                    </div>
-
                     <Link
                       to="/setup/clockify"
                       className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm sm:text-base min-h-[44px]"
