@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-0ub0
 title: Update baseline-browser-mapping dependency
-status: todo
+status: scrapped
 type: task
 priority: low
 created_at: 2026-01-20T22:13:31Z
-updated_at: 2026-01-20T22:13:31Z
+updated_at: 2026-01-21T22:16:20Z
 ---
 
 Console warning:
