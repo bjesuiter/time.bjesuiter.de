@@ -11,12 +11,13 @@ import {
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
-import { addDays } from "date-fns";
+import { addDays, addWeeks } from "date-fns";
 import {
   parseLocalDateInTz,
   endOfDayInTz,
   toUTCISOString,
   toISODate,
+  getWeekStartForDateInTz,
 } from "@/lib/date-utils";
 
 async function getAuthenticatedUserId(request: Request): Promise<string> {
@@ -684,6 +685,259 @@ export const resolveDiscrepancy = createServerFn({ method: "POST" })
         resolution: data.resolution,
         resolvedAt: now,
         alreadyResolved: false,
+      },
+    };
+  });
+
+/**
+ * Gets all week start dates within a date range.
+ * Used to determine which weeks need to be refreshed for a config entry.
+ */
+function getWeekStartsInRange(
+  startDate: string,
+  endDate: string,
+  weekStart: "MONDAY" | "SUNDAY",
+  timeZone: string,
+): string[] {
+  const start = parseLocalDateInTz(startDate, timeZone);
+  const end = parseLocalDateInTz(endDate, timeZone);
+
+  // Get the first week start that contains or comes after startDate
+  let currentWeekStart = getWeekStartForDateInTz(start, weekStart, timeZone);
+
+  // If currentWeekStart is before startDate, move to next week
+  if (currentWeekStart < start) {
+    currentWeekStart = addWeeks(currentWeekStart, 1) as typeof currentWeekStart;
+  }
+
+  const weekStarts: string[] = [];
+
+  // Include the week containing startDate even if week starts before startDate
+  const startingWeek = getWeekStartForDateInTz(start, weekStart, timeZone);
+  if (toISODate(startingWeek) !== toISODate(currentWeekStart)) {
+    weekStarts.push(toISODate(startingWeek));
+  }
+
+  while (currentWeekStart <= end) {
+    weekStarts.push(toISODate(currentWeekStart));
+    currentWeekStart = addWeeks(currentWeekStart, 1) as typeof currentWeekStart;
+  }
+
+  return weekStarts;
+}
+
+/**
+ * Checks which weeks in a date range are committed.
+ * Returns info to show warning before refresh.
+ */
+export const getCommittedWeeksInRange = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { startDate: string; endDate: string | null }) => data,
+  )
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const config = await db.query.userClockifyConfig.findFirst({
+      where: eq(userClockifyConfig.userId, userId),
+    });
+
+    if (!config) {
+      return { success: false, error: "Configuration not found" };
+    }
+
+    const endDate = data.endDate || toISODate(new Date());
+    const weekStarts = getWeekStartsInRange(
+      data.startDate,
+      endDate,
+      config.weekStart as "MONDAY" | "SUNDAY",
+      config.timeZone,
+    );
+
+    // Query for committed weeks in the range
+    const committedWeeks = await db.query.cachedWeeklySums.findMany({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.status, "committed"),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
+
+    const committedWeekStarts = new Set(committedWeeks.map((w) => w.weekStart));
+    const committedInRange = weekStarts.filter((w) =>
+      committedWeekStarts.has(w),
+    );
+
+    return {
+      success: true,
+      data: {
+        totalWeeks: weekStarts.length,
+        committedWeeks: committedInRange,
+        committedCount: committedInRange.length,
+        hasCommittedWeeks: committedInRange.length > 0,
+      },
+    };
+  });
+
+export type RefreshProgressUpdate = {
+  currentWeek: number;
+  totalWeeks: number;
+  weekStartDate: string;
+  status: "pending" | "complete" | "error" | "skipped";
+  error?: string;
+};
+
+/**
+ * Refreshes all weeks in a config's date range.
+ * Handles committed weeks based on user preference.
+ */
+export const refreshConfigTimeRange = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      startDate: string;
+      endDate: string | null;
+      includeCommittedWeeks: boolean;
+    }) => data,
+  )
+  .handler(async ({ data, request }) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    const config = await db.query.userClockifyConfig.findFirst({
+      where: eq(userClockifyConfig.userId, userId),
+    });
+
+    if (!config || !config.selectedClientId) {
+      return { success: false, error: "Configuration not complete" };
+    }
+
+    const endDate = data.endDate || toISODate(new Date());
+    const weekStarts = getWeekStartsInRange(
+      data.startDate,
+      endDate,
+      config.weekStart as "MONDAY" | "SUNDAY",
+      config.timeZone,
+    );
+
+    // Get committed weeks
+    const committedWeeks = await db.query.cachedWeeklySums.findMany({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.status, "committed"),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
+    const committedWeekStarts = new Set(committedWeeks.map((w) => w.weekStart));
+
+    const results: {
+      weekStartDate: string;
+      status: "success" | "error" | "skipped";
+      isCommitted: boolean;
+      discrepancyCreated?: boolean;
+      error?: string;
+    }[] = [];
+
+    let successCount = 0;
+    let errorCount = 0;
+    let skippedCount = 0;
+
+    for (const weekStartDate of weekStarts) {
+      const isCommitted = committedWeekStarts.has(weekStartDate);
+
+      // Skip committed weeks if user chose not to include them
+      if (isCommitted && !data.includeCommittedWeeks) {
+        results.push({
+          weekStartDate,
+          status: "skipped",
+          isCommitted: true,
+        });
+        skippedCount++;
+        continue;
+      }
+
+      try {
+        if (isCommitted) {
+          // Use refreshCommittedWeek to track discrepancies
+          const refreshResult = await refreshCommittedWeek({
+            data: { weekStartDate },
+          });
+
+          if (refreshResult.success) {
+            results.push({
+              weekStartDate,
+              status: "success",
+              isCommitted: true,
+              discrepancyCreated: refreshResult.data.discrepancyCreated,
+            });
+            successCount++;
+          } else {
+            results.push({
+              weekStartDate,
+              status: "error",
+              isCommitted: true,
+              error: refreshResult.error,
+            });
+            errorCount++;
+          }
+        } else {
+          // For pending weeks, recalculate daily and weekly sums
+          const dailyResult = await calculateAndCacheDailySums({
+            data: { weekStartDate },
+          });
+
+          if (!dailyResult.success) {
+            results.push({
+              weekStartDate,
+              status: "error",
+              isCommitted: false,
+              error: dailyResult.error,
+            });
+            errorCount++;
+            continue;
+          }
+
+          const weeklyResult = await calculateAndCacheWeeklySums({
+            data: { weekStartDate },
+          });
+
+          if (!weeklyResult.success) {
+            results.push({
+              weekStartDate,
+              status: "error",
+              isCommitted: false,
+              error:
+                "error" in weeklyResult
+                  ? weeklyResult.error
+                  : "Weekly calculation failed",
+            });
+            errorCount++;
+            continue;
+          }
+
+          results.push({
+            weekStartDate,
+            status: "success",
+            isCommitted: false,
+          });
+          successCount++;
+        }
+      } catch (error) {
+        results.push({
+          weekStartDate,
+          status: "error",
+          isCommitted,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        errorCount++;
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        totalWeeks: weekStarts.length,
+        successCount,
+        errorCount,
+        skippedCount,
+        results,
       },
     };
   });

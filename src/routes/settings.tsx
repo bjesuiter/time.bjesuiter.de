@@ -25,7 +25,11 @@ import {
   getClockifyProjects,
   refreshClockifySettings,
 } from "@/server/clockifyServerFns";
-import { invalidateCache } from "@/server/cacheServerFns";
+import {
+  invalidateCache,
+  getCommittedWeeksInRange,
+  refreshConfigTimeRange,
+} from "@/server/cacheServerFns";
 import {
   getConfigHistory,
   deleteConfigEntry,
@@ -155,6 +159,20 @@ function SettingsPage() {
     text: string;
   } | null>(null);
 
+  const [refreshProgress, setRefreshProgress] = useState<{
+    configId: string;
+    totalWeeks: number;
+    completedWeeks: number;
+    currentStatus: string;
+  } | null>(null);
+  const [pendingRefresh, setPendingRefresh] = useState<{
+    configId: string;
+    startDate: string;
+    endDate: string | null;
+    committedWeeks: string[];
+    totalWeeks: number;
+  } | null>(null);
+
   const refreshSettingsMutation = useMutation({
     mutationFn: () => refreshClockifySettings(),
     onSuccess: (result) => {
@@ -211,24 +229,88 @@ function SettingsPage() {
     },
   });
 
-  const refreshConfigEntryMutation = useMutation({
-    mutationFn: (params: { configId: string; fromDate: string }) => {
+  const checkCommittedWeeksMutation = useMutation({
+    mutationFn: async (params: {
+      configId: string;
+      startDate: string;
+      endDate: string | null;
+    }) => {
+      const result = await getCommittedWeeksInRange({
+        data: { startDate: params.startDate, endDate: params.endDate },
+      });
+      return { ...result, configId: params.configId };
+    },
+    onSuccess: (result, variables) => {
+      if (result.success) {
+        if (result.data.hasCommittedWeeks) {
+          setPendingRefresh({
+            configId: variables.configId,
+            startDate: variables.startDate,
+            endDate: variables.endDate,
+            committedWeeks: result.data.committedWeeks,
+            totalWeeks: result.data.totalWeeks,
+          });
+        } else {
+          performRefresh(
+            variables.configId,
+            variables.startDate,
+            variables.endDate,
+            false,
+            result.data.totalWeeks,
+          );
+        }
+      }
+    },
+  });
+
+  const refreshTimeRangeMutation = useMutation({
+    mutationFn: async (params: {
+      configId: string;
+      startDate: string;
+      endDate: string | null;
+      includeCommittedWeeks: boolean;
+      totalWeeks: number;
+    }) => {
       setRefreshingConfigId(params.configId);
       setRefreshConfigMessage(null);
-      return invalidateCache({ data: { fromDate: params.fromDate } });
+      setRefreshProgress({
+        configId: params.configId,
+        totalWeeks: params.totalWeeks,
+        completedWeeks: 0,
+        currentStatus: "Starting refresh...",
+      });
+
+      const result = await refreshConfigTimeRange({
+        data: {
+          startDate: params.startDate,
+          endDate: params.endDate,
+          includeCommittedWeeks: params.includeCommittedWeeks,
+        },
+      });
+      return { ...result, configId: params.configId };
     },
     onSuccess: (result, variables) => {
       setRefreshingConfigId(null);
+      setRefreshProgress(null);
+      setPendingRefresh(null);
+
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
         queryClient.invalidateQueries({ queryKey: ["config-history"] });
         queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
         queryClient.invalidateQueries({ queryKey: ["weeklyTimeSummary"] });
         queryClient.invalidateQueries({ queryKey: ["cumulativeOvertime"] });
+
+        const { successCount, errorCount, skippedCount, totalWeeks } =
+          result.data;
+        let message = `Refreshed ${successCount} of ${totalWeeks} weeks`;
+        if (skippedCount > 0) message += ` (${skippedCount} skipped)`;
+        if (errorCount > 0) message += ` (${errorCount} errors)`;
+
         setRefreshConfigMessage({
           configId: variables.configId,
-          type: "success",
-          text: `Data refreshed from ${result.data.fromDate}`,
+          type: errorCount > 0 ? "error" : "success",
+          text: message,
         });
       } else {
         setRefreshConfigMessage({
@@ -237,10 +319,12 @@ function SettingsPage() {
           text: "Failed to refresh data",
         });
       }
-      setTimeout(() => setRefreshConfigMessage(null), 5000);
+      setTimeout(() => setRefreshConfigMessage(null), 8000);
     },
     onError: (error, variables) => {
       setRefreshingConfigId(null);
+      setRefreshProgress(null);
+      setPendingRefresh(null);
       setRefreshConfigMessage({
         configId: variables.configId,
         type: "error",
@@ -250,6 +334,54 @@ function SettingsPage() {
       setTimeout(() => setRefreshConfigMessage(null), 5000);
     },
   });
+
+  const performRefresh = (
+    configId: string,
+    startDate: string,
+    endDate: string | null,
+    includeCommittedWeeks: boolean,
+    totalWeeks: number,
+  ) => {
+    refreshTimeRangeMutation.mutate({
+      configId,
+      startDate,
+      endDate,
+      includeCommittedWeeks,
+      totalWeeks,
+    });
+  };
+
+  const handleRefreshConfig = (entry: {
+    id: string;
+    validFrom: Date;
+    validUntil: Date | null;
+  }) => {
+    const startDate = entry.validFrom.toISOString().split("T")[0];
+    const endDate = entry.validUntil
+      ? entry.validUntil.toISOString().split("T")[0]
+      : null;
+
+    checkCommittedWeeksMutation.mutate({
+      configId: entry.id,
+      startDate,
+      endDate,
+    });
+  };
+
+  const handleCancelPendingRefresh = () => {
+    setPendingRefresh(null);
+  };
+
+  const handleConfirmRefreshWithCommitted = (includeCommitted: boolean) => {
+    if (!pendingRefresh) return;
+    performRefresh(
+      pendingRefresh.configId,
+      pendingRefresh.startDate,
+      pendingRefresh.endDate,
+      includeCommitted,
+      pendingRefresh.totalWeeks,
+    );
+  };
 
   // Handle edit config
   const handleStartEdit = (entry: any) => {
@@ -962,51 +1094,26 @@ function SettingsPage() {
                                         </p>
                                       </div>
                                       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                                        <ConfirmPopover
-                                          trigger={
-                                            <button
-                                              disabled={
-                                                refreshingConfigId === entry.id
-                                              }
-                                              className="p-2.5 sm:p-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                              title="Refresh data from Clockify for this period"
-                                            >
-                                              <RefreshCw
-                                                className={`w-4 h-4 ${refreshingConfigId === entry.id ? "animate-spin" : ""}`}
-                                              />
-                                            </button>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleRefreshConfig({
+                                              id: entry.id,
+                                              validFrom: entry.validFrom,
+                                              validUntil: entry.validUntil,
+                                            })
                                           }
-                                          okLabel="Refresh"
-                                          cancelLabel="Cancel"
-                                          onConfirm={() => {
-                                            const fromDate = new Date(
-                                              entry.validFrom,
-                                            )
-                                              .toISOString()
-                                              .split("T")[0];
-                                            refreshConfigEntryMutation.mutate({
-                                              configId: entry.id,
-                                              fromDate,
-                                            });
-                                          }}
+                                          disabled={
+                                            refreshingConfigId === entry.id ||
+                                            checkCommittedWeeksMutation.isPending
+                                          }
+                                          className="p-2.5 sm:p-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                          title="Refresh data from Clockify for all weeks in this period"
                                         >
-                                          <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-amber-600">
-                                              <AlertTriangle className="w-4 h-4 shrink-0" />
-                                              <p className="font-medium text-sm">
-                                                Refresh Clockify Data
-                                              </p>
-                                            </div>
-                                            <p className="text-gray-700 text-sm">
-                                              This will invalidate cached data
-                                              from{" "}
-                                              {new Date(
-                                                entry.validFrom,
-                                              ).toLocaleDateString()}{" "}
-                                              and re-fetch from Clockify.
-                                            </p>
-                                          </div>
-                                        </ConfirmPopover>
+                                          <RefreshCw
+                                            className={`w-4 h-4 ${refreshingConfigId === entry.id ? "animate-spin" : ""}`}
+                                          />
+                                        </button>
                                         <button
                                           onClick={() => handleStartEdit(entry)}
                                           className="p-2.5 sm:p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -1121,6 +1228,79 @@ function SettingsPage() {
                                         }`}
                                       >
                                         {refreshConfigMessage.text}
+                                      </div>
+                                    )}
+                                    {refreshProgress?.configId === entry.id && (
+                                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                                          <span className="text-sm font-medium text-blue-900">
+                                            Refreshing data from Clockify...
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-blue-700">
+                                          {refreshProgress.currentStatus}
+                                        </p>
+                                        <div className="mt-2 h-2 bg-blue-100 rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-blue-600 transition-all duration-300"
+                                            style={{
+                                              width: `${(refreshProgress.completedWeeks / refreshProgress.totalWeeks) * 100}%`,
+                                            }}
+                                          />
+                                        </div>
+                                        <p className="text-[10px] text-blue-600 mt-1">
+                                          {refreshProgress.completedWeeks} of{" "}
+                                          {refreshProgress.totalWeeks} weeks
+                                        </p>
+                                      </div>
+                                    )}
+                                    {pendingRefresh?.configId === entry.id && (
+                                      <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                          <span className="text-sm font-medium text-amber-900">
+                                            Committed Weeks Detected
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-amber-700 mb-3">
+                                          {pendingRefresh.committedWeeks.length}{" "}
+                                          of {pendingRefresh.totalWeeks} weeks
+                                          are committed (locked). Refreshing
+                                          committed weeks will track any data
+                                          changes as discrepancies.
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleConfirmRefreshWithCommitted(
+                                                false,
+                                              )
+                                            }
+                                            className="px-3 py-1.5 text-xs font-medium bg-white border border-amber-300 text-amber-700 rounded hover:bg-amber-100 transition-colors"
+                                          >
+                                            Skip Committed Weeks
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleConfirmRefreshWithCommitted(
+                                                true,
+                                              )
+                                            }
+                                            className="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
+                                          >
+                                            Include All Weeks
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={handleCancelPendingRefresh}
+                                            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
                                       </div>
                                     )}
                                   </>

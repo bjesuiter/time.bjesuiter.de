@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-0ow8
 title: Validate 'Refresh Clockify Data' button refreshes ALL weeks in config timeframe
-status: todo
+status: completed
 type: bug
 priority: high
 created_at: 2026-01-20T22:42:03Z
-updated_at: 2026-01-20T22:42:03Z
+updated_at: 2026-01-21T19:54:51Z
 ---
 
 ## Description
@@ -16,11 +16,18 @@ Additionally, it should properly notify/warn about locked (committed) weeks that
 
 ## Requirements
 
-- [ ] Verify current behavior: does invalidateCache from validFrom actually refresh all weeks?
-- [ ] If not, implement logic to refresh all weeks in the config's date range
-- [ ] Add warning/notification when refresh affects locked (committed) weeks
-- [ ] Consider: should locked weeks be skipped or force-refreshed with user confirmation?
-- [ ] Update progress indicator to show which week is being refreshed (e.g., 'Refreshing week 3 of 12...')
+- [x] Verify current behavior: does invalidateCache from validFrom actually refresh all weeks?
+  - **FINDING**: `invalidateCache` only marks cache as invalidated (sets `invalidatedAt`). Actual re-fetch happens lazily on dashboard visit. Committed weeks are skipped during auto-refresh.
+- [x] If not, implement logic to refresh all weeks in the config's date range
+  - Created `getCommittedWeeksInRange` server function in `cacheServerFns.ts`
+  - Created `refreshConfigTimeRange` server function that actively refreshes all weeks
+- [x] Add warning/notification when refresh affects locked (committed) weeks
+  - Shows inline warning dialog when committed weeks are detected
+- [x] Consider: should locked weeks be skipped or force-refreshed with user confirmation?
+  - **DECISION**: Give user 3 options: Skip committed, Include committed (track discrepancies), Cancel
+  - Implemented all 3 options in the warning dialog
+- [x] Update progress indicator to show which week is being refreshed (e.g., 'Refreshing week 3 of 12...')
+  - Added progress bar with "X of Y weeks" indicator during refresh
 
 ## Technical Notes
 
