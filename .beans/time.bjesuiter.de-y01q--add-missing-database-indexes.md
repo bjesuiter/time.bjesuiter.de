@@ -12,6 +12,11 @@ Add indexes for auth and cache tables based on query patterns.
 
 ## Checklist
 - [ ] Add indexes to better-auth session/account userId
-- [ ] Add invalidatedAt indexes to cache tables
-- [ ] Add lookup index for config chronicle user/type
+  - `session.userId` - queried when looking up user sessions
+  - `account.userId` - queried when looking up user accounts
+- [ ] Add invalidatedAt indexes to cache tables (27 queries use `isNull(invalidatedAt)`)
+  - `cachedDailyProjectSums.invalidatedAt`
+  - `cachedWeeklySums.invalidatedAt`
+- [x] Add lookup index for config chronicle user/type
+  - Already exists: `config_chronic_temporal_idx` on `(user_id, config_type, valid_from, valid_until)`
 - [ ] Generate and apply migration
