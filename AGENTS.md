@@ -202,7 +202,10 @@ Can be imported anywhere:
 ## Environment Variables
 
 Validated with Zod in `src/lib/env/envStore.ts`:
-- `DATABASE_URL`, `ALLOW_USER_SIGNUP`, `ADMIN_EMAIL`, `ADMIN_LABEL`, `ADMIN_PASSWORD`
+- `ENVIRONMENT` - App mode: `dev`, `prod`, `test`, or `memory`
+- `DATABASE_URL` - SQLite connection string
+- `ALLOW_USER_SIGNUP` - Enable public signup (`true`/`false`)
+- `ADMIN_EMAIL`, `ADMIN_LABEL`, `ADMIN_PASSWORD` - Admin account credentials
 
 To add new variables: Update envStore schema, add to `.env`, document here.
 
