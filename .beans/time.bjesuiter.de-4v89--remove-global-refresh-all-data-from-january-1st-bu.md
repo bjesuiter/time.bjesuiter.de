@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-4v89
 title: Remove global 'Refresh All Data from January 1st' button
-status: todo
+status: completed
 type: task
+priority: normal
 created_at: 2026-01-20T22:40:19Z
-updated_at: 2026-01-20T22:40:19Z
+updated_at: 2026-01-21T21:33:06Z
 ---
 
 ## Description
@@ -13,9 +14,11 @@ Now that each Configuration Chronicle entry has its own 'Refresh Data from Clock
 
 ## Requirements
 
-- [ ] Remove the ConfirmPopover with 'Refresh All Data from January 1st' button from settings.tsx
-- [ ] Remove associated state (invalidateCacheMessage, invalidateCacheMutation) if no longer needed
-- [ ] Verify no other code depends on this functionality
+- [x] Remove the ConfirmPopover with 'Refresh All Data from January 1st' button from settings.tsx
+- [x] Remove associated state (invalidateCacheMessage, invalidateCacheMutation) if no longer needed
+- [x] Verify no other code depends on this functionality
+  - Removed `invalidateCache` import (no longer used)
+  - Build passes, UI verified via Playwright
 
 ## Location
 
