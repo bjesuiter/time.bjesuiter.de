@@ -33,6 +33,7 @@ import {
   getConfigHistory,
   deleteConfigEntry,
   updateConfig,
+  type ConfigHistoryEntry,
 } from "@/server/configServerFns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Toolbar } from "@/components/Toolbar";
@@ -349,8 +350,7 @@ function SettingsPage() {
     );
   };
 
-  // Handle edit config
-  const handleStartEdit = (entry: any) => {
+  const handleStartEdit = (entry: ConfigHistoryEntry) => {
     setEditingConfigId(entry.id);
     const validFrom = new Date(entry.validFrom);
     const year = validFrom.getFullYear();

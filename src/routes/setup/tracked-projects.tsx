@@ -93,8 +93,8 @@ function TrackedProjectsSetup() {
       queryClient.invalidateQueries({ queryKey: ["current-config"] });
       navigate({ to: "/settings" });
     },
-    onError: (error: any) => {
-      setError(error?.message || "Failed to create configuration");
+    onError: (error: Error) => {
+      setError(error.message || "Failed to create configuration");
     },
   });
 
