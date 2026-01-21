@@ -138,6 +138,8 @@ src/
 
 ### Server-Only Modules (CRITICAL)
 
+**RULE: Never import server-only code in route files.** Always create a server function in `src/server/` and import that instead.
+
 These modules must ONLY be imported in `src/server/` files:
 
 - `@/lib/env/envStore` - Environment variables
