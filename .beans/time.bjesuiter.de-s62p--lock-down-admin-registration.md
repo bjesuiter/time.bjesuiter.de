@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-s62p
 title: Lock down admin registration
-status: todo
+status: scrapped
 type: bug
+priority: normal
 created_at: 2026-01-20T22:30:10Z
-updated_at: 2026-01-20T22:30:10Z
+updated_at: 2026-01-21T22:10:59Z
 ---
 
 ## Summary

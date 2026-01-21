@@ -51,6 +51,20 @@ An automated dashboard that connects to Clockify and provides:
 - Secure authentication with Better-auth (email-based)
 - SQLite database for local data storage and caching
 
+**Admin User Setup**
+
+The `/registerAdmin` route provides automated admin user creation using environment variables. This is an "installer" pattern - not a security risk because:
+
+- No user input fields exist on the page (only a trigger button)
+- Admin credentials are defined in environment variables (`ADMIN_EMAIL`, `ADMIN_PASSWORD`)
+- The route simply writes the env var values to the database
+- Useful for automated deployments and initial setup scripts
+
+To set up the admin user:
+1. Configure `ADMIN_EMAIL` and `ADMIN_PASSWORD` in your `.env` file
+2. Visit `/registerAdmin` and click the register button
+3. Use the "Force Re-register" option to reset an existing admin account
+
 ### Key Features
 
 1. **Clockify Integration**
