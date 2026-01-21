@@ -22,6 +22,13 @@
       "when": 1768855806373,
       "tag": "0002_whole_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1769035312766,
+      "tag": "0003_lame_lady_ursula",
+      "breakpoints": true
     }
   ]
 }
