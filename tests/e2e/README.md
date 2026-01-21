@@ -20,6 +20,12 @@ bun run e2e
 # Or use the full command
 bun run test:e2e
 
+# Run specific test file (fuzzy match)
+bun e2e <filename>
+
+# Run specific test with single worker (isolated debugging)
+bun e2e <filename> --workers=1
+
 # Run with UI mode (interactive)
 bun run test:e2e:ui
 
