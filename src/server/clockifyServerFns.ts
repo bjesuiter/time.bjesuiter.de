@@ -5,6 +5,7 @@ import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
 import { cachedDailyProjectSums, cachedWeeklySums } from "@/db/schema/cache";
 import { auth } from "@/lib/auth/auth";
+import { logger } from "@/lib/logger";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
 import type { DailyBreakdown } from "@/lib/clockify/types";
@@ -837,17 +838,13 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         parseLocalDateInTz(data.currentWeekStartDate, userTimeZone),
       );
 
-      console.log("[DEBUG getCumulativeOvertime]", {
+      logger.debug("getCumulativeOvertime", {
         startDateStr,
         userTimeZone,
         startDate: startDate.toISOString(),
-        "data.currentWeekStartDate": data.currentWeekStartDate,
+        currentWeekStartDate: data.currentWeekStartDate,
         firstWeekStart: firstWeekStart.toISOString(),
         currentWeekStart: currentWeekStart.toISOString(),
-        "firstWeekStart.getTime()": firstWeekStart.getTime(),
-        "currentWeekStart.getTime()": currentWeekStart.getTime(),
-        "condition (first <= current)":
-          firstWeekStart.getTime() <= currentWeekStart.getTime(),
       });
 
       const weekStarts: Date[] = [];
