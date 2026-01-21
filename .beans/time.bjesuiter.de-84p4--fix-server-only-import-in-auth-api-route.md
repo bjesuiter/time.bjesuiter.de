@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-84p4
 title: Fix server-only import in auth API route
-status: todo
+status: completed
 type: bug
+priority: normal
 created_at: 2026-01-20T22:29:01Z
-updated_at: 2026-01-20T22:29:01Z
+updated_at: 2026-01-21T22:21:39Z
 ---
 
 ## Summary
@@ -30,7 +31,7 @@ import { handleAuthRequest } from "@/server/authServerFns";  // ✅ Safe
 ```
 
 ## Checklist
-- [ ] Create `src/server/authServerFns.ts` with wrapper for Better Auth handler
-- [ ] Update `src/routes/api/auth/$.ts` to call server function
-- [ ] Verify no server-only imports remain in route files (`grep -r "from \"@/lib/auth" src/routes/`)
-- [ ] Test auth flow still works (signin, signup, signout)
+- [x] Create `src/server/authServerFns.ts` with wrapper for Better Auth handler
+- [x] Update `src/routes/api/auth/$.ts` to call server function
+- [x] Verify no server-only imports remain in route files (`grep -r "from \"@/lib/auth" src/routes/`)
+- [x] Test auth flow still works (signin, signup, signout)
