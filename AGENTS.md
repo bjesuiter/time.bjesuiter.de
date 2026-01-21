@@ -41,6 +41,8 @@ bun run auth-schema            # Regenerate better-auth schema
 
 **Before starting dev server**: Check if port 3000/3001 is in use.
 
+**When running tests**: Always use the bun scripts listed above (avoid invoking test files directly).
+
 ---
 
 ## Tech Stack
