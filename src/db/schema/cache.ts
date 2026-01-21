@@ -27,6 +27,7 @@ export const cachedDailyProjectSums = sqliteTable(
       table.projectId,
       table.date,
     ),
+    invalidatedIdx: index("cached_daily_invalidated_idx").on(table.invalidatedAt),
   }),
 );
 
@@ -62,6 +63,7 @@ export const cachedWeeklySums = sqliteTable(
       table.weekStart,
     ),
     statusIdx: index("cached_weekly_status_idx").on(table.userId, table.status),
+    invalidatedIdx: index("cached_weekly_invalidated_idx").on(table.invalidatedAt),
   }),
 );
 
