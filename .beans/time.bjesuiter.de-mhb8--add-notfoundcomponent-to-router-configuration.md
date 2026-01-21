@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-mhb8
 title: Add notFoundComponent to router configuration
-status: todo
+status: completed
 type: task
 priority: low
 created_at: 2026-01-20T22:13:25Z
-updated_at: 2026-01-20T22:13:25Z
+updated_at: 2026-01-21T22:38:12Z
 ---
 
 TanStack Router warning appears in console:
@@ -20,6 +20,6 @@ Configure either:
 - A `defaultNotFoundComponent` at the router level
 
 ## Checklist
-- [ ] Create a custom NotFound component
-- [ ] Configure it in the router or root route
-- [ ] Verify warning is gone
+- [x] Create a custom NotFound component
+- [x] Configure it in the router or root route
+- [x] Verify warning is gone (build passes)
