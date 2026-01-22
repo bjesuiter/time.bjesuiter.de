@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-blan
 title: Separate cache invalidation concerns clearly
-status: todo
+status: completed
 type: task
 priority: high
 created_at: 2026-01-22T12:11:18Z
-updated_at: 2026-01-22T12:11:18Z
+updated_at: 2026-01-22T12:27:58Z
 parent: uvmr
 ---
 
@@ -29,7 +29,12 @@ Create clear separation between different types of cache operations.
 - `recalculateCumulative(week)`: Uses cached weekly data, only recalculates cumulative
 
 ## Checklist
-- [ ] Create clear function separation for these operations
-- [ ] Document when each type of invalidation occurs
-- [ ] Ensure Clockify is NEVER called for cumulative-only recalculation
-- [ ] Add logging to make cache operations traceable
+- [x] Create clear function separation for these operations
+  - Added `recalculateCumulativeOvertimeFromCache` in cacheHelpers.ts
+  - Added `invalidateCumulativeOvertimeAfterWeek` in cacheHelpers.ts
+- [x] Document when each type of invalidation occurs
+  - Added Cache Operations Guide docstring in cacheHelpers.ts
+- [x] Ensure Clockify is NEVER called for cumulative-only recalculation
+  - Removed Clockify API call from getCumulativeOvertime - now only uses cached weekly data
+- [x] Add logging to make cache operations traceable
+  - Added logger.info/debug calls to all cache operations

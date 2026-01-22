@@ -13,9 +13,6 @@ import type { DailyBreakdown } from "@/lib/clockify/types";
 import {
   addDays,
   addWeeks,
-  getDay,
-  isBefore,
-  isAfter,
   startOfWeek,
   setHours,
   setMinutes,
@@ -24,7 +21,6 @@ import {
 } from "date-fns";
 import {
   parseLocalDateInTz,
-  nowInTz,
   endOfDayInTz,
   toUTCISOString,
   toISODate,
@@ -911,10 +907,6 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       }
 
       let cumulativeOvertimeSeconds = baseCumulativeFromCache;
-      const expectedSecondsPerWeek = regularHoursPerWeek * 3600;
-      const workingDaysPerWeek = config.workingDaysPerWeek;
-      const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;
-      const today = endOfDayInTz(nowInTz(userTimeZone), userTimeZone);
 
       for (let i = firstWeekToCalculate; i < weekStarts.length; i++) {
         const weekStartDateIter = weekStarts[i];
@@ -926,66 +918,10 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         if (hasCachedWeeklyOvertime) {
           cumulativeOvertimeSeconds += cached.overtimeSeconds;
         } else {
-          const weekEnd = endOfDayInTz(
-            addDays(weekStartDateIter, 6),
-            userTimeZone,
-          );
-
-          const trackedProjectsConfig = await db.query.configChronic.findFirst({
-            where: and(
-              eq(configChronic.userId, userId),
-              eq(configChronic.configType, "tracked_projects"),
-              lte(configChronic.validFrom, weekEnd),
-              or(
-                isNull(configChronic.validUntil),
-                gt(configChronic.validUntil, weekStartDateIter),
-              ),
-            ),
+          logger.warn("getCumulativeOvertime: missing weekly overtime data - skipping week", {
+            weekStart: weekStartStr,
+            message: "Weekly data must be refreshed from Clockify before cumulative can be calculated",
           });
-
-          if (trackedProjectsConfig) {
-            const trackedProjects = JSON.parse(
-              trackedProjectsConfig.value,
-            ) as TrackedProjectsValue;
-
-            if (trackedProjects.projectIds.length > 0) {
-              const reportResult = await clockifyClient.getWeeklyTimeReport(
-                config.clockifyApiKey,
-                {
-                  workspaceId: config.clockifyWorkspaceId,
-                  clientId: config.selectedClientId,
-                  projectIds: trackedProjects.projectIds,
-                  startDate: toUTCISOString(weekStartDateIter),
-                  endDate: toUTCISOString(weekEnd),
-                },
-              );
-
-              if (reportResult.success) {
-                let weekTotalSeconds = 0;
-                for (const day of Object.values(reportResult.data.dailyBreakdown)) {
-                  weekTotalSeconds += day.totalSeconds;
-                }
-
-                let eligibleWorkdays = 0;
-                for (let j = 0; j < 7; j++) {
-                  const dayDate = addDays(weekStartDateIter, j);
-                  const dayOfWeek = getDay(dayDate);
-                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                  const isBeforeConfigStart = isBefore(dayDate, startDate);
-                  const isFutureDay = isAfter(dayDate, today);
-
-                  if (!isWeekend && !isBeforeConfigStart && !isFutureDay) {
-                    eligibleWorkdays++;
-                    if (eligibleWorkdays >= workingDaysPerWeek) break;
-                  }
-                }
-
-                const weekExpectedSeconds = eligibleWorkdays * expectedSecondsPerDay;
-                const weekOvertime = weekTotalSeconds - weekExpectedSeconds;
-                cumulativeOvertimeSeconds += weekOvertime;
-              }
-            }
-          }
         }
 
         if (cached) {
