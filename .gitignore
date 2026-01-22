@@ -23,6 +23,7 @@ local/*
 # ignore all report folders & ai stuff
 reports/
 .playwright-mcp/
+.sisyphus/
 agent/tmp
 
 tmp/
