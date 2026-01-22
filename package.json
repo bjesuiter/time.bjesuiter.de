@@ -24,7 +24,6 @@
     "dbgenerate": "bunx drizzle-kit generate",
     "dbstudio": "bunx drizzle-kit studio",
     "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
-    "pg": "bun ./playground/clockify-api.bun.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
