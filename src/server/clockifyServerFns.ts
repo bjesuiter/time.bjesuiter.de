@@ -953,77 +953,75 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
           cached?.overtimeSeconds !== null && cached?.overtimeSeconds !== undefined;
         if (hasCachedWeeklyOvertime) {
           cumulativeOvertimeSeconds += cached.overtimeSeconds;
-          continue;
-        }
+        } else {
+          const weekEnd = endOfDayInTz(
+            addDays(weekStartDateIter, 6),
+            userTimeZone,
+          );
 
-        const weekEnd = endOfDayInTz(
-          addDays(weekStartDateIter, 6),
-          userTimeZone,
-        );
-
-        const trackedProjectsConfig = await db.query.configChronic.findFirst({
-          where: and(
-            eq(configChronic.userId, userId),
-            eq(configChronic.configType, "tracked_projects"),
-            lte(configChronic.validFrom, weekEnd),
-            or(
-              isNull(configChronic.validUntil),
-              gt(configChronic.validUntil, weekStartDateIter),
+          const trackedProjectsConfig = await db.query.configChronic.findFirst({
+            where: and(
+              eq(configChronic.userId, userId),
+              eq(configChronic.configType, "tracked_projects"),
+              lte(configChronic.validFrom, weekEnd),
+              or(
+                isNull(configChronic.validUntil),
+                gt(configChronic.validUntil, weekStartDateIter),
+              ),
             ),
-          ),
-        });
+          });
 
-        if (!trackedProjectsConfig) continue;
+          if (trackedProjectsConfig) {
+            const trackedProjects = JSON.parse(
+              trackedProjectsConfig.value,
+            ) as TrackedProjectsValue;
 
-        const trackedProjects = JSON.parse(
-          trackedProjectsConfig.value,
-        ) as TrackedProjectsValue;
+            if (trackedProjects.projectIds.length > 0) {
+              const reportResult = await clockifyClient.getWeeklyTimeReport(
+                config.clockifyApiKey,
+                {
+                  workspaceId: config.clockifyWorkspaceId,
+                  clientId: config.selectedClientId,
+                  projectIds: trackedProjects.projectIds,
+                  startDate: toUTCISOString(weekStartDateIter),
+                  endDate: toUTCISOString(weekEnd),
+                },
+              );
 
-        if (trackedProjects.projectIds.length === 0) continue;
+              if (reportResult.success) {
+                let weekTotalSeconds = 0;
+                for (const day of Object.values(reportResult.data.dailyBreakdown)) {
+                  weekTotalSeconds += day.totalSeconds;
+                }
 
-        const reportResult = await clockifyClient.getWeeklyTimeReport(
-          config.clockifyApiKey,
-          {
-            workspaceId: config.clockifyWorkspaceId,
-            clientId: config.selectedClientId,
-            projectIds: trackedProjects.projectIds,
-            startDate: toUTCISOString(weekStartDateIter),
-            endDate: toUTCISOString(weekEnd),
-          },
-        );
+                let eligibleWorkdays = 0;
+                for (let j = 0; j < 7; j++) {
+                  const dayDate = addDays(weekStartDateIter, j);
+                  const dayOfWeek = getDay(dayDate);
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  const isBeforeConfigStart = isBefore(dayDate, startDate);
+                  const isFutureDay = isAfter(dayDate, today);
 
-        if (!reportResult.success) continue;
+                  if (!isWeekend && !isBeforeConfigStart && !isFutureDay) {
+                    eligibleWorkdays++;
+                    if (eligibleWorkdays >= workingDaysPerWeek) break;
+                  }
+                }
 
-        let weekTotalSeconds = 0;
-        for (const day of Object.values(reportResult.data.dailyBreakdown)) {
-          weekTotalSeconds += day.totalSeconds;
-        }
-
-        let eligibleWorkdays = 0;
-        for (let j = 0; j < 7; j++) {
-          const dayDate = addDays(weekStartDateIter, j);
-          const dayOfWeek = getDay(dayDate);
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const isBeforeConfigStart = isBefore(dayDate, startDate);
-          const isFutureDay = isAfter(dayDate, today);
-
-          if (!isWeekend && !isBeforeConfigStart && !isFutureDay) {
-            eligibleWorkdays++;
-            if (eligibleWorkdays >= workingDaysPerWeek) break;
+                const weekExpectedSeconds = eligibleWorkdays * expectedSecondsPerDay;
+                const weekOvertime = weekTotalSeconds - weekExpectedSeconds;
+                cumulativeOvertimeSeconds += weekOvertime;
+              }
+            }
           }
         }
 
-        const weekExpectedSeconds = eligibleWorkdays * expectedSecondsPerDay;
-        const weekOvertime = weekTotalSeconds - weekExpectedSeconds;
-        cumulativeOvertimeSeconds += weekOvertime;
-      }
-
-      const currentWeekCache = cachedWeekMap.get(data.currentWeekStartDate);
-      if (currentWeekCache) {
-        await db
-          .update(cachedWeeklySums)
-          .set({ cumulativeOvertimeSeconds })
-          .where(eq(cachedWeeklySums.id, currentWeekCache.id));
+        if (cached) {
+          await db
+            .update(cachedWeeklySums)
+            .set({ cumulativeOvertimeSeconds })
+            .where(eq(cachedWeeklySums.id, cached.id));
+        }
       }
 
       return {
