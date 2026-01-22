@@ -1,4 +1,4 @@
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, index, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { user } from "./better-auth";
 
 export const userClockifyConfig = sqliteTable("user_clockify_config", {
@@ -26,7 +26,12 @@ export const userClockifyConfig = sqliteTable("user_clockify_config", {
     .$defaultFn(() => new Date())
     .$onUpdate(() => new Date())
     .notNull(),
-});
+  }, (table) => ({
+    // Indexes for user-specific queries
+    userIdx: index("user_clockify_config_user_id_idx").on(table.userId),
+    workspaceIdx: index("user_clockify_config_workspace_idx").on(table.clockifyWorkspaceId),
+  }),
+);
 
 export const clockifySchemas = {
   userClockifyConfig,
