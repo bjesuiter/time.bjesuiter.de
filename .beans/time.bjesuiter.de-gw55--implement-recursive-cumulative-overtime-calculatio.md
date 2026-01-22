@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-gw55
 title: Implement recursive cumulative overtime calculation
-status: todo
+status: completed
 type: task
 priority: high
 created_at: 2026-01-22T12:11:00Z
-updated_at: 2026-01-22T12:11:00Z
+updated_at: 2026-01-22T12:32:34Z
 parent: uvmr
 ---
 
@@ -31,8 +31,8 @@ function calculateCumulativeOvertime(weekStartDate):
 - Store calculated cumulative in cache for future use
 
 ## Checklist
-- [ ] Create new calculateCumulativeOvertime function with recursive logic
-- [ ] Ensure it uses cached values when available
-- [ ] Ensure it stores calculated values in cache
-- [ ] Handle edge case: first week (no previous week)
-- [ ] Handle force-recalculate flag for user-triggered refresh
+- [x] Create new calculateCumulativeOvertime function with recursive logic
+- [x] Ensure it uses cached values when available
+- [x] Ensure it stores calculated values in cache
+- [x] Handle edge case: first week (no previous week)
+- [x] Handle force-recalculate flag for user-triggered refresh
