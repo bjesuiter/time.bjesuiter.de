@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-qu7v
 title: Clean up duplicate SQL migration files
-status: todo
+status: completed
 type: task
+priority: normal
 created_at: 2026-01-21T23:41:15Z
-updated_at: 2026-01-21T23:41:15Z
+updated_at: 2026-01-22T01:34:28Z
 ---
 
 There are duplicate SQL migration files in multiple directories.
@@ -15,7 +16,7 @@ There are duplicate SQL migration files in multiple directories.
 - These appear to be Drizzle migration artifacts
 
 ## Checklist
-- [ ] Remove SQL files from .output/server/drizzle/ directory
-- [ ] Keep SQL files in drizzle/ directory only
-- [ ] Add .output/**/drizzle/ to .gitignore if not present
-- [ ] Verify migration still works with clean structure
+- [x] Remove SQL files from .output/server/drizzle/ directory
+- [x] Keep SQL files in drizzle/ directory only
+- [x] Add .output/**/drizzle/ to .gitignore if not present (covered by .output)
+- [x] Verify migration still works with clean structure
