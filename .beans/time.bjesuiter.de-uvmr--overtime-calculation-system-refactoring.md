@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-uvmr
 title: Overtime Calculation System Refactoring
-status: in-progress
+status: completed
 type: epic
 priority: high
 created_at: 2026-01-22T12:10:45Z
-updated_at: 2026-01-22T12:10:45Z
+updated_at: 2026-01-22T12:41:19Z
 ---
 
 Comprehensive refactoring of the overtime calculation and caching system to make it simpler, more reliable, and more efficient.
