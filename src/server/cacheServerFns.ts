@@ -269,30 +269,35 @@ export const getCachedWeeklySummary = createServerFn({ method: "POST" })
   .handler(async ({ data, request }) => {
     const userId = await getAuthenticatedUserId(request);
 
-    if (!data.forceRefresh) {
-      const cached = await db.query.cachedWeeklySums.findFirst({
-        where: and(
-          eq(cachedWeeklySums.userId, userId),
-          eq(cachedWeeklySums.weekStart, data.weekStartDate),
-          isNull(cachedWeeklySums.invalidatedAt),
-        ),
-      });
+    const cached = await db.query.cachedWeeklySums.findFirst({
+      where: and(
+        eq(cachedWeeklySums.userId, userId),
+        eq(cachedWeeklySums.weekStart, data.weekStartDate),
+        isNull(cachedWeeklySums.invalidatedAt),
+      ),
+    });
 
-      if (cached) {
-        return {
-          success: true,
-          data: {
-            weekStart: cached.weekStart,
-            weekEnd: cached.weekEnd,
-            totalSeconds: cached.totalSeconds,
-            regularHoursBaseline: cached.regularHoursBaseline,
-            overtimeSeconds: cached.overtimeSeconds,
-            cumulativeOvertimeSeconds: cached.cumulativeOvertimeSeconds,
-            calculatedAt: cached.calculatedAt,
-            fromCache: true,
-          },
-        };
-      }
+    if (cached && !data.forceRefresh) {
+      return {
+        success: true,
+        data: {
+          weekStart: cached.weekStart,
+          weekEnd: cached.weekEnd,
+          totalSeconds: cached.totalSeconds,
+          regularHoursBaseline: cached.regularHoursBaseline,
+          overtimeSeconds: cached.overtimeSeconds,
+          cumulativeOvertimeSeconds: cached.cumulativeOvertimeSeconds,
+          calculatedAt: cached.calculatedAt,
+          fromCache: true,
+        },
+      };
+    }
+
+    if (!data.forceRefresh) {
+      return {
+        success: false,
+        error: "No cached data available. Use forceRefresh to fetch from Clockify.",
+      };
     }
 
     const calcResult = await calculateAndCacheWeeklySums({

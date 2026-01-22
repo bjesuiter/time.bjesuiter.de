@@ -573,47 +573,52 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
-      if (!data.forceRefresh) {
-        const cachedDaily = await db.query.cachedDailyProjectSums.findMany({
-          where: and(
-            eq(cachedDailyProjectSums.userId, userId),
-            gte(cachedDailyProjectSums.date, data.weekStartDate),
-            lte(
-              cachedDailyProjectSums.date,
-              toISODate(addDays(weekStartDate, 6)),
-            ),
-            isNull(cachedDailyProjectSums.invalidatedAt),
+      const cachedDaily = await db.query.cachedDailyProjectSums.findMany({
+        where: and(
+          eq(cachedDailyProjectSums.userId, userId),
+          gte(cachedDailyProjectSums.date, data.weekStartDate),
+          lte(
+            cachedDailyProjectSums.date,
+            toISODate(addDays(weekStartDate, 6)),
           ),
-        });
+          isNull(cachedDailyProjectSums.invalidatedAt),
+        ),
+      });
 
-        if (cachedDaily.length > 0) {
-          const dailyBreakdown = buildDailyBreakdownFromCache(
-            cachedDaily,
-            trackedProjects.projectIds,
-          );
-          const oldestCacheEntry = cachedDaily.reduce((oldest, entry) =>
-            entry.calculatedAt < oldest.calculatedAt ? entry : oldest,
-          );
+      if (cachedDaily.length > 0 && !data.forceRefresh) {
+        const dailyBreakdown = buildDailyBreakdownFromCache(
+          cachedDaily,
+          trackedProjects.projectIds,
+        );
+        const oldestCacheEntry = cachedDaily.reduce((oldest, entry) =>
+          entry.calculatedAt < oldest.calculatedAt ? entry : oldest,
+        );
 
-          return {
-            success: true,
-            data: {
-              weekStartDate: data.weekStartDate,
-              weekStart: config.weekStart,
-              dailyBreakdown,
-              trackedProjects: trackedProjects,
-              regularHoursPerWeek: config.regularHoursPerWeek,
-              workingDaysPerWeek: config.workingDaysPerWeek,
-              clientName: config.selectedClientName,
-              configStartDate: config.cumulativeOvertimeStartDate,
-              cachedAt: oldestCacheEntry.calculatedAt.getTime(),
-              configValidFrom: toISODate(trackedProjectsConfig.validFrom),
-              configValidUntil: trackedProjectsConfig.validUntil
-                ? toISODate(trackedProjectsConfig.validUntil)
-                : null,
-            },
-          };
-        }
+        return {
+          success: true,
+          data: {
+            weekStartDate: data.weekStartDate,
+            weekStart: config.weekStart,
+            dailyBreakdown,
+            trackedProjects: trackedProjects,
+            regularHoursPerWeek: config.regularHoursPerWeek,
+            workingDaysPerWeek: config.workingDaysPerWeek,
+            clientName: config.selectedClientName,
+            configStartDate: config.cumulativeOvertimeStartDate,
+            cachedAt: oldestCacheEntry.calculatedAt.getTime(),
+            configValidFrom: toISODate(trackedProjectsConfig.validFrom),
+            configValidUntil: trackedProjectsConfig.validUntil
+              ? toISODate(trackedProjectsConfig.validUntil)
+              : null,
+          },
+        };
+      }
+
+      if (!data.forceRefresh) {
+        return {
+          success: false,
+          error: "No cached data available. Click refresh to fetch from Clockify.",
+        };
       }
 
       const reportResult = await clockifyClient.getWeeklyTimeReport(
