@@ -23,7 +23,7 @@
     "dbpush": "bunx drizzle-kit push",
     "dbgenerate": "bunx drizzle-kit generate",
     "dbstudio": "bunx drizzle-kit studio",
-    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
+    "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
