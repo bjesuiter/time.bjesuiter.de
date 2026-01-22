@@ -8,6 +8,7 @@ export interface CumulativeOvertimeSummaryProps {
   cumulativeOvertimeSeconds: number;
   weeksIncluded: number;
   error?: string;
+  estimatedWeeksTotal?: number;
 }
 
 export function CumulativeOvertimeSummary({
@@ -17,14 +18,23 @@ export function CumulativeOvertimeSummary({
   cumulativeOvertimeSeconds,
   weeksIncluded,
   error,
+  estimatedWeeksTotal,
 }: CumulativeOvertimeSummaryProps) {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-3 sm:p-4 flex items-center justify-center">
-        <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 text-indigo-500 animate-spin mr-2" />
-        <span className="text-gray-600 text-xs sm:text-sm">
-          Calculating cumulative overtime...
-        </span>
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4">
+        <div className="flex items-center justify-center">
+          <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 text-indigo-500 animate-spin mr-2" />
+          <span className="text-gray-600 text-xs sm:text-sm">
+            Calculating cumulative overtime
+            {estimatedWeeksTotal ? ` (${estimatedWeeksTotal} weeks)` : ""}...
+          </span>
+        </div>
+        {estimatedWeeksTotal && estimatedWeeksTotal > 10 && (
+          <p className="text-center text-gray-400 text-[10px] mt-1">
+            This may take a moment for large date ranges
+          </p>
+        )}
       </div>
     );
   }

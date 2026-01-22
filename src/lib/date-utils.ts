@@ -406,3 +406,30 @@ export function getDefaultWeekForMonthInTz(
 export function toUTCISOString(date: Date | TZDate): string {
   return new Date(date.getTime()).toISOString();
 }
+
+/**
+ * Count the number of weeks between two dates (inclusive).
+ * Used for estimating calculation progress.
+ */
+export function countWeeksBetween(
+  startDateStr: string,
+  endDateStr: string,
+  weekStart: "MONDAY" | "SUNDAY",
+): number {
+  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+
+  const startDate = parseLocalDate(startDateStr);
+  const endDate = parseLocalDate(endDateStr);
+
+  const firstWeekStart = startOfWeek(startDate, { weekStartsOn });
+  const lastWeekStart = startOfWeek(endDate, { weekStartsOn });
+
+  let count = 0;
+  let current = firstWeekStart;
+  while (current <= lastWeekStart) {
+    count++;
+    current = addWeeks(current, 1);
+  }
+
+  return count;
+}

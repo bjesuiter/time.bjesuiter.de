@@ -46,6 +46,7 @@ import {
   formatWeekRange,
   parseMonthString,
   formatLastUpdated,
+  countWeeksBetween,
 } from "@/lib/date-utils";
 
 const dashboardSearchSchema = z.object({
@@ -401,6 +402,16 @@ function DashboardView() {
                     error={
                       cumulativeOvertimeQuery.data?.success === false
                         ? cumulativeOvertimeQuery.data?.error
+                        : undefined
+                    }
+                    estimatedWeeksTotal={
+                      configQuery.data?.success &&
+                      configQuery.data.config.cumulativeOvertimeStartDate
+                        ? countWeeksBetween(
+                            configQuery.data.config.cumulativeOvertimeStartDate,
+                            selectedWeek,
+                            weekStart,
+                          )
                         : undefined
                     }
                   />
