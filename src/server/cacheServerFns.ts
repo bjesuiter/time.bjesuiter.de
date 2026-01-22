@@ -18,6 +18,7 @@ import {
   toISODate,
   getWeekStartForDateInTz,
 } from "@/lib/date-utils";
+import { invalidateCumulativeOvertimeAfterWeek } from "./cacheHelpers";
 
 async function getAuthenticatedUserId(request: Request): Promise<string> {
   const session = await auth.api.getSession({
@@ -248,6 +249,8 @@ async function calculateWeeklySumsFromDaily(
     calculatedAt: now,
     invalidatedAt: null,
   });
+
+  await invalidateCumulativeOvertimeAfterWeek(userId, weekStart);
 
   return {
     success: true,

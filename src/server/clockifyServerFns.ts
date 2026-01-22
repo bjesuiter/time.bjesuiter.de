@@ -17,7 +17,7 @@ import {
   toUTCISOString,
   toISODate,
 } from "@/lib/date-utils";
-import { calculateCumulativeOvertime } from "./cacheHelpers";
+import { calculateCumulativeOvertime, invalidateCumulativeOvertimeAfterWeek } from "./cacheHelpers";
 
 function buildDailyBreakdownFromCache(
   cachedEntries: Array<typeof cachedDailyProjectSums.$inferSelect>,
@@ -716,6 +716,8 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         calculatedAt: now,
         invalidatedAt: null,
       });
+
+      await invalidateCumulativeOvertimeAfterWeek(userId, data.weekStartDate);
 
       return {
         success: true,
