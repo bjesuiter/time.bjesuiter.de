@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth/auth";
 import { logger } from "@/lib/logger";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
+import { getAuthenticatedUserId as getAuthUserId } from "./authHelpers";
 import type { DailyBreakdown } from "@/lib/clockify/types";
 import {
   addDays,
