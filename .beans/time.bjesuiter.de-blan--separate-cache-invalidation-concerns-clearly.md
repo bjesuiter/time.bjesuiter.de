@@ -1,0 +1,35 @@
+---
+# time.bjesuiter.de-blan
+title: Separate cache invalidation concerns clearly
+status: todo
+type: task
+priority: high
+created_at: 2026-01-22T12:11:18Z
+updated_at: 2026-01-22T12:11:18Z
+parent: uvmr
+---
+
+Create clear separation between different types of cache operations.
+
+## Cache Types
+1. **Weekly Time Data Cache** (daily project sums, weekly totals)
+   - Source: Clockify API
+   - Invalidation trigger: User clicks refresh
+   - Effect: Refetch from Clockify, recalculate weekly overtime
+
+2. **Cumulative Overtime Cache**
+   - Source: Derived from weekly overtime + previous cumulative
+   - Invalidation triggers:
+     a) Weekly overtime of this week changed
+     b) Cumulative overtime of previous week changed
+   - Effect: Recalculate from cached weekly data (NO Clockify call)
+
+## Operations
+- `refreshWeekFromClockify(week)`: Fetches fresh data, recalculates weekly, then cumulative
+- `recalculateCumulative(week)`: Uses cached weekly data, only recalculates cumulative
+
+## Checklist
+- [ ] Create clear function separation for these operations
+- [ ] Document when each type of invalidation occurs
+- [ ] Ensure Clockify is NEVER called for cumulative-only recalculation
+- [ ] Add logging to make cache operations traceable

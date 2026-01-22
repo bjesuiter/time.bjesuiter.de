@@ -948,20 +948,6 @@ export const refreshConfigTimeRange = createServerFn({ method: "POST" })
       }
     }
 
-    if (successCount > 0 && weekStarts.length > 0) {
-      const earliestRefreshedWeek = weekStarts[0];
-      await db
-        .update(cachedWeeklySums)
-        .set({ cumulativeOvertimeSeconds: null })
-        .where(
-          and(
-            eq(cachedWeeklySums.userId, userId),
-            gte(cachedWeeklySums.weekStart, earliestRefreshedWeek),
-            isNull(cachedWeeklySums.invalidatedAt),
-          ),
-        );
-    }
-
     return {
       success: true,
       data: {
