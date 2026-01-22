@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-j50s
 title: Clean up stray database files in root
-status: todo
+status: completed
 type: task
+priority: normal
 created_at: 2026-01-21T23:39:33Z
-updated_at: 2026-01-21T23:39:33Z
+updated_at: 2026-01-22T00:25:25Z
 ---
 
 There is a sqlite.db file in the project root that is not the proper database location.
@@ -15,6 +16,6 @@ There is a sqlite.db file in the project root that is not the proper database lo
 - Stray database files can cause confusion and use extra disk space
 
 ## Checklist
-- [ ] Remove sqlite.db from root directory if it exists
-- [ ] Add sqlite.db to .gitignore if not already there (it is)
-- [ ] Verify local/db.sqlite is the correct database file
+- [x] Remove sqlite.db from root directory if it exists
+- [x] Add sqlite.db to .gitignore if not already there (it is)
+- [x] Verify local/db.sqlite is the correct database file
