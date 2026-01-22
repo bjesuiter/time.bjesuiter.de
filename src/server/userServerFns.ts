@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { user } from "@/db/schema/better-auth";
 import { auth } from "@/lib/auth/auth";
+import { logger } from "@/lib/logger";
 
 // Check if user signup is allowed via environment variable
 export const isUserSignupAllowed = createServerFn({ method: "GET" }).handler(
@@ -108,7 +109,7 @@ export const registerAdminUser = createServerFn({ method: "POST" })
         userEmail: adminEmail,
       };
     } catch (error) {
-      console.error("Admin registration error:", error);
+      logger.error("Admin registration error:", error);
       return {
         success: false,
         message: `Error during registration: ${

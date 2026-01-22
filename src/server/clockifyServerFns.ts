@@ -174,7 +174,7 @@ export const saveClockifyConfig = createServerFn({ method: "POST" })
 
       return { success: true };
     } catch (error) {
-      console.error("Error saving Clockify config:", error);
+      logger.error("Error saving Clockify config:", error);
       return {
         success: false,
         error:
@@ -507,7 +507,7 @@ export const refreshClockifySettings = createServerFn({
       previousWeekStart: config.weekStart,
     };
   } catch (error) {
-    console.error("Error refreshing Clockify settings:", error);
+    logger.error("Error refreshing Clockify settings:", error);
     return {
       success: false,
       error:
@@ -772,7 +772,7 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         },
       };
     } catch (error) {
-      console.error("Error fetching weekly time summary:", error);
+      logger.error("Error fetching weekly time summary:", error);
       return {
         success: false,
         error:
@@ -937,7 +937,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         },
       };
     } catch (error) {
-      console.error("Error calculating cumulative overtime:", error);
+      logger.error("Error calculating cumulative overtime:", error);
       return {
         success: false,
         error:

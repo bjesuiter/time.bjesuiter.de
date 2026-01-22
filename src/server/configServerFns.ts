@@ -4,6 +4,7 @@ import { and, eq, gt, isNull, lt, lte, not, or } from "drizzle-orm";
 import { configChronic } from "@/db/schema/config";
 import { auth } from "@/lib/auth/auth";
 import { invalidateCacheFromDate } from "./cacheHelpers";
+import { logger } from "@/lib/logger";
 
 /**
  * Helper to get authenticated user ID
@@ -86,7 +87,7 @@ export const getCurrentConfig = createServerFn({ method: "GET" })
         },
       };
     } catch (error) {
-      console.error("Error getting current config:", error);
+      logger.error("Error getting current config:", error);
       return {
         success: false,
         error:
@@ -154,7 +155,7 @@ export const getTrackedProjects = createServerFn({ method: "GET" })
         },
       };
     } catch (error) {
-      console.error("Error getting tracked projects:", error);
+      logger.error("Error getting tracked projects:", error);
       return {
         success: false,
         error:
@@ -268,7 +269,7 @@ export const createConfig = createServerFn({ method: "POST" })
         },
       };
     } catch (error) {
-      console.error("Error creating config:", error);
+      logger.error("Error creating config:", error);
       return {
         success: false,
         error:
@@ -445,7 +446,7 @@ export const updateConfig = createServerFn({ method: "POST" })
         },
       };
     } catch (error) {
-      console.error("Error updating config:", error);
+      logger.error("Error updating config:", error);
       return {
         success: false,
         error:
@@ -560,7 +561,7 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
         },
       };
     } catch (error) {
-      console.error("Error setting tracked projects:", error);
+      logger.error("Error setting tracked projects:", error);
       return {
         success: false,
         error:
@@ -602,7 +603,7 @@ export const getConfigHistory = createServerFn({ method: "GET" })
         })),
       };
     } catch (error) {
-      console.error("Error getting config history:", error);
+      logger.error("Error getting config history:", error);
       return {
         success: false,
         error:
@@ -642,7 +643,7 @@ export const deleteConfigHistory = createServerFn({ method: "POST" })
         deletedCount: deleted.length,
       };
     } catch (error) {
-      console.error("Error deleting config history:", error);
+      logger.error("Error deleting config history:", error);
       return {
         success: false,
         error:
@@ -688,7 +689,7 @@ export const deleteConfigEntry = createServerFn({ method: "POST" })
         deletedCount: deleted.length,
       };
     } catch (error) {
-      console.error("Error deleting config entry:", error);
+      logger.error("Error deleting config entry:", error);
       return {
         success: false,
         error:
@@ -735,7 +736,7 @@ export const getConfigTimelineBoundaries = createServerFn({ method: "GET" })
         boundaries: { starts, ends },
       };
     } catch (error) {
-      console.error("Error getting config timeline boundaries:", error);
+      logger.error("Error getting config timeline boundaries:", error);
       return {
         success: false,
         error:
