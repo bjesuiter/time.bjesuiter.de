@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-l3ic
 title: Review and optimize Tailwind class usage
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-21T23:42:45Z
-updated_at: 2026-01-21T23:42:45Z
+updated_at: 2026-01-22T11:08:21Z
 ---
 
 Some components use dynamic className concatenation which could be optimized with better patterns.

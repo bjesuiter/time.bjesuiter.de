@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-jjzc
 title: Optimize cumulative overtime calculation
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-20T22:30:11Z
-updated_at: 2026-01-20T22:30:11Z
+updated_at: 2026-01-22T11:08:21Z
 ---
 
 ## Summary

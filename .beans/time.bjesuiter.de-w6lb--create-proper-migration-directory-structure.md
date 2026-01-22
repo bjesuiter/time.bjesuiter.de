@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-w6lb
 title: Create proper migration directory structure
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-21T23:41:26Z
-updated_at: 2026-01-21T23:41:26Z
+updated_at: 2026-01-22T11:08:21Z
 ---
 
 SQL migration files are in drizzle/ directory but should follow better organization.

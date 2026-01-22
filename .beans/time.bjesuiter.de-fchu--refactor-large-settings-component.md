@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-fchu
 title: Refactor large settings component
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-21T23:41:20Z
-updated_at: 2026-01-21T23:41:20Z
+updated_at: 2026-01-22T11:08:20Z
 ---
 
 The settings.tsx component is very large (1311 lines) and could benefit from being broken down.

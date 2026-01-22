@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-00vg
 title: Remove unused Clockify API type definitions
-status: todo
+status: scrapped
 type: task
 priority: normal
 created_at: 2026-01-21T23:42:42Z
-updated_at: 2026-01-22T05:11:36Z
+updated_at: 2026-01-22T11:08:21Z
 ---
 
 The src/lib/clockify/types.ts file contains many type definitions that may not be fully used.

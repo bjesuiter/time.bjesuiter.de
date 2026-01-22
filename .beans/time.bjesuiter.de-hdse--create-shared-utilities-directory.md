@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-hdse
 title: Create shared utilities directory
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-21T23:42:55Z
-updated_at: 2026-01-21T23:42:55Z
+updated_at: 2026-01-22T11:08:20Z
 ---
 
 Utility functions are scattered across lib/ and could be better organized.

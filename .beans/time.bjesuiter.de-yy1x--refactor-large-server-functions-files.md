@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-yy1x
 title: Refactor large server functions files
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-21T23:41:18Z
-updated_at: 2026-01-21T23:41:18Z
+updated_at: 2026-01-22T11:08:21Z
 ---
 
 Several server function files are very large and could benefit from being broken down into smaller, focused modules.

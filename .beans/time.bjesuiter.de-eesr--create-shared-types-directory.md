@@ -1,10 +1,11 @@
 ---
 # time.bjesuiter.de-eesr
 title: Create shared types directory
-status: todo
+status: scrapped
 type: task
+priority: normal
 created_at: 2026-01-21T23:42:52Z
-updated_at: 2026-01-21T23:42:52Z
+updated_at: 2026-01-22T11:08:20Z
 ---
 
 Type definitions are scattered across multiple files. Consider consolidating to a shared types directory.
