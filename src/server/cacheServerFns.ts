@@ -1,12 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { and, eq, gt, gte, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
 import {
   cachedDailyProjectSums,
   cachedWeeklySums,
-  weeklyDiscrepancies,
 } from "@/db/schema/cache";
 import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
@@ -227,16 +226,6 @@ async function calculateWeeklySumsFromDaily(
   const expectedSeconds = regularHoursBaseline * 3600;
   const overtimeSeconds = totalSeconds - expectedSeconds;
 
-  const existing = await db.query.cachedWeeklySums.findFirst({
-    where: and(
-      eq(cachedWeeklySums.userId, userId),
-      eq(cachedWeeklySums.weekStart, weekStart),
-    ),
-  });
-
-  const preservedStatus = existing?.status === "committed" ? "committed" : "pending";
-  const preservedCommittedAt = existing?.status === "committed" ? existing.committedAt : null;
-
   await db
     .delete(cachedWeeklySums)
     .where(
@@ -256,8 +245,6 @@ async function calculateWeeklySumsFromDaily(
     regularHoursBaseline,
     overtimeSeconds,
     cumulativeOvertimeSeconds: null,
-    status: preservedStatus,
-    committedAt: preservedCommittedAt,
     calculatedAt: now,
     invalidatedAt: null,
   });
@@ -270,7 +257,6 @@ async function calculateWeeklySumsFromDaily(
       totalSeconds,
       regularHoursBaseline,
       overtimeSeconds,
-      status: preservedStatus,
     },
   };
 }
@@ -299,7 +285,6 @@ export const getCachedWeeklySummary = createServerFn({ method: "POST" })
             regularHoursBaseline: cached.regularHoursBaseline,
             overtimeSeconds: cached.overtimeSeconds,
             cumulativeOvertimeSeconds: cached.cumulativeOvertimeSeconds,
-            status: cached.status,
             calculatedAt: cached.calculatedAt,
             fromCache: true,
           },
@@ -342,370 +327,7 @@ export const invalidateCache = createServerFn({ method: "POST" })
     };
   });
 
-/**
- * Commits a week, preventing auto-refresh on page load.
- * Committed weeks can only be refreshed manually.
- */
-export const commitWeek = createServerFn({ method: "POST" })
-  .inputValidator((data: { weekStartDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
-    const now = new Date();
 
-    const existing = await db.query.cachedWeeklySums.findFirst({
-      where: and(
-        eq(cachedWeeklySums.userId, userId),
-        eq(cachedWeeklySums.weekStart, data.weekStartDate),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    });
-
-    if (!existing) {
-      return {
-        success: false,
-        error: "No cached data found for this week. Refresh the data first.",
-      };
-    }
-
-    if (existing.status === "committed") {
-      return {
-        success: true,
-        data: {
-          weekStartDate: data.weekStartDate,
-          status: "committed" as const,
-          committedAt: existing.committedAt,
-          alreadyCommitted: true,
-        },
-      };
-    }
-
-    await db
-      .update(cachedWeeklySums)
-      .set({
-        status: "committed",
-        committedAt: now,
-      })
-      .where(eq(cachedWeeklySums.id, existing.id));
-
-    return {
-      success: true,
-      data: {
-        weekStartDate: data.weekStartDate,
-        status: "committed" as const,
-        committedAt: now,
-        alreadyCommitted: false,
-      },
-    };
-  });
-
-/**
- * Uncommits a week, reverting it to pending status.
- * This allows auto-refresh on page load again.
- */
-export const uncommitWeek = createServerFn({ method: "POST" })
-  .inputValidator((data: { weekStartDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    const existing = await db.query.cachedWeeklySums.findFirst({
-      where: and(
-        eq(cachedWeeklySums.userId, userId),
-        eq(cachedWeeklySums.weekStart, data.weekStartDate),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    });
-
-    if (!existing) {
-      return {
-        success: false,
-        error: "No cached data found for this week.",
-      };
-    }
-
-    if (existing.status === "pending") {
-      return {
-        success: true,
-        data: {
-          weekStartDate: data.weekStartDate,
-          status: "pending" as const,
-          alreadyPending: true,
-        },
-      };
-    }
-
-    await db
-      .update(cachedWeeklySums)
-      .set({
-        status: "pending",
-        committedAt: null,
-      })
-      .where(eq(cachedWeeklySums.id, existing.id));
-
-    return {
-      success: true,
-      data: {
-        weekStartDate: data.weekStartDate,
-        status: "pending" as const,
-        alreadyPending: false,
-      },
-    };
-  });
-
-/**
- * Gets the commit status for a specific week.
- */
-export const getWeekCommitStatus = createServerFn({ method: "POST" })
-  .inputValidator((data: { weekStartDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    const cached = await db.query.cachedWeeklySums.findFirst({
-      where: and(
-        eq(cachedWeeklySums.userId, userId),
-        eq(cachedWeeklySums.weekStart, data.weekStartDate),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    });
-
-    if (!cached) {
-      return {
-        success: true,
-        data: {
-          weekStartDate: data.weekStartDate,
-          status: "pending" as const,
-          hasCachedData: false,
-          committedAt: null,
-        },
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        weekStartDate: data.weekStartDate,
-        status: cached.status as "pending" | "committed",
-        hasCachedData: true,
-        committedAt: cached.committedAt,
-      },
-    };
-  });
-
-/**
- * Refreshes a committed week and tracks any discrepancies.
- * This is the ONLY way to refresh committed weeks - ensures discrepancies are tracked.
- */
-export const refreshCommittedWeek = createServerFn({ method: "POST" })
-  .inputValidator((data: { weekStartDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    const existing = await db.query.cachedWeeklySums.findFirst({
-      where: and(
-        eq(cachedWeeklySums.userId, userId),
-        eq(cachedWeeklySums.weekStart, data.weekStartDate),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    });
-
-    if (!existing) {
-      return {
-        success: false,
-        error: "No cached data found for this week. Cannot refresh.",
-      };
-    }
-
-    if (existing.status !== "committed") {
-      return {
-        success: false,
-        error: "This week is not committed. Use regular refresh instead.",
-      };
-    }
-
-    const oldTotalSeconds = existing.totalSeconds;
-    const oldOvertimeSeconds = existing.overtimeSeconds;
-
-    const dailyCalcResult = await calculateAndCacheDailySums({
-      data: { weekStartDate: data.weekStartDate },
-    });
-
-    if (!dailyCalcResult.success) {
-      return dailyCalcResult;
-    }
-
-    const config = await db.query.userClockifyConfig.findFirst({
-      where: eq(userClockifyConfig.userId, userId),
-    });
-
-    if (!config) {
-      return { success: false, error: "Configuration not found" };
-    }
-
-    const weekEndStr = toISODate(
-      addDays(parseLocalDateInTz(data.weekStartDate, config.timeZone), 6),
-    );
-
-    const freshDailySums = await db.query.cachedDailyProjectSums.findMany({
-      where: and(
-        eq(cachedDailyProjectSums.userId, userId),
-        gte(cachedDailyProjectSums.date, data.weekStartDate),
-        lte(cachedDailyProjectSums.date, weekEndStr),
-        isNull(cachedDailyProjectSums.invalidatedAt),
-      ),
-    });
-
-    const newTotalSeconds = freshDailySums.reduce(
-      (sum, entry) => sum + entry.seconds,
-      0,
-    );
-    const expectedSeconds = config.regularHoursPerWeek * 3600;
-    const newOvertimeSeconds = newTotalSeconds - expectedSeconds;
-
-    const now = new Date();
-    await db
-      .update(cachedWeeklySums)
-      .set({
-        totalSeconds: newTotalSeconds,
-        overtimeSeconds: newOvertimeSeconds,
-        calculatedAt: now,
-      })
-      .where(eq(cachedWeeklySums.id, existing.id));
-
-    let discrepancyCreated = false;
-    let cumulativeOvertimeInvalidated = false;
-    const overtimeChanged = newOvertimeSeconds !== oldOvertimeSeconds;
-
-    if (
-      newTotalSeconds !== oldTotalSeconds ||
-      overtimeChanged
-    ) {
-      await db.insert(weeklyDiscrepancies).values({
-        userId,
-        weekStart: data.weekStartDate,
-        originalTotalSeconds: oldTotalSeconds,
-        newTotalSeconds: newTotalSeconds,
-        differenceSeconds: newTotalSeconds - oldTotalSeconds,
-        detectedAt: now,
-        resolvedAt: null,
-        resolution: null,
-      });
-      discrepancyCreated = true;
-
-      if (overtimeChanged) {
-        await db
-          .update(cachedWeeklySums)
-          .set({ cumulativeOvertimeSeconds: null })
-          .where(
-            and(
-              eq(cachedWeeklySums.userId, userId),
-              gt(cachedWeeklySums.weekStart, data.weekStartDate),
-              isNull(cachedWeeklySums.invalidatedAt),
-            ),
-          );
-        cumulativeOvertimeInvalidated = true;
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        weekStartDate: data.weekStartDate,
-        oldTotalSeconds,
-        newTotalSeconds,
-        oldOvertimeSeconds,
-        newOvertimeSeconds,
-        discrepancyCreated,
-        cumulativeOvertimeInvalidated,
-        refreshedAt: now,
-      },
-    };
-  });
-
-/**
- * Gets all unresolved discrepancies for the current user.
- */
-export const getUnresolvedDiscrepancies = createServerFn({ method: "GET" })
-  .handler(async ({ request }) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    const discrepancies = await db.query.weeklyDiscrepancies.findMany({
-      where: and(
-        eq(weeklyDiscrepancies.userId, userId),
-        isNull(weeklyDiscrepancies.resolvedAt),
-      ),
-      orderBy: (d, { desc }) => [desc(d.detectedAt)],
-    });
-
-    return {
-      success: true,
-      data: {
-        discrepancies: discrepancies.map((d) => ({
-          id: d.id,
-          weekStart: d.weekStart,
-          originalTotalSeconds: d.originalTotalSeconds,
-          newTotalSeconds: d.newTotalSeconds,
-          differenceSeconds: d.differenceSeconds,
-          detectedAt: d.detectedAt,
-        })),
-        hasUnresolved: discrepancies.length > 0,
-      },
-    };
-  });
-
-/**
- * Resolves a discrepancy by accepting or dismissing it.
- */
-export const resolveDiscrepancy = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: { discrepancyId: string; resolution: "accepted" | "dismissed" }) =>
-      data,
-  )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    const discrepancy = await db.query.weeklyDiscrepancies.findFirst({
-      where: and(
-        eq(weeklyDiscrepancies.id, data.discrepancyId),
-        eq(weeklyDiscrepancies.userId, userId),
-      ),
-    });
-
-    if (!discrepancy) {
-      return {
-        success: false,
-        error: "Discrepancy not found or does not belong to you.",
-      };
-    }
-
-    if (discrepancy.resolvedAt) {
-      return {
-        success: true,
-        data: {
-          discrepancyId: data.discrepancyId,
-          alreadyResolved: true,
-          resolution: discrepancy.resolution,
-        },
-      };
-    }
-
-    const now = new Date();
-    await db
-      .update(weeklyDiscrepancies)
-      .set({
-        resolvedAt: now,
-        resolution: data.resolution,
-      })
-      .where(eq(weeklyDiscrepancies.id, data.discrepancyId));
-
-    return {
-      success: true,
-      data: {
-        discrepancyId: data.discrepancyId,
-        resolution: data.resolution,
-        resolvedAt: now,
-        alreadyResolved: false,
-      },
-    };
-  });
 
 /**
  * Gets all week start dates within a date range.
@@ -744,76 +366,23 @@ function getWeekStartsInRange(
   return weekStarts;
 }
 
-/**
- * Checks which weeks in a date range are committed.
- * Returns info to show warning before refresh.
- */
-export const getCommittedWeeksInRange = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: { startDate: string; endDate: string | null }) => data,
-  )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    const config = await db.query.userClockifyConfig.findFirst({
-      where: eq(userClockifyConfig.userId, userId),
-    });
-
-    if (!config) {
-      return { success: false, error: "Configuration not found" };
-    }
-
-    const endDate = data.endDate || toISODate(new Date());
-    const weekStarts = getWeekStartsInRange(
-      data.startDate,
-      endDate,
-      config.weekStart as "MONDAY" | "SUNDAY",
-      config.timeZone,
-    );
-
-    // Query for committed weeks in the range
-    const committedWeeks = await db.query.cachedWeeklySums.findMany({
-      where: and(
-        eq(cachedWeeklySums.userId, userId),
-        eq(cachedWeeklySums.status, "committed"),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    });
-
-    const committedWeekStarts = new Set(committedWeeks.map((w) => w.weekStart));
-    const committedInRange = weekStarts.filter((w) =>
-      committedWeekStarts.has(w),
-    );
-
-    return {
-      success: true,
-      data: {
-        totalWeeks: weekStarts.length,
-        committedWeeks: committedInRange,
-        committedCount: committedInRange.length,
-        hasCommittedWeeks: committedInRange.length > 0,
-      },
-    };
-  });
-
 export type RefreshProgressUpdate = {
   currentWeek: number;
   totalWeeks: number;
   weekStartDate: string;
-  status: "pending" | "complete" | "error" | "skipped";
+  status: "pending" | "complete" | "error";
   error?: string;
 };
 
 /**
  * Refreshes all weeks in a config's date range.
- * Handles committed weeks based on user preference.
+ * Recalculates daily and weekly sums from Clockify API.
  */
 export const refreshConfigTimeRange = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       startDate: string;
       endDate: string | null;
-      includeCommittedWeeks: boolean;
     }) => data,
   )
   .handler(async ({ data, request }) => {
@@ -835,113 +404,58 @@ export const refreshConfigTimeRange = createServerFn({ method: "POST" })
       config.timeZone,
     );
 
-    // Get committed weeks
-    const committedWeeks = await db.query.cachedWeeklySums.findMany({
-      where: and(
-        eq(cachedWeeklySums.userId, userId),
-        eq(cachedWeeklySums.status, "committed"),
-        isNull(cachedWeeklySums.invalidatedAt),
-      ),
-    });
-    const committedWeekStarts = new Set(committedWeeks.map((w) => w.weekStart));
-
     const results: {
       weekStartDate: string;
-      status: "success" | "error" | "skipped";
-      isCommitted: boolean;
-      discrepancyCreated?: boolean;
+      status: "success" | "error";
       error?: string;
     }[] = [];
 
     let successCount = 0;
     let errorCount = 0;
-    let skippedCount = 0;
 
     for (const weekStartDate of weekStarts) {
-      const isCommitted = committedWeekStarts.has(weekStartDate);
-
-      // Skip committed weeks if user chose not to include them
-      if (isCommitted && !data.includeCommittedWeeks) {
-        results.push({
-          weekStartDate,
-          status: "skipped",
-          isCommitted: true,
-        });
-        skippedCount++;
-        continue;
-      }
-
       try {
-        if (isCommitted) {
-          // Use refreshCommittedWeek to track discrepancies
-          const refreshResult = await refreshCommittedWeek({
-            data: { weekStartDate },
-          });
+        // Recalculate daily and weekly sums
+        const dailyResult = await calculateAndCacheDailySums({
+          data: { weekStartDate },
+        });
 
-          if (refreshResult.success) {
-            results.push({
-              weekStartDate,
-              status: "success",
-              isCommitted: true,
-              discrepancyCreated: refreshResult.data.discrepancyCreated,
-            });
-            successCount++;
-          } else {
-            results.push({
-              weekStartDate,
-              status: "error",
-              isCommitted: true,
-              error: refreshResult.error,
-            });
-            errorCount++;
-          }
-        } else {
-          // For pending weeks, recalculate daily and weekly sums
-          const dailyResult = await calculateAndCacheDailySums({
-            data: { weekStartDate },
-          });
-
-          if (!dailyResult.success) {
-            results.push({
-              weekStartDate,
-              status: "error",
-              isCommitted: false,
-              error: dailyResult.error,
-            });
-            errorCount++;
-            continue;
-          }
-
-          const weeklyResult = await calculateAndCacheWeeklySums({
-            data: { weekStartDate },
-          });
-
-          if (!weeklyResult.success) {
-            results.push({
-              weekStartDate,
-              status: "error",
-              isCommitted: false,
-              error:
-                "error" in weeklyResult
-                  ? weeklyResult.error
-                  : "Weekly calculation failed",
-            });
-            errorCount++;
-            continue;
-          }
-
+        if (!dailyResult.success) {
           results.push({
             weekStartDate,
-            status: "success",
-            isCommitted: false,
+            status: "error",
+            error: dailyResult.error,
           });
-          successCount++;
+          errorCount++;
+          continue;
         }
+
+        const weeklyResult = await calculateAndCacheWeeklySums({
+          data: { weekStartDate },
+        });
+
+        if (!weeklyResult.success) {
+          results.push({
+            weekStartDate,
+            status: "error",
+            error:
+              "error" in weeklyResult
+                ? weeklyResult.error
+                : "Weekly calculation failed",
+          });
+          errorCount++;
+          continue;
+        }
+
+        results.push({
+          weekStartDate,
+          status: "success",
+        });
+        successCount++;
       } catch (error) {
         results.push({
           weekStartDate,
           status: "error",
-          isCommitted,
           error: error instanceof Error ? error.message : "Unknown error",
         });
         errorCount++;
@@ -954,7 +468,6 @@ export const refreshConfigTimeRange = createServerFn({ method: "POST" })
         totalWeeks: weekStarts.length,
         successCount,
         errorCount,
-        skippedCount,
         results,
       },
     };

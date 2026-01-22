@@ -584,20 +584,7 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         };
       }
 
-      const weeklyCache = await db.query.cachedWeeklySums.findFirst({
-        where: and(
-          eq(cachedWeeklySums.userId, userId),
-          eq(cachedWeeklySums.weekStart, data.weekStartDate),
-          isNull(cachedWeeklySums.invalidatedAt),
-        ),
-      });
-
-      const weekStatus = (weeklyCache?.status as "pending" | "committed") ?? "pending";
-      const committedAt = weeklyCache?.committedAt ?? null;
-
-      const shouldSkipRefresh = !data.forceRefresh && weekStatus === "committed";
-
-      if (!data.forceRefresh || shouldSkipRefresh) {
+      if (!data.forceRefresh) {
         const cachedDaily = await db.query.cachedDailyProjectSums.findMany({
           where: and(
             eq(cachedDailyProjectSums.userId, userId),
@@ -635,16 +622,7 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
               configValidUntil: trackedProjectsConfig.validUntil
                 ? toISODate(trackedProjectsConfig.validUntil)
                 : null,
-              weekStatus,
-              committedAt: committedAt?.getTime() ?? null,
             },
-          };
-        }
-
-        if (shouldSkipRefresh) {
-          return {
-            success: false,
-            error: "Week is committed but has no cached data. Use force refresh to fetch data.",
           };
         }
       }
@@ -750,8 +728,6 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         invalidatedAt: null,
       });
 
-      const refreshedWeekStatus = "pending" as const;
-
       return {
         success: true,
         data: {
@@ -768,8 +744,6 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
           configValidUntil: trackedProjectsConfig.validUntil
             ? toISODate(trackedProjectsConfig.validUntil)
             : null,
-          weekStatus: refreshedWeekStatus,
-          committedAt: committedAt?.getTime() ?? null,
         },
       };
     } catch (error) {
@@ -855,10 +829,9 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
 
         if (
           currentWeekCache?.cumulativeOvertimeSeconds !== null &&
-          currentWeekCache?.cumulativeOvertimeSeconds !== undefined &&
-          currentWeekCache?.status === "committed"
+          currentWeekCache?.cumulativeOvertimeSeconds !== undefined
         ) {
-          logger.debug("getCumulativeOvertime: using cached value for committed week", {
+          logger.debug("getCumulativeOvertime: using cached cumulative value", {
             weekStart: data.currentWeekStartDate,
             cachedValue: currentWeekCache.cumulativeOvertimeSeconds,
           });
@@ -914,7 +887,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         cachedWeeks.map((w) => [w.weekStart, w]),
       );
 
-      let baseCumulativeFromCommittedWeek = 0;
+      let baseCumulativeFromCache = 0;
       let firstWeekToCalculate = 0;
 
       for (let i = weekStarts.length - 1; i >= 0; i--) {
@@ -923,22 +896,21 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
 
         const hasValidCachedCumulative =
           cached?.cumulativeOvertimeSeconds !== null &&
-          cached?.cumulativeOvertimeSeconds !== undefined &&
-          cached?.status === "committed";
+          cached?.cumulativeOvertimeSeconds !== undefined;
 
         if (hasValidCachedCumulative) {
-          baseCumulativeFromCommittedWeek = cached!.cumulativeOvertimeSeconds!;
+          baseCumulativeFromCache = cached!.cumulativeOvertimeSeconds!;
           firstWeekToCalculate = i + 1;
           logger.debug("getCumulativeOvertime: found cached cumulative starting point", {
             weekStart: weekStartStr,
-            cachedCumulative: baseCumulativeFromCommittedWeek,
+            cachedCumulative: baseCumulativeFromCache,
             firstWeekToCalculate,
           });
           break;
         }
       }
 
-      let cumulativeOvertimeSeconds = baseCumulativeFromCommittedWeek;
+      let cumulativeOvertimeSeconds = baseCumulativeFromCache;
       const expectedSecondsPerWeek = regularHoursPerWeek * 3600;
       const workingDaysPerWeek = config.workingDaysPerWeek;
       const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;

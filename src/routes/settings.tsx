@@ -25,10 +25,7 @@ import {
   getClockifyProjects,
   refreshClockifySettings,
 } from "@/server/clockifyServerFns";
-import {
-  getCommittedWeeksInRange,
-  refreshConfigTimeRange,
-} from "@/server/cacheServerFns";
+import { refreshConfigTimeRange } from "@/server/cacheServerFns";
 import {
   getConfigHistory,
   deleteConfigEntry,
@@ -160,13 +157,6 @@ function SettingsPage() {
     completedWeeks: number;
     currentStatus: string;
   } | null>(null);
-  const [pendingRefresh, setPendingRefresh] = useState<{
-    configId: string;
-    startDate: string;
-    endDate: string | null;
-    committedWeeks: string[];
-    totalWeeks: number;
-  } | null>(null);
 
   const refreshSettingsMutation = useMutation({
     mutationFn: () => refreshClockifySettings(),
@@ -196,53 +186,17 @@ function SettingsPage() {
     },
   });
 
-  const checkCommittedWeeksMutation = useMutation({
-    mutationFn: async (params: {
-      configId: string;
-      startDate: string;
-      endDate: string | null;
-    }) => {
-      const result = await getCommittedWeeksInRange({
-        data: { startDate: params.startDate, endDate: params.endDate },
-      });
-      return { ...result, configId: params.configId };
-    },
-    onSuccess: (result, variables) => {
-      if (result.success) {
-        if (result.data.hasCommittedWeeks) {
-          setPendingRefresh({
-            configId: variables.configId,
-            startDate: variables.startDate,
-            endDate: variables.endDate,
-            committedWeeks: result.data.committedWeeks,
-            totalWeeks: result.data.totalWeeks,
-          });
-        } else {
-          performRefresh(
-            variables.configId,
-            variables.startDate,
-            variables.endDate,
-            false,
-            result.data.totalWeeks,
-          );
-        }
-      }
-    },
-  });
-
   const refreshTimeRangeMutation = useMutation({
     mutationFn: async (params: {
       configId: string;
       startDate: string;
       endDate: string | null;
-      includeCommittedWeeks: boolean;
-      totalWeeks: number;
     }) => {
       setRefreshingConfigId(params.configId);
       setRefreshConfigMessage(null);
       setRefreshProgress({
         configId: params.configId,
-        totalWeeks: params.totalWeeks,
+        totalWeeks: 0,
         completedWeeks: 0,
         currentStatus: "Starting refresh...",
       });
@@ -251,7 +205,6 @@ function SettingsPage() {
         data: {
           startDate: params.startDate,
           endDate: params.endDate,
-          includeCommittedWeeks: params.includeCommittedWeeks,
         },
       });
       return { ...result, configId: params.configId };
@@ -259,7 +212,6 @@ function SettingsPage() {
     onSuccess: (result, variables) => {
       setRefreshingConfigId(null);
       setRefreshProgress(null);
-      setPendingRefresh(null);
 
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
@@ -268,10 +220,8 @@ function SettingsPage() {
         queryClient.invalidateQueries({ queryKey: ["weeklyTimeSummary"] });
         queryClient.invalidateQueries({ queryKey: ["cumulativeOvertime"] });
 
-        const { successCount, errorCount, skippedCount, totalWeeks } =
-          result.data;
+        const { successCount, errorCount, totalWeeks } = result.data;
         let message = `Refreshed ${successCount} of ${totalWeeks} weeks`;
-        if (skippedCount > 0) message += ` (${skippedCount} skipped)`;
         if (errorCount > 0) message += ` (${errorCount} errors)`;
 
         setRefreshConfigMessage({
@@ -291,7 +241,6 @@ function SettingsPage() {
     onError: (error, variables) => {
       setRefreshingConfigId(null);
       setRefreshProgress(null);
-      setPendingRefresh(null);
       setRefreshConfigMessage({
         configId: variables.configId,
         type: "error",
@@ -301,22 +250,6 @@ function SettingsPage() {
       setTimeout(() => setRefreshConfigMessage(null), 5000);
     },
   });
-
-  const performRefresh = (
-    configId: string,
-    startDate: string,
-    endDate: string | null,
-    includeCommittedWeeks: boolean,
-    totalWeeks: number,
-  ) => {
-    refreshTimeRangeMutation.mutate({
-      configId,
-      startDate,
-      endDate,
-      includeCommittedWeeks,
-      totalWeeks,
-    });
-  };
 
   const handleRefreshConfig = (entry: {
     id: string;
@@ -328,26 +261,11 @@ function SettingsPage() {
       ? entry.validUntil.toISOString().split("T")[0]
       : null;
 
-    checkCommittedWeeksMutation.mutate({
+    refreshTimeRangeMutation.mutate({
       configId: entry.id,
       startDate,
       endDate,
     });
-  };
-
-  const handleCancelPendingRefresh = () => {
-    setPendingRefresh(null);
-  };
-
-  const handleConfirmRefreshWithCommitted = (includeCommitted: boolean) => {
-    if (!pendingRefresh) return;
-    performRefresh(
-      pendingRefresh.configId,
-      pendingRefresh.startDate,
-      pendingRefresh.endDate,
-      includeCommitted,
-      pendingRefresh.totalWeeks,
-    );
   };
 
   const handleStartEdit = (entry: ConfigHistoryEntry) => {
@@ -1013,7 +931,7 @@ function SettingsPage() {
                                           }
                                           disabled={
                                             refreshingConfigId === entry.id ||
-                                            checkCommittedWeeksMutation.isPending
+                                            refreshTimeRangeMutation.isPending
                                           }
                                           className="p-2.5 sm:p-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] flex items-center justify-center"
                                           title="Refresh data from Clockify for all weeks in this period"
@@ -1163,54 +1081,7 @@ function SettingsPage() {
                                         </p>
                                       </div>
                                     )}
-                                    {pendingRefresh?.configId === entry.id && (
-                                      <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <AlertTriangle className="w-4 h-4 text-amber-600" />
-                                          <span className="text-sm font-medium text-amber-900">
-                                            Committed Weeks Detected
-                                          </span>
-                                        </div>
-                                        <p className="text-xs text-amber-700 mb-3">
-                                          {pendingRefresh.committedWeeks.length}{" "}
-                                          of {pendingRefresh.totalWeeks} weeks
-                                          are committed (locked). Refreshing
-                                          committed weeks will track any data
-                                          changes as discrepancies.
-                                        </p>
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              handleConfirmRefreshWithCommitted(
-                                                false,
-                                              )
-                                            }
-                                            className="px-3 py-1.5 text-xs font-medium bg-white border border-amber-300 text-amber-700 rounded hover:bg-amber-100 transition-colors"
-                                          >
-                                            Skip Committed Weeks
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              handleConfirmRefreshWithCommitted(
-                                                true,
-                                              )
-                                            }
-                                            className="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
-                                          >
-                                            Include All Weeks
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={handleCancelPendingRefresh}
-                                            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
+
                                   </>
                                 )}
                               </div>
