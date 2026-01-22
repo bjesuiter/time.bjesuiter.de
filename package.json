@@ -22,7 +22,6 @@
     "e2e:report": "bunx playwright show-report reports/html",
     "dbpush": "bunx drizzle-kit push",
     "dbgenerate": "bunx drizzle-kit generate",
-    "dbseed": "bunx drizzle-seed",
     "dbstudio": "bunx drizzle-kit studio",
     "auth-schema": "bunx --bun @better-auth/cli generate --output ./src/db/schema/better-auth.ts",
     "pg": "bun ./playground/clockify-api.bun.ts"
