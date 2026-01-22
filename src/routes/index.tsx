@@ -363,6 +363,7 @@ function DashboardView() {
                           )
                         : undefined
                     }
+                    fromCache={cumulativeOvertimeQuery.data?.data?.fromCache}
                   />
                 </div>
               </>
@@ -376,6 +377,26 @@ function DashboardView() {
                 onRetry={() => weeklyQuery.refetch()}
                 isRetrying={weeklyQuery.isRefetching}
               />
+            ) : weeklyQuery.data?.error?.includes("No cached data") ? (
+              <div className="flex flex-col items-center justify-center p-6 sm:p-8 bg-gray-50 border border-gray-200 rounded-lg">
+                <Database className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mb-3" />
+                <p className="text-gray-700 font-medium text-sm sm:text-base mb-2">
+                  No Data Cached
+                </p>
+                <p className="text-gray-500 text-xs sm:text-sm text-center mb-4 max-w-md">
+                  This week hasn't been fetched from Clockify yet. Click the refresh button to load the data.
+                </p>
+                <button
+                  onClick={() => forceRefreshMutation.mutate()}
+                  disabled={forceRefreshMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${forceRefreshMutation.isPending ? "animate-spin" : ""}`}
+                  />
+                  {forceRefreshMutation.isPending ? "Fetching..." : "Fetch from Clockify"}
+                </button>
+              </div>
             ) : (
               <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />

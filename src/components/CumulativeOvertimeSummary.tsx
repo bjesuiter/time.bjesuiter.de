@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Calendar, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, Loader2, Database, RefreshCw } from "lucide-react";
 import { formatOvertimeDisplay } from "@/lib/overtime-utils";
 
 export interface CumulativeOvertimeSummaryProps {
@@ -9,6 +9,7 @@ export interface CumulativeOvertimeSummaryProps {
   weeksIncluded: number;
   error?: string;
   estimatedWeeksTotal?: number;
+  fromCache?: boolean;
 }
 
 export function CumulativeOvertimeSummary({
@@ -19,6 +20,7 @@ export function CumulativeOvertimeSummary({
   weeksIncluded,
   error,
   estimatedWeeksTotal,
+  fromCache,
 }: CumulativeOvertimeSummaryProps) {
   if (isLoading) {
     return (
@@ -110,6 +112,21 @@ export function CumulativeOvertimeSummary({
           <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
             {weeksIncluded} weeks
           </p>
+          {fromCache !== undefined && (
+            <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 justify-end">
+              {fromCache ? (
+                <>
+                  <Database className="w-2.5 h-2.5" />
+                  <span>Cached</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-2.5 h-2.5" />
+                  <span>Calculated</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
