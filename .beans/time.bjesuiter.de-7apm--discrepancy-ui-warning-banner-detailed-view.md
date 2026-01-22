@@ -1,11 +1,11 @@
 ---
 # time.bjesuiter.de-7apm
 title: Discrepancy UI (warning banner, detailed view)
-status: todo
+status: scrapped
 type: feature
 priority: normal
 created_at: 2026-01-19T18:52:50Z
-updated_at: 2026-01-22T11:08:34Z
+updated_at: 2026-01-22T12:12:22Z
 parent: time.bjesuiter.de-lbhw
 ---
 
