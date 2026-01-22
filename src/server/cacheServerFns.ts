@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gt, gte, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
 import {
@@ -571,9 +571,12 @@ export const refreshCommittedWeek = createServerFn({ method: "POST" })
       .where(eq(cachedWeeklySums.id, existing.id));
 
     let discrepancyCreated = false;
+    let cumulativeOvertimeInvalidated = false;
+    const overtimeChanged = newOvertimeSeconds !== oldOvertimeSeconds;
+
     if (
       newTotalSeconds !== oldTotalSeconds ||
-      newOvertimeSeconds !== oldOvertimeSeconds
+      overtimeChanged
     ) {
       await db.insert(weeklyDiscrepancies).values({
         userId,
@@ -586,6 +589,20 @@ export const refreshCommittedWeek = createServerFn({ method: "POST" })
         resolution: null,
       });
       discrepancyCreated = true;
+
+      if (overtimeChanged) {
+        await db
+          .update(cachedWeeklySums)
+          .set({ cumulativeOvertimeSeconds: null })
+          .where(
+            and(
+              eq(cachedWeeklySums.userId, userId),
+              gt(cachedWeeklySums.weekStart, data.weekStartDate),
+              isNull(cachedWeeklySums.invalidatedAt),
+            ),
+          );
+        cumulativeOvertimeInvalidated = true;
+      }
     }
 
     return {
@@ -597,6 +614,7 @@ export const refreshCommittedWeek = createServerFn({ method: "POST" })
         oldOvertimeSeconds,
         newOvertimeSeconds,
         discrepancyCreated,
+        cumulativeOvertimeInvalidated,
         refreshedAt: now,
       },
     };

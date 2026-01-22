@@ -785,7 +785,10 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
   });
 
 export const getCumulativeOvertime = createServerFn({ method: "POST" })
-  .inputValidator((data: { currentWeekStartDate: string }) => data)
+  .inputValidator(
+    (data: { currentWeekStartDate: string; forceRecalculate?: boolean }) =>
+      data,
+  )
   .handler(async ({ data, request }) => {
     const userId = await getAuthenticatedUserId(request);
 
@@ -823,6 +826,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
       const weekStartSetting = config.weekStart as "MONDAY" | "SUNDAY";
       const weekStartsOn = weekStartSetting === "MONDAY" ? 1 : 0;
       const userTimeZone = config.timeZone;
+      const regularHoursPerWeek = config.regularHoursPerWeek;
 
       const startDate = parseLocalDateInTz(startDateStr, userTimeZone);
 
@@ -839,13 +843,55 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         parseLocalDateInTz(data.currentWeekStartDate, userTimeZone),
       );
 
-      logger.debug("getCumulativeOvertime", {
+      const canUseCachedValue = !data.forceRecalculate;
+      if (canUseCachedValue) {
+        const currentWeekCache = await db.query.cachedWeeklySums.findFirst({
+          where: and(
+            eq(cachedWeeklySums.userId, userId),
+            eq(cachedWeeklySums.weekStart, data.currentWeekStartDate),
+            isNull(cachedWeeklySums.invalidatedAt),
+          ),
+        });
+
+        if (
+          currentWeekCache?.cumulativeOvertimeSeconds !== null &&
+          currentWeekCache?.cumulativeOvertimeSeconds !== undefined &&
+          currentWeekCache?.status === "committed"
+        ) {
+          logger.debug("getCumulativeOvertime: using cached value for committed week", {
+            weekStart: data.currentWeekStartDate,
+            cachedValue: currentWeekCache.cumulativeOvertimeSeconds,
+          });
+
+          let weeksIncluded = 0;
+          let weekIter = firstWeekStart;
+          while (weekIter.getTime() <= currentWeekStart.getTime()) {
+            weeksIncluded++;
+            weekIter = addWeeks(weekIter, 1);
+          }
+
+          return {
+            success: true,
+            data: {
+              hasStartDate: true,
+              startDate: startDateStr,
+              cumulativeOvertimeSeconds: currentWeekCache.cumulativeOvertimeSeconds,
+              weeksIncluded,
+              regularHoursPerWeek,
+              fromCache: true,
+            },
+          };
+        }
+      }
+
+      logger.debug("getCumulativeOvertime: calculating", {
         startDateStr,
         userTimeZone,
         startDate: startDate.toISOString(),
         currentWeekStartDate: data.currentWeekStartDate,
         firstWeekStart: firstWeekStart.toISOString(),
         currentWeekStart: currentWeekStart.toISOString(),
+        forceRecalculate: data.forceRecalculate,
       });
 
       const weekStarts: Date[] = [];
@@ -855,16 +901,61 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         weekIter = addWeeks(weekIter, 1);
       }
 
-      let cumulativeOvertimeSeconds = 0;
-      const regularHoursPerWeek = config.regularHoursPerWeek;
-      const expectedSecondsPerWeek = regularHoursPerWeek * 3600;
+      const cachedWeeks = await db.query.cachedWeeklySums.findMany({
+        where: and(
+          eq(cachedWeeklySums.userId, userId),
+          gte(cachedWeeklySums.weekStart, toISODate(firstWeekStart)),
+          lte(cachedWeeklySums.weekStart, data.currentWeekStartDate),
+          isNull(cachedWeeklySums.invalidatedAt),
+        ),
+      });
 
+      const cachedWeekMap = new Map(
+        cachedWeeks.map((w) => [w.weekStart, w]),
+      );
+
+      let baseCumulativeFromCommittedWeek = 0;
+      let firstWeekToCalculate = 0;
+
+      for (let i = weekStarts.length - 1; i >= 0; i--) {
+        const weekStartStr = toISODate(weekStarts[i]);
+        const cached = cachedWeekMap.get(weekStartStr);
+
+        const hasValidCachedCumulative =
+          cached?.cumulativeOvertimeSeconds !== null &&
+          cached?.cumulativeOvertimeSeconds !== undefined &&
+          cached?.status === "committed";
+
+        if (hasValidCachedCumulative) {
+          baseCumulativeFromCommittedWeek = cached!.cumulativeOvertimeSeconds!;
+          firstWeekToCalculate = i + 1;
+          logger.debug("getCumulativeOvertime: found cached cumulative starting point", {
+            weekStart: weekStartStr,
+            cachedCumulative: baseCumulativeFromCommittedWeek,
+            firstWeekToCalculate,
+          });
+          break;
+        }
+      }
+
+      let cumulativeOvertimeSeconds = baseCumulativeFromCommittedWeek;
+      const expectedSecondsPerWeek = regularHoursPerWeek * 3600;
       const workingDaysPerWeek = config.workingDaysPerWeek;
       const expectedSecondsPerDay = expectedSecondsPerWeek / workingDaysPerWeek;
-
       const today = endOfDayInTz(nowInTz(userTimeZone), userTimeZone);
 
-      for (const weekStartDateIter of weekStarts) {
+      for (let i = firstWeekToCalculate; i < weekStarts.length; i++) {
+        const weekStartDateIter = weekStarts[i];
+        const weekStartStr = toISODate(weekStartDateIter);
+        const cached = cachedWeekMap.get(weekStartStr);
+
+        const hasCachedWeeklyOvertime =
+          cached?.overtimeSeconds !== null && cached?.overtimeSeconds !== undefined;
+        if (hasCachedWeeklyOvertime) {
+          cumulativeOvertimeSeconds += cached.overtimeSeconds;
+          continue;
+        }
+
         const weekEnd = endOfDayInTz(
           addDays(weekStartDateIter, 6),
           userTimeZone,
@@ -909,8 +1000,8 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         }
 
         let eligibleWorkdays = 0;
-        for (let i = 0; i < 7; i++) {
-          const dayDate = addDays(weekStartDateIter, i);
+        for (let j = 0; j < 7; j++) {
+          const dayDate = addDays(weekStartDateIter, j);
           const dayOfWeek = getDay(dayDate);
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const isBeforeConfigStart = isBefore(dayDate, startDate);
@@ -927,6 +1018,14 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
         cumulativeOvertimeSeconds += weekOvertime;
       }
 
+      const currentWeekCache = cachedWeekMap.get(data.currentWeekStartDate);
+      if (currentWeekCache) {
+        await db
+          .update(cachedWeeklySums)
+          .set({ cumulativeOvertimeSeconds })
+          .where(eq(cachedWeeklySums.id, currentWeekCache.id));
+      }
+
       return {
         success: true,
         data: {
@@ -935,6 +1034,7 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
           cumulativeOvertimeSeconds,
           weeksIncluded: weekStarts.length,
           regularHoursPerWeek,
+          fromCache: false,
         },
       };
     } catch (error) {
