@@ -11,6 +11,7 @@ import type { TrackedProjectsValue } from "./configServerFns";
 
 import type { DailyBreakdown } from "@/lib/clockify/types";
 import { addDays } from "date-fns";
+import { calculateWeeklyOvertime } from "@/lib/overtime-utils";
 import {
   parseLocalDateInTz,
   endOfDayInTz,
@@ -694,9 +695,16 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
         await db.insert(cachedDailyProjectSums).values(dailyEntries);
       }
 
-      const totalSeconds = dailyEntries.reduce((sum, entry) => sum + entry.seconds, 0);
-      const expectedSeconds = config.regularHoursPerWeek * 3600;
-      const overtimeSeconds = totalSeconds - expectedSeconds;
+      // Calculate overtime using the same logic as UI display (accounts for partial weeks)
+      const weeklyOvertimeResult = calculateWeeklyOvertime(
+        reportResult.data.dailyBreakdown,
+        config.regularHoursPerWeek,
+        config.workingDaysPerWeek,
+        config.cumulativeOvertimeStartDate,
+        data.weekStartDate,
+      );
+      const totalSeconds = weeklyOvertimeResult.totalWorkedSeconds;
+      const overtimeSeconds = weeklyOvertimeResult.totalOvertimeSeconds;
       const weekEndStr = toISODate(addDays(weekStartDate, 6));
 
       await db
