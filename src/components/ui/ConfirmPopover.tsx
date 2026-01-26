@@ -9,6 +9,11 @@ interface ConfirmPopoverProps {
   onCancel?: () => void;
 }
 
+type PopoverTriggerProps = {
+  popoverTarget?: string;
+  popoverTargetAction?: "show" | "hide" | "toggle";
+};
+
 export function ConfirmPopover({
   trigger,
   children,
@@ -28,10 +33,10 @@ export function ConfirmPopover({
   };
 
   // Clone the trigger element and add popover attributes
-  const triggerElement = isValidElement(trigger)
-    ? cloneElement(trigger as React.ReactElement, {
-        popovertarget: popoverId,
-        popovertargetaction: "show",
+  const triggerElement = isValidElement<PopoverTriggerProps>(trigger)
+    ? cloneElement(trigger, {
+        popoverTarget: popoverId,
+        popoverTargetAction: "show",
       })
     : trigger;
 
@@ -47,16 +52,16 @@ export function ConfirmPopover({
         <div className="mb-4">{children}</div>
         <div className="flex gap-3 justify-end">
           <button
-            popovertarget={popoverId}
-            popovertargetaction="hide"
+            popoverTarget={popoverId}
+            popoverTargetAction="hide"
             onClick={handleCancel}
             className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
           >
             {cancelLabel}
           </button>
           <button
-            popovertarget={popoverId}
-            popovertargetaction="hide"
+            popoverTarget={popoverId}
+            popoverTargetAction="hide"
             onClick={handleConfirm}
             className="px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg font-medium transition-colors"
           >

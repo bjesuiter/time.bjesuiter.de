@@ -1,12 +1,14 @@
+import { getStartContext } from "@tanstack/start-storage-context";
 import { auth } from "@/lib/auth/auth";
 
 /**
  * Helper to get authenticated user ID
  * Better-auth with reactStartCookies plugin reads cookies from request headers
  */
-export async function getAuthenticatedUserId(headers: Headers): Promise<string> {
+export async function getAuthenticatedUserId(): Promise<string> {
+  const { request } = getStartContext();
   const session = await auth.api.getSession({
-    headers,
+    headers: request.headers,
   });
 
   if (!session?.user) {

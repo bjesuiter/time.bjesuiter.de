@@ -4,7 +4,6 @@ import { and, eq, gte, gt, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
 import { cachedDailyProjectSums, cachedWeeklySums } from "@/db/schema/cache";
-import { auth } from "@/lib/auth/auth";
 import { logger } from "@/lib/logger";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
@@ -19,6 +18,7 @@ import {
   toISODate,
 } from "@/lib/date-utils";
 import { calculateCumulativeOvertime, invalidateCumulativeOvertimeAfterWeek } from "./cacheHelpers";
+import { getAuthenticatedUserId } from "@/server/authHelpers";
 
 function buildDailyBreakdownFromCache(
   cachedEntries: Array<typeof cachedDailyProjectSums.$inferSelect>,
@@ -61,29 +61,13 @@ function buildDailyBreakdownFromCache(
 }
 
 /**
- * Helper to get authenticated user ID
- * Better-auth with reactStartCookies plugin reads cookies from request headers
- */
-async function getAuthenticatedUserId(request: Request): Promise<string> {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
-  if (!session?.user) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
-
-  return session.user.id;
-}
-
-/**
  * Validates a Clockify API key and returns user information
  */
 export const validateClockifyKey = createServerFn({ method: "POST" })
   .inputValidator((data: { apiKey: string }) => data)
-  .handler(async ({ data, request }) => {
+  .handler(async ({ data }) => {
     // Require authentication
-    await getAuthenticatedUserId(request);
+    await getAuthenticatedUserId();
 
     const result = await clockifyClient.validateApiKey(data.apiKey);
 
@@ -118,8 +102,8 @@ export const saveClockifyConfig = createServerFn({ method: "POST" })
       cumulativeOvertimeStartDate?: string | null;
     }) => data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       // Check if config already exists
@@ -180,8 +164,8 @@ export const saveClockifyConfig = createServerFn({ method: "POST" })
  * Gets Clockify configuration for the authenticated user
  */
 export const getClockifyConfig = createServerFn({ method: "GET" }).handler(
-  async ({ request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  async () => {
+    const userId = await getAuthenticatedUserId();
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),
@@ -205,8 +189,8 @@ export const getClockifyConfig = createServerFn({ method: "GET" }).handler(
  * Gets detailed Clockify configuration including current user info from Clockify API
  */
 export const getClockifyDetails = createServerFn({ method: "GET" }).handler(
-  async ({ request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  async () => {
+    const userId = await getAuthenticatedUserId();
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),
@@ -261,8 +245,8 @@ export interface SetupStatus {
  * Returns detailed status for each setup step
  */
 export const checkClockifySetup = createServerFn({ method: "GET" }).handler(
-  async ({ request }): Promise<SetupStatus> => {
-    const userId = await getAuthenticatedUserId(request);
+  async (): Promise<SetupStatus> => {
+    const userId = await getAuthenticatedUserId();
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),
@@ -312,8 +296,8 @@ export const checkClockifySetup = createServerFn({ method: "GET" }).handler(
  */
 export const getClockifyWorkspaces = createServerFn({ method: "POST" })
   .inputValidator((data: { apiKey?: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     let apiKey = data.apiKey;
 
@@ -353,8 +337,8 @@ export const getClockifyWorkspaces = createServerFn({ method: "POST" })
  */
 export const getClockifyClients = createServerFn({ method: "POST" })
   .inputValidator((data: { workspaceId: string; apiKey?: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     let apiKey = data.apiKey;
 
@@ -396,8 +380,8 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
   .inputValidator(
     (data: { workspaceId: string; clientId?: string; apiKey?: string }) => data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     let apiKey = data.apiKey;
 
@@ -438,8 +422,8 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
 
 export const refreshClockifySettings = createServerFn({
   method: "POST",
-}).handler(async ({ request }) => {
-  const userId = await getAuthenticatedUserId(request);
+}).handler(async () => {
+  const userId = await getAuthenticatedUserId();
 
   try {
     const config = await db.query.userClockifyConfig.findFirst({
@@ -513,8 +497,8 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
   .inputValidator(
     (data: { weekStartDate: string; forceRefresh?: boolean }) => data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       const config = await db.query.userClockifyConfig.findFirst({
@@ -767,8 +751,8 @@ export const getCumulativeOvertime = createServerFn({ method: "POST" })
     (data: { currentWeekStartDate: string; forceRecalculate?: boolean }) =>
       data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       const config = await db.query.userClockifyConfig.findFirst({

@@ -7,7 +7,6 @@ import {
   cachedDailyProjectSums,
   cachedWeeklySums,
 } from "@/db/schema/cache";
-import { auth } from "@/lib/auth/auth";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
 import { addDays, addWeeks } from "date-fns";
@@ -19,23 +18,12 @@ import {
   getWeekStartForDateInTz,
 } from "@/lib/date-utils";
 import { invalidateCumulativeOvertimeAfterWeek } from "./cacheHelpers";
-
-async function getAuthenticatedUserId(request: Request): Promise<string> {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
-  if (!session?.user) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
-
-  return session.user.id;
-}
+import { getAuthenticatedUserId } from "@/server/authHelpers";
 
 export const calculateAndCacheDailySums = createServerFn({ method: "POST" })
   .inputValidator((data: { weekStartDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),
@@ -153,8 +141,8 @@ export const calculateAndCacheDailySums = createServerFn({ method: "POST" })
 
 export const calculateAndCacheWeeklySums = createServerFn({ method: "POST" })
   .inputValidator((data: { weekStartDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),
@@ -266,8 +254,8 @@ async function calculateWeeklySumsFromDaily(
 
 export const getCachedWeeklySummary = createServerFn({ method: "POST" })
   .inputValidator((data: { weekStartDate: string; forceRefresh?: boolean }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     const cached = await db.query.cachedWeeklySums.findFirst({
       where: and(
@@ -321,8 +309,8 @@ export const getCachedWeeklySummary = createServerFn({ method: "POST" })
 
 export const invalidateCache = createServerFn({ method: "POST" })
   .inputValidator((data: { fromDate: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
     const { invalidateCacheFromDate } = await import("./cacheHelpers");
     const result = await invalidateCacheFromDate(userId, data.fromDate);
 
@@ -393,8 +381,8 @@ export const refreshConfigTimeRange = createServerFn({ method: "POST" })
       endDate: string | null;
     }) => data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     const config = await db.query.userClockifyConfig.findFirst({
       where: eq(userClockifyConfig.userId, userId),

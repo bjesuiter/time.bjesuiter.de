@@ -1,26 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { db } from "@/db";
-import { and, eq, gt, isNull, lt, lte, not, or } from "drizzle-orm";
+import { and, eq, gt, isNull, lte, not, or } from "drizzle-orm";
 import { configChronic } from "@/db/schema/config";
-import { auth } from "@/lib/auth/auth";
 import { invalidateCacheFromDate } from "./cacheHelpers";
 import { logger } from "@/lib/logger";
-
-/**
- * Helper to get authenticated user ID
- * Better-auth with reactStartCookies plugin reads cookies from request headers
- */
-async function getAuthenticatedUserId(request: Request): Promise<string> {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
-  if (!session?.user) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
-
-  return session.user.id;
-}
+import { getAuthenticatedUserId } from "@/server/authHelpers";
 
 /**
  * Type for tracked projects configuration value
@@ -64,8 +48,8 @@ async function getCurrentConfigInternal(userId: string) {
  */
 export const getCurrentConfig = createServerFn({ method: "GET" })
   .inputValidator((data: undefined) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async () => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       const config = await getCurrentConfigInternal(userId);
@@ -117,8 +101,8 @@ async function getAllConfigsOrdered(userId: string) {
  */
 export const getTrackedProjects = createServerFn({ method: "GET" })
   .inputValidator((data: { date?: string } | undefined) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
     const targetDate = data?.date ? new Date(data.date) : new Date();
 
     try {
@@ -133,7 +117,7 @@ export const getTrackedProjects = createServerFn({ method: "GET" })
           lte(configChronic.validFrom, targetDate),
           or(
             isNull(configChronic.validUntil),
-            lt(targetDate, configChronic.validUntil),
+            gt(configChronic.validUntil, targetDate),
           ),
         ),
       });
@@ -178,14 +162,13 @@ export const createConfig = createServerFn({ method: "POST" })
       validFrom: string; // ISO date string, required
     }) => data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
     const validFromDate = new Date(data.validFrom);
 
     try {
       // Get all configs ordered by validFrom
       const allConfigs = await getAllConfigsOrdered(userId);
-      const now = new Date();
 
       // Find the current config (auto-determined by date)
       const currentConfig = await getCurrentConfigInternal(userId);
@@ -294,8 +277,8 @@ export const updateConfig = createServerFn({ method: "POST" })
       projectNames?: string[]; // Optional: new project names (must match projectIds order)
     }) => data,
   )
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       // Verify the config belongs to the user
@@ -469,15 +452,14 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
       validFrom?: string; // ISO date string, defaults to now
     }) => data,
   )
-  .handler(async ({ data, request }) => {
+  .handler(async ({ data }) => {
     const validFrom = data.validFrom || new Date().toISOString();
-    const userId = await getAuthenticatedUserId(request);
+    const userId = await getAuthenticatedUserId();
     const validFromDate = new Date(validFrom);
 
     try {
       // Get all configs ordered by validFrom
       const allConfigs = await getAllConfigsOrdered(userId);
-      const now = new Date();
 
       // Find the current config (auto-determined by date)
       const currentConfig = await getCurrentConfigInternal(userId);
@@ -578,8 +560,8 @@ export const setTrackedProjects = createServerFn({ method: "POST" })
  */
 export const getConfigHistory = createServerFn({ method: "GET" })
   .inputValidator((data: { configType: string } | undefined) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
     const configType = data?.configType || "tracked_projects";
 
     try {
@@ -620,8 +602,8 @@ export const getConfigHistory = createServerFn({ method: "GET" })
  */
 export const deleteConfigHistory = createServerFn({ method: "POST" })
   .inputValidator((data: { configType: string } | undefined) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
     const configType = data?.configType || "tracked_projects";
 
     try {
@@ -659,8 +641,8 @@ export const deleteConfigHistory = createServerFn({ method: "POST" })
  */
 export const deleteConfigEntry = createServerFn({ method: "POST" })
   .inputValidator((data: { configId: string }) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async ({ data }) => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       // First verify the config belongs to the user
@@ -702,8 +684,8 @@ export const deleteConfigEntry = createServerFn({ method: "POST" })
 
 export const getConfigTimelineBoundaries = createServerFn({ method: "GET" })
   .inputValidator((data: undefined) => data)
-  .handler(async ({ data, request }) => {
-    const userId = await getAuthenticatedUserId(request);
+  .handler(async () => {
+    const userId = await getAuthenticatedUserId();
 
     try {
       const configs = await db.query.configChronic.findMany({

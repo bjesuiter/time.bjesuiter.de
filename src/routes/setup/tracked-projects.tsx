@@ -15,7 +15,6 @@ import {
   Loader2,
   AlertCircle,
   ChevronLeft,
-  CheckCircle2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/setup/tracked-projects")({
@@ -41,16 +40,22 @@ function TrackedProjectsSetup() {
       clockifyDetails?.config?.clockifyWorkspaceId,
       clockifyDetails?.config?.selectedClientId,
     ],
-    queryFn: () =>
-      getClockifyProjects({
+    queryFn: () => {
+      const workspaceId = clockifyDetails?.config?.clockifyWorkspaceId;
+      if (!workspaceId) {
+        throw new Error("Clockify workspace not configured");
+      }
+
+      return getClockifyProjects({
         data: {
-          workspaceId: clockifyDetails!.config.clockifyWorkspaceId,
-          clientId: clockifyDetails!.config.selectedClientId || undefined,
+          workspaceId,
+          clientId: clockifyDetails?.config?.selectedClientId ?? undefined,
         },
-      }),
+      });
+    },
     enabled:
       !!clockifyDetails?.success &&
-      !!clockifyDetails.config.clockifyWorkspaceId,
+      !!clockifyDetails.config?.clockifyWorkspaceId,
   });
 
   // Get current config to validate start date
