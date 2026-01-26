@@ -163,6 +163,7 @@ function SettingsPage() {
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
+        queryClient.invalidateQueries({ queryKey: ["clockify-config"] });
         setRefreshMessage({
           type: "success",
           text: result.updated

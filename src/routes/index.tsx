@@ -102,15 +102,21 @@ function DashboardView() {
   const search = Route.useSearch();
   const queryClient = useQueryClient();
 
+  // Cache policy: setup/config change only via settings; keep long staleTime and
+  // rely on explicit invalidations after user-driven updates.
   const setupQuery = useQuery({
-    queryKey: ["clockifySetup"],
+    queryKey: ["clockify-setup"],
     queryFn: () => checkClockifySetup(),
+    staleTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
   });
 
   const configQuery = useQuery({
-    queryKey: ["clockifyConfig"],
+    queryKey: ["clockify-config"],
     queryFn: () => getClockifyConfig(),
     enabled: setupQuery.data?.hasSetup,
+    staleTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
   });
 
   const weekStart = configQuery.data?.success
@@ -567,5 +573,4 @@ function FeatureCard({
     </div>
   );
 }
-
 
