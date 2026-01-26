@@ -1,4 +1,5 @@
 import ky from "ky";
+import { waitForClockifyRateLimit } from "./rate-limit";
 
 const RETRY_LIMIT = 5;
 const BASE_DELAY_MS = 1000;
@@ -19,6 +20,13 @@ export function createClockifyReportsApi(apiKey: string) {
     headers: {
       "x-api-key": apiKey,
       "Content-Type": "application/json",
+    },
+    hooks: {
+      beforeRequest: [
+        async () => {
+          await waitForClockifyRateLimit();
+        },
+      ],
     },
     retry: {
       limit: RETRY_LIMIT,
