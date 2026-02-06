@@ -1,18 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { authClient } from "@/client/auth-client";
-import { Toolbar } from "@/components/Toolbar";
-import {
-  validateClockifyKey,
-  saveClockifyConfig,
-  getClockifyWorkspaces,
-  getClockifyClients,
-} from "@/server/clockifyServerFns";
-import type {
-  ClockifyUser,
-  ClockifyWorkspace,
-  ClockifyClient,
-} from "@/lib/clockify/types";
 import {
   ChevronRight,
   ChevronLeft,
@@ -24,6 +11,24 @@ import {
   ExternalLink,
   Loader2,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+import { authClient } from "@/client/auth-client";
+import { Toolbar } from "@/components/Toolbar";
+import type {
+  ClockifyUser,
+  ClockifyWorkspace,
+  ClockifyClient,
+} from "@/lib/clockify/types";
+import {
+  checkClockifySetup,
+  getClockifyConfig,
+  getClockifyDetails,
+  validateClockifyKey,
+  saveClockifyConfig,
+  getClockifyWorkspaces,
+  getClockifyClients,
+} from "@/server/clockifyServerFns";
 
 export const Route = createFileRoute("/setup/clockify")({
   component: ClockifySetupWizard,
@@ -49,7 +54,10 @@ function ClockifySetupWizard() {
   const { data: session } = authClient.useSession();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [hasStoredApiKey, setHasStoredApiKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isResumedRef = useRef(false);
 
   const [state, setState] = useState<SetupState>({
     apiKey: "",
@@ -64,24 +72,130 @@ function ClockifySetupWizard() {
     cumulativeOvertimeStartDate: "",
   });
 
+  const { data: setupStatus } = useQuery({
+    queryKey: ["clockify-setup"],
+    queryFn: () => checkClockifySetup(),
+    enabled: !!session?.user,
+  });
+
+  useEffect(() => {
+    if (!session?.user) {
+      setIsInitializing(false);
+      return;
+    }
+
+    if (!setupStatus || isResumedRef.current) {
+      return;
+    }
+
+    isResumedRef.current = true;
+
+    const resumeSetup = async () => {
+      setIsInitializing(true);
+      setError(null);
+
+      try {
+        const hasApiKey = setupStatus.steps.hasApiKey;
+        setHasStoredApiKey(hasApiKey);
+
+        const configResult = await getClockifyConfig();
+        const detailsResult = hasApiKey
+          ? await getClockifyDetails()
+          : { success: false as const };
+
+        const workspacesResult = hasApiKey
+          ? await getClockifyWorkspaces({ data: {} })
+          : { success: false as const };
+
+        const workspaces = workspacesResult.success
+          ? (workspacesResult.workspaces ?? [])
+          : [];
+
+        const selectedWorkspaceId =
+          (configResult.success && configResult.config.clockifyWorkspaceId) ||
+          workspaces[0]?.id ||
+          "";
+
+        const clientsResult =
+          hasApiKey && selectedWorkspaceId
+            ? await getClockifyClients({ data: { workspaceId: selectedWorkspaceId } })
+            : { success: false as const };
+
+        const clients = clientsResult.success ? (clientsResult.clients ?? []) : [];
+
+        setState((prev) => ({
+          ...prev,
+          validatedUser: detailsResult.success ? detailsResult.clockifyUser : null,
+          workspaces,
+          selectedWorkspaceId,
+          clients,
+          selectedClientId:
+            (configResult.success ? configResult.config.selectedClientId : null) ??
+            null,
+          selectedClientName:
+            (configResult.success ? configResult.config.selectedClientName : null) ??
+            null,
+          regularHoursPerWeek: configResult.success
+            ? configResult.config.regularHoursPerWeek
+            : prev.regularHoursPerWeek,
+          workingDaysPerWeek: configResult.success
+            ? configResult.config.workingDaysPerWeek
+            : prev.workingDaysPerWeek,
+          cumulativeOvertimeStartDate:
+            configResult.success &&
+            configResult.config.cumulativeOvertimeStartDate
+              ? configResult.config.cumulativeOvertimeStartDate.split("T")[0]
+              : prev.cumulativeOvertimeStartDate,
+        }));
+
+        if (!setupStatus.steps.hasApiKey) {
+          setCurrentStep(1);
+        } else if (!setupStatus.steps.hasWorkspace) {
+          setCurrentStep(2);
+        } else if (!setupStatus.steps.hasClient) {
+          setCurrentStep(3);
+        } else {
+          setCurrentStep(4);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to resume setup");
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    void resumeSetup();
+  }, [session?.user, setupStatus]);
+
   // Step 1: Validate API Key
   const handleValidateApiKey = async () => {
+    if (!state.apiKey && !hasStoredApiKey) {
+      setError("Please enter your Clockify API key");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await validateClockifyKey({
-        data: { apiKey: state.apiKey },
-      });
+      let validatedUser: ClockifyUser | null = null;
+      const hasTypedApiKey = !!state.apiKey;
 
-      if (!result.success) {
-        setError(result.error || "Invalid API key");
-        return;
+      if (hasTypedApiKey) {
+        const result = await validateClockifyKey({
+          data: { apiKey: state.apiKey },
+        });
+
+        if (!result.success) {
+          setError(result.error || "Invalid API key");
+          return;
+        }
+
+        validatedUser = result.user;
       }
 
-      // Fetch workspaces
       const workspacesResult = await getClockifyWorkspaces({
-        data: { apiKey: state.apiKey },
+        data: hasTypedApiKey ? { apiKey: state.apiKey } : {},
       });
 
       if (!workspacesResult.success) {
@@ -89,11 +203,19 @@ function ClockifySetupWizard() {
         return;
       }
 
+      if (!validatedUser) {
+        const detailsResult = await getClockifyDetails();
+        if (detailsResult.success) {
+          validatedUser = detailsResult.clockifyUser;
+        }
+      }
+
       setState((prev) => ({
         ...prev,
-        validatedUser: result.user,
+        validatedUser: validatedUser ?? prev.validatedUser,
         workspaces: workspacesResult.workspaces || [],
-        selectedWorkspaceId: workspacesResult.workspaces?.[0]?.id || "",
+        selectedWorkspaceId:
+          prev.selectedWorkspaceId || workspacesResult.workspaces?.[0]?.id || "",
       }));
 
       setCurrentStep(2);
@@ -116,10 +238,12 @@ function ClockifySetupWizard() {
 
     try {
       const clientsResult = await getClockifyClients({
-        data: {
-          workspaceId: state.selectedWorkspaceId,
-          apiKey: state.apiKey,
-        },
+        data: state.apiKey
+          ? {
+              workspaceId: state.selectedWorkspaceId,
+              apiKey: state.apiKey,
+            }
+          : { workspaceId: state.selectedWorkspaceId },
       });
 
       if (!clientsResult.success) {
@@ -147,22 +271,17 @@ function ClockifySetupWizard() {
 
   // Step 4: Save configuration
   const handleSaveConfiguration = async () => {
-    if (!state.validatedUser) {
-      setError("User information is missing");
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
       const result = await saveClockifyConfig({
         data: {
-          clockifyApiKey: state.apiKey,
+          clockifyApiKey: state.apiKey || undefined,
           clockifyWorkspaceId: state.selectedWorkspaceId,
-          clockifyUserId: state.validatedUser.id,
-          timeZone: state.validatedUser.settings.timeZone,
-          weekStart: state.validatedUser.settings.weekStart,
+          clockifyUserId: state.validatedUser?.id,
+          timeZone: state.validatedUser?.settings.timeZone,
+          weekStart: state.validatedUser?.settings.weekStart,
           regularHoursPerWeek: state.regularHoursPerWeek,
           workingDaysPerWeek: state.workingDaysPerWeek,
           selectedClientId: state.selectedClientId,
@@ -177,8 +296,11 @@ function ClockifySetupWizard() {
         return;
       }
 
-      // Success! Navigate to home
-      navigate({ to: "/" });
+      if (setupStatus && !setupStatus.steps.hasTrackedProjects) {
+        navigate({ to: "/setup/tracked-projects" });
+      } else {
+        navigate({ to: "/" });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -253,8 +375,15 @@ function ClockifySetupWizard() {
 
           {/* Step Content */}
           <div className="bg-white rounded-lg shadow-xl p-8">
+            {isInitializing && (
+              <div className="flex items-center justify-center py-10 text-gray-600">
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                Loading existing setup...
+              </div>
+            )}
+
             {/* Step 1: API Key Entry */}
-            {currentStep === 1 && (
+            {!isInitializing && currentStep === 1 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <Key className="w-6 h-6 text-indigo-600" />
@@ -309,6 +438,15 @@ function ClockifySetupWizard() {
                     </ol>
                   </div>
 
+                  {hasStoredApiKey && !state.apiKey && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-800">
+                        A stored API key was found. You can continue without
+                        entering it again.
+                      </p>
+                    </div>
+                  )}
+
                   {state.validatedUser && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <p className="text-green-800 font-medium mb-2">
@@ -325,7 +463,7 @@ function ClockifySetupWizard() {
 
                   <button
                     onClick={handleValidateApiKey}
-                    disabled={!state.apiKey || isLoading}
+                    disabled={(!state.apiKey && !hasStoredApiKey) || isLoading}
                     className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
                   >
                     {isLoading ? (
@@ -335,7 +473,9 @@ function ClockifySetupWizard() {
                       </>
                     ) : (
                       <>
-                        Validate & Continue
+                        {state.apiKey
+                          ? "Validate & Continue"
+                          : "Continue with stored key"}
                         <ChevronRight className="w-5 h-5" />
                       </>
                     )}
@@ -345,7 +485,7 @@ function ClockifySetupWizard() {
             )}
 
             {/* Step 2: Workspace Selection */}
-            {currentStep === 2 && (
+            {!isInitializing && currentStep === 2 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <Briefcase className="w-6 h-6 text-indigo-600" />
@@ -425,7 +565,7 @@ function ClockifySetupWizard() {
             )}
 
             {/* Step 3: Configuration */}
-            {currentStep === 3 && (
+            {!isInitializing && currentStep === 3 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <Settings className="w-6 h-6 text-indigo-600" />
@@ -575,7 +715,7 @@ function ClockifySetupWizard() {
             )}
 
             {/* Step 4: Review & Save */}
-            {currentStep === 4 && (
+            {!isInitializing && currentStep === 4 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <CheckCircle2 className="w-6 h-6 text-indigo-600" />
@@ -593,8 +733,9 @@ function ClockifySetupWizard() {
                     <div>
                       <p className="text-sm font-medium text-gray-500">User</p>
                       <p className="text-gray-900">
-                        {state.validatedUser?.name} (
-                        {state.validatedUser?.email})
+                        {state.validatedUser
+                          ? `${state.validatedUser.name} (${state.validatedUser.email})`
+                          : "Using your existing Clockify account"}
                       </p>
                     </div>
 
@@ -614,7 +755,8 @@ function ClockifySetupWizard() {
                         Time Zone
                       </p>
                       <p className="text-gray-900">
-                        {state.validatedUser?.settings.timeZone}
+                        {state.validatedUser?.settings.timeZone ||
+                          "Using your existing timezone"}
                       </p>
                     </div>
 
@@ -623,7 +765,8 @@ function ClockifySetupWizard() {
                         Week Start
                       </p>
                       <p className="text-gray-900">
-                        {state.validatedUser?.settings.weekStart}
+                        {state.validatedUser?.settings.weekStart ||
+                          "Using your existing week start"}
                       </p>
                     </div>
 

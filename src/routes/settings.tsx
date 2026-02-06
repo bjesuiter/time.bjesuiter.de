@@ -50,6 +50,42 @@ function SettingsPage() {
     enabled: !!session?.user,
   });
 
+  const nextSetupAction = (() => {
+    if (!setupStatus) {
+      return {
+        to: "/setup/clockify" as const,
+        ctaLabel: "Setup Clockify Integration",
+        description:
+          "Connect your Clockify account to start tracking your time and view weekly summaries.",
+      };
+    }
+
+    if (!setupStatus.steps.hasApiKey) {
+      return {
+        to: "/setup/clockify" as const,
+        ctaLabel: "Setup Clockify Integration",
+        description:
+          "Add your Clockify API key to begin the integration setup.",
+      };
+    }
+
+    if (!setupStatus.steps.hasWorkspace || !setupStatus.steps.hasClient) {
+      return {
+        to: "/setup/clockify" as const,
+        ctaLabel: "Resume Clockify Setup",
+        description:
+          "Your Clockify account is partially configured. Resume setup from where you left off.",
+      };
+    }
+
+    return {
+      to: "/setup/tracked-projects" as const,
+      ctaLabel: "Configure Tracked Projects",
+      description:
+        "Clockify is connected. Select tracked projects to finish setup.",
+    };
+  })();
+
   // Get detailed Clockify configuration if setup is complete
   const { data: clockifyDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ["clockify-details"],
@@ -580,8 +616,7 @@ function SettingsPage() {
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
                     <p className="text-gray-600 text-sm sm:text-base">
-                      Connect your Clockify account to start tracking your time
-                      and view weekly summaries.
+                      {nextSetupAction.description}
                     </p>
 
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
@@ -593,11 +628,11 @@ function SettingsPage() {
                     </div>
 
                     <Link
-                      to="/setup/clockify"
+                      to={nextSetupAction.to}
                       className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm sm:text-base min-h-[44px]"
                     >
                       <Settings2 className="w-4 sm:w-5 h-4 sm:h-5" />
-                      Setup Clockify Integration
+                      {nextSetupAction.ctaLabel}
                       <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
                     </Link>
                   </div>

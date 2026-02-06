@@ -90,11 +90,11 @@ export const validateClockifyKey = createServerFn({ method: "POST" })
 export const saveClockifyConfig = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
-      clockifyApiKey: string;
+      clockifyApiKey?: string;
       clockifyWorkspaceId: string;
-      clockifyUserId: string;
-      timeZone: string;
-      weekStart: string;
+      clockifyUserId?: string;
+      timeZone?: string;
+      weekStart?: string;
       regularHoursPerWeek: number;
       workingDaysPerWeek: number;
       selectedClientId?: string | null;
@@ -111,16 +111,36 @@ export const saveClockifyConfig = createServerFn({ method: "POST" })
         where: eq(userClockifyConfig.userId, userId),
       });
 
+      const resolvedApiKey =
+        data.clockifyApiKey ?? existingConfig?.clockifyApiKey;
+      const resolvedClockifyUserId =
+        data.clockifyUserId ?? existingConfig?.clockifyUserId;
+      const resolvedTimeZone = data.timeZone ?? existingConfig?.timeZone;
+      const resolvedWeekStart = data.weekStart ?? existingConfig?.weekStart;
+
+      if (!resolvedApiKey) {
+        return { success: false, error: "Clockify API key is missing" };
+      }
+      if (!resolvedClockifyUserId) {
+        return { success: false, error: "Clockify user id is missing" };
+      }
+      if (!resolvedTimeZone) {
+        return { success: false, error: "Clockify timezone is missing" };
+      }
+      if (!resolvedWeekStart) {
+        return { success: false, error: "Clockify week start is missing" };
+      }
+
       if (existingConfig) {
         // Update existing config
         await db
           .update(userClockifyConfig)
           .set({
-            clockifyApiKey: data.clockifyApiKey,
+            clockifyApiKey: resolvedApiKey,
             clockifyWorkspaceId: data.clockifyWorkspaceId,
-            clockifyUserId: data.clockifyUserId,
-            timeZone: data.timeZone,
-            weekStart: data.weekStart,
+            clockifyUserId: resolvedClockifyUserId,
+            timeZone: resolvedTimeZone,
+            weekStart: resolvedWeekStart,
             regularHoursPerWeek: data.regularHoursPerWeek,
             workingDaysPerWeek: data.workingDaysPerWeek,
             selectedClientId: data.selectedClientId || null,
@@ -134,11 +154,11 @@ export const saveClockifyConfig = createServerFn({ method: "POST" })
         // Insert new config
         await db.insert(userClockifyConfig).values({
           userId,
-          clockifyApiKey: data.clockifyApiKey,
+          clockifyApiKey: resolvedApiKey,
           clockifyWorkspaceId: data.clockifyWorkspaceId,
-          clockifyUserId: data.clockifyUserId,
-          timeZone: data.timeZone,
-          weekStart: data.weekStart,
+          clockifyUserId: resolvedClockifyUserId,
+          timeZone: resolvedTimeZone,
+          weekStart: resolvedWeekStart,
           regularHoursPerWeek: data.regularHoursPerWeek,
           workingDaysPerWeek: data.workingDaysPerWeek,
           selectedClientId: data.selectedClientId || null,
