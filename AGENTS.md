@@ -112,6 +112,7 @@ return { success: false, error: "Error message" };
 - Use `bun:test` for unit/integration: `import { expect, test } from "bun:test"`
 - Use Playwright fixtures for E2E: `import { test, expect } from "../fixtures/test"`
 - Test names: `testName-001: description of what it tests`
+- For non-interactive reviews, use the `agent-browser` skill instead of `playwrighter`.
 - **Browser testing**: Use the `playwrighter_exec` skill, if possible. Note, that this skill may have multiple tabs under its control from different projects, so take exceptional care that you use the right tab! (aka. right port and the main page heading is what you expect)
 - Fallback: Use the `agent-browser` skill
 - DO NOT use `playwright-mcp`, it's very token heavy
@@ -238,6 +239,7 @@ If you realize you need to do another thing, create a new ticket for this.
 When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards. 
 You're done when all tickets are implemented or if the user stops you explicitely.
 Use ultrawork.
+When using `beansloop`, always use the `agent-browser` skill for testing.
 
 ## Integration Testing Ralph-Loop 
 Look at the served website via playwrighter. Caution: you do not have exclusive access to playwrighter! ALWAYS verify that you use the right tab with your website in it (basically based on the port number, or the header on the page).

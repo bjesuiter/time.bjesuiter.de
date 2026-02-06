@@ -7,14 +7,18 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     name: "Dashboard Test User",
   };
 
-  test.beforeEach(async ({ page, serverUrl }) => {
+  test.beforeEach(async ({ page, serverUrl }, testInfo) => {
     // Sign up and sign in a test user before each test
     await page.goto(`${serverUrl}/signup`);
     await page.waitForLoadState("networkidle");
 
     // Fill out the signup form
     await page.getByTestId("signup-name-input").fill(testUser.name);
-    await page.getByTestId("signup-email-input").fill(testUser.email);
+    const uniqueEmail = `${testUser.email.replace(
+      "@",
+      `+${testInfo.parallelIndex}-${Date.now()}@`,
+    )}`;
+    await page.getByTestId("signup-email-input").fill(uniqueEmail);
     await page.getByTestId("signup-password-input").fill(testUser.password);
     await page.getByTestId("signup-confirm-password-input").fill(
       testUser.password,
@@ -23,46 +27,41 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     // Submit the form
     await page.getByTestId("signup-submit-button").click();
 
-    // Wait for navigation to complete
-    await page.waitForLoadState("networkidle", { timeout: 5000 });
+    const signupError = page.getByTestId("signup-general-error");
+    const settingsUrl = `${serverUrl}/settings`;
+    const dashboardUrl = new RegExp(
+      `^${serverUrl.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}/?$`,
+    );
 
-    // Check current URL
-    const currentUrl = page.url();
+    const signupResult = await Promise.race([
+      page.waitForURL(dashboardUrl, { timeout: 10000 }).then(() => "dashboard"),
+      page.waitForURL(settingsUrl, { timeout: 10000 }).then(() => "settings"),
+      signupError.waitFor({ state: "visible", timeout: 10000 }).then(() => "error"),
+    ]);
 
-    if (currentUrl.includes("/settings")) {
-      // If redirected to settings, we need to complete Clockify setup first
-      // For now, let's skip this test scenario by going back to signin
+    if (signupResult !== "dashboard") {
       await page.goto(`${serverUrl}/signin`);
       await page.waitForLoadState("networkidle");
 
       // Sign in with the created user
-      await page.getByTestId("signin-email-input").fill(testUser.email);
+      await page.getByTestId("signin-email-input").fill(uniqueEmail);
       await page.getByTestId("signin-password-input").fill(testUser.password);
       await page.getByTestId("signin-submit-button").click();
-      await page.waitForLoadState("networkidle");
-    } else {
-      // Wait a bit more to ensure dashboard is loaded
-      await page.waitForLoadState("networkidle");
+      await page.waitForURL(dashboardUrl);
     }
   });
 
   test("dashboard displays correctly for authenticated users", async ({ page }) => {
     // Check dashboard heading
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
-
-    // Check welcome message
-    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
-
-    // Check description text
-    await expect(page.locator("p.text-gray-600")).toContainText(
-      "Your time tracking hub is ready",
-    );
-
-    // Check coming soon section
-    await expect(page.getByTestId("dashboard-coming-soon-section"))
-      .toBeVisible();
     await expect(
-      page.locator("text=detailed weekly time summaries"),
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+
+    // Check setup checklist
+    await expect(page.getByText("Complete Your Setup")).toBeVisible();
+    await expect(page.getByText("0 of 4 steps completed")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Go to Settings" }),
     ).toBeVisible();
   });
 
@@ -101,16 +100,13 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await expect(dashboardContainer).toBeVisible();
 
     // Check main content area (more specific selector)
-    const mainContent = page.locator(".max-w-7xl.mx-auto.py-8");
+    const mainContent = page.locator(".max-w-2xl.mx-auto.px-4.py-8");
     await expect(mainContent).toBeVisible();
 
     // Check dashboard card
     const dashboardCard = page.locator(".bg-white.rounded-xl");
     await expect(dashboardCard).toBeVisible();
-
-    // Check welcome icon
-    const welcomeIcon = page.locator(".bg-indigo-50.w-20.h-20");
-    await expect(welcomeIcon).toBeVisible();
+    await expect(page.getByText("Complete Your Setup")).toBeVisible();
   });
 
   test("dashboard is responsive on different screen sizes", async ({ page }) => {
@@ -119,32 +115,40 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
-    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+    await expect(page.getByText("Complete Your Setup")).toBeVisible();
 
     // Test tablet view
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
 
     // Test desktop view
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
   });
 
   test("authenticated user can access signup page", async ({ page, serverUrl }) => {
     // Navigate to signup while authenticated
-    await page.goto(`${serverUrl}/signup`);
-    await page.waitForLoadState("networkidle");
+    const signupUrl = `${serverUrl}/signup`;
+    await page.goto(signupUrl, { waitUntil: "domcontentloaded" });
+    if (page.url().startsWith("chrome-error://")) {
+      await page.goto(signupUrl, { waitUntil: "domcontentloaded" });
+    }
 
     // Should be able to access signup page (app allows this)
-    const currentUrl = page.url();
-    expect(currentUrl).toContain("/signup");
+    await expect(page).toHaveURL(/\/signup$/);
 
     // Should see signup form
     await expect(page.getByTestId("signup-heading")).toBeVisible();
@@ -152,12 +156,14 @@ test.describe("Dashboard and Authenticated User Experience", () => {
 
   test("authenticated user can access signin page", async ({ page, serverUrl }) => {
     // Navigate to signin while authenticated
-    await page.goto(`${serverUrl}/signin`);
-    await page.waitForLoadState("networkidle");
+    const signinUrl = `${serverUrl}/signin`;
+    await page.goto(signinUrl, { waitUntil: "domcontentloaded" });
+    if (page.url().startsWith("chrome-error://")) {
+      await page.goto(signinUrl, { waitUntil: "domcontentloaded" });
+    }
 
     // Should be able to access signin page (app allows this)
-    const currentUrl = page.url();
-    expect(currentUrl).toContain("/signin");
+    await expect(page).toHaveURL(/\/signin$/);
 
     // Should see signin form
     await expect(page.getByTestId("signin-heading")).toBeVisible();
@@ -169,8 +175,10 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await page.waitForLoadState("networkidle");
 
     // Should still see dashboard (session persisted)
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
-    await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+    await expect(page.getByText("Complete Your Setup")).toBeVisible();
 
     // User menu should still be visible
     const userMenuButton = page.getByTestId("user-menu-button");
@@ -193,29 +201,17 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     expect(errors).toHaveLength(0);
 
     // Check that all expected content loaded
-    await expect(page.getByTestId("dashboard-heading")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
     await expect(page.locator(".bg-white.rounded-xl")).toBeVisible();
   });
 
-  test("coming soon section displays correctly", async ({ page }) => {
-    // Check coming soon card
-    const comingSoonCard = page.locator(".bg-linear-to-r.from-blue-50");
-    await expect(comingSoonCard).toBeVisible();
-
-    // Check coming soon heading
-    await expect(page.locator("text=Coming Soon: Phase 2")).toBeVisible();
-
-    // Check feature descriptions
-    await expect(
-      page.locator("text=detailed weekly time summaries"),
-    ).toBeVisible();
-    await expect(page.locator("text=granular project tracking")).toBeVisible();
-    await expect(
-      page.locator("text=smart overtime calculations"),
-    ).toBeVisible();
-
-    // Check rocket icon (more specific selector)
-    const rocketIcon = page.locator(".text-blue-600").first();
-    await expect(rocketIcon).toBeVisible();
+  test("setup checklist displays correctly", async ({ page }) => {
+    await expect(page.getByText("Complete Your Setup")).toBeVisible();
+    await expect(page.getByText("Connect Clockify API")).toBeVisible();
+    await expect(page.getByText("Select Workspace")).toBeVisible();
+    await expect(page.getByText("Select Client")).toBeVisible();
+    await expect(page.getByText("Configure Tracked Projects")).toBeVisible();
   });
 });
