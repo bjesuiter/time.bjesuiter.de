@@ -407,28 +407,26 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const userId = await getAuthenticatedUserId();
 
-    let apiKey = data.apiKey;
+    const config = await db.query.userClockifyConfig.findFirst({
+      where: eq(userClockifyConfig.userId, userId),
+    });
 
-    // If no API key provided, try to get from stored config
+    const apiKey = data.apiKey ?? config?.clockifyApiKey;
+
     if (!apiKey) {
-      const config = await db.query.userClockifyConfig.findFirst({
-        where: eq(userClockifyConfig.userId, userId),
-      });
-
-      if (!config) {
-        return {
-          success: false,
-          error: "No API key provided and no stored configuration found",
-        };
-      }
-
-      apiKey = config.clockifyApiKey;
+      return {
+        success: false,
+        error: "No API key provided and no stored configuration found",
+      };
     }
+
+    // Fall back to the selected client in saved config when caller omits clientId.
+    const effectiveClientId = data.clientId ?? config?.selectedClientId ?? undefined;
 
     const result = await clockifyClient.getProjects(
       apiKey,
       data.workspaceId,
-      data.clientId,
+      effectiveClientId,
     );
 
     if (!result.success) {
@@ -438,9 +436,13 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
       };
     }
 
+    const projects = effectiveClientId
+      ? result.data.filter((project) => project.clientId === effectiveClientId)
+      : result.data;
+
     return {
       success: true,
-      projects: result.data,
+      projects,
     };
   });
 
