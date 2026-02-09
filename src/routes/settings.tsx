@@ -79,10 +79,10 @@ function SettingsPage() {
     }
 
     return {
-      to: "/setup/tracked-projects" as const,
-      ctaLabel: "Configure Tracked Projects",
+      to: "/setup/clockify" as const,
+      ctaLabel: "Resume Clockify Setup",
       description:
-        "Clockify is connected. Select tracked projects to finish setup.",
+        "Clockify is connected. Configure tracked projects to finish setup.",
     };
   })();
 

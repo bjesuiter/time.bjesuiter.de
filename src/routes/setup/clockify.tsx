@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   Key,
   Briefcase,
+  FolderKanban,
   Settings,
   CheckCircle2,
   AlertCircle,
@@ -28,13 +29,15 @@ import {
   saveClockifyConfig,
   getClockifyWorkspaces,
   getClockifyClients,
+  getClockifyProjects,
 } from "@/server/clockifyServerFns";
+import { createConfig, getCurrentConfig, updateConfig } from "@/server/configServerFns";
 
 export const Route = createFileRoute("/setup/clockify")({
   component: ClockifySetupWizard,
 });
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 interface SetupState {
   apiKey: string;
@@ -78,6 +81,69 @@ function ClockifySetupWizard() {
     queryFn: () => checkClockifySetup(),
     enabled: !!session?.user,
   });
+
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const hasInitializedProjectSelectionRef = useRef(false);
+
+  const { data: currentConfig } = useQuery({
+    queryKey: ["current-config"],
+    queryFn: () => getCurrentConfig({ data: undefined }),
+    enabled: !!session?.user,
+  });
+
+  const { data: availableProjects, isLoading: isLoadingProjects } = useQuery({
+    queryKey: [
+      "clockify-projects",
+      state.selectedWorkspaceId,
+      state.selectedClientId,
+    ],
+    queryFn: () => {
+      if (!state.selectedWorkspaceId) {
+        throw new Error("Clockify workspace not configured");
+      }
+
+      return getClockifyProjects({
+        data: {
+          workspaceId: state.selectedWorkspaceId,
+          clientId: state.selectedClientId ?? undefined,
+          apiKey: state.apiKey || undefined,
+        },
+      });
+    },
+    enabled:
+      !!session?.user &&
+      !!state.selectedWorkspaceId &&
+      !isInitializing &&
+      currentStep >= 4,
+  });
+
+  useEffect(() => {
+    hasInitializedProjectSelectionRef.current = false;
+    setSelectedProjectIds([]);
+  }, [state.selectedWorkspaceId, state.selectedClientId]);
+
+  useEffect(() => {
+    if (hasInitializedProjectSelectionRef.current) {
+      return;
+    }
+
+    if (!availableProjects?.success || !availableProjects.projects) {
+      return;
+    }
+
+    const availableProjectIdSet = new Set(
+      availableProjects.projects.map((project) => project.id),
+    );
+    const preselectedIds =
+      currentConfig?.success && currentConfig.config
+        ? currentConfig.config.value.projectIds.filter((projectId) =>
+            availableProjectIdSet.has(projectId),
+          )
+        : [];
+
+    setSelectedProjectIds(preselectedIds);
+    hasInitializedProjectSelectionRef.current = true;
+  }, [availableProjects, currentConfig]);
 
   useEffect(() => {
     if (!session?.user) {
@@ -155,8 +221,10 @@ function ClockifySetupWizard() {
           setCurrentStep(2);
         } else if (!setupStatus.steps.hasClient) {
           setCurrentStep(3);
-        } else {
+        } else if (!setupStatus.steps.hasTrackedProjects) {
           setCurrentStep(4);
+        } else {
+          setCurrentStep(5);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to resume setup");
@@ -270,7 +338,32 @@ function ClockifySetupWizard() {
     setCurrentStep(4);
   };
 
-  // Step 4: Save configuration
+  // Step 4: Select tracked projects
+  const toggleProjectSelection = (projectId: string) => {
+    setSelectedProjectIds((prev) =>
+      prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId)
+        : [...prev, projectId],
+    );
+  };
+
+  const handleConfigureTrackedProjects = () => {
+    setError(null);
+
+    if (!availableProjects?.success || !availableProjects.projects) {
+      setError("Unable to load projects for the selected client");
+      return;
+    }
+
+    if (selectedProjectIds.length === 0) {
+      setError("Please select at least one project to track");
+      return;
+    }
+
+    setCurrentStep(5);
+  };
+
+  // Step 5: Save configuration
   const handleSaveConfiguration = async () => {
     setIsLoading(true);
     setError(null);
@@ -297,13 +390,53 @@ function ClockifySetupWizard() {
         return;
       }
 
-      queryClient.invalidateQueries({ queryKey: ["clockify-setup"] });
-
-      if (setupStatus && !setupStatus.steps.hasTrackedProjects) {
-        navigate({ to: "/setup/tracked-projects" });
-      } else {
-        navigate({ to: "/" });
+      if (!availableProjects?.success || !availableProjects.projects) {
+        setError("Unable to load projects for the selected client");
+        return;
       }
+
+      const selectedProjects = availableProjects.projects.filter((project) =>
+        selectedProjectIds.includes(project.id),
+      );
+
+      if (selectedProjects.length === 0) {
+        setError("Please select at least one project to track");
+        setCurrentStep(4);
+        return;
+      }
+
+      const configResult =
+        currentConfig?.success && currentConfig.config
+          ? await updateConfig({
+              data: {
+                configId: currentConfig.config.id,
+                projectIds: selectedProjects.map((project) => project.id),
+                projectNames: selectedProjects.map((project) => project.name),
+              },
+            })
+          : await createConfig({
+              data: {
+                projectIds: selectedProjects.map((project) => project.id),
+                projectNames: selectedProjects.map((project) => project.name),
+                validFrom: new Date().toISOString(),
+              },
+            });
+
+      if (!configResult.success) {
+        setError(configResult.error || "Failed to save tracked projects");
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["clockify-setup"] });
+      queryClient.invalidateQueries({ queryKey: ["current-config"] });
+      queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
+      queryClient.invalidateQueries({
+        queryKey: ["config-history", "tracked_projects"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["clockify-config"] });
+      queryClient.invalidateQueries({ queryKey: ["clockify-details"] });
+
+      navigate({ to: "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -335,7 +468,8 @@ function ClockifySetupWizard() {
                   { step: 1, label: "API Key" },
                   { step: 2, label: "Workspace" },
                   { step: 3, label: "Settings" },
-                  { step: 4, label: "Review" },
+                  { step: 4, label: "Projects" },
+                  { step: 5, label: "Review" },
                 ] as const
               ).map(({ step, label }, index) => (
                 <div key={step} className="flex items-start flex-1 last:flex-none">
@@ -353,7 +487,7 @@ function ClockifySetupWizard() {
                     </div>
                     <span className="mt-2 text-xs text-gray-600">{label}</span>
                   </div>
-                  {index < 3 && (
+                  {index < 4 && (
                     <div
                       className={`flex-1 h-1 mx-2 mt-[1.2rem] ${
                         step < currentStep ? "bg-green-500" : "bg-gray-300"
@@ -717,8 +851,113 @@ function ClockifySetupWizard() {
               </div>
             )}
 
-            {/* Step 4: Review & Save */}
+            {/* Step 4: Configure Tracked Projects */}
             {!isInitializing && currentStep === 4 && (
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <FolderKanban className="w-6 h-6 text-indigo-600" />
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Configure Tracked Projects
+                  </h2>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="text-gray-600">
+                    Select which projects should be tracked in detail for your
+                    weekly summary.
+                  </p>
+
+                  {isLoadingProjects ? (
+                    <div className="flex items-center justify-center py-10 text-gray-600">
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Loading projects...
+                    </div>
+                  ) : availableProjects?.success && availableProjects.projects ? (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Choose projects ({selectedProjectIds.length} selected):
+                      </p>
+
+                      <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
+                        {availableProjects.projects.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">
+                            No projects found for the selected client.
+                          </div>
+                        ) : (
+                          availableProjects.projects.map((project) => (
+                            <label
+                              key={project.id}
+                              className={`flex items-start gap-3 p-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                                selectedProjectIds.includes(project.id)
+                                  ? "bg-indigo-50"
+                                  : ""
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedProjectIds.includes(project.id)}
+                                onChange={() =>
+                                  toggleProjectSelection(project.id)
+                                }
+                                className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: project.color }}
+                                  />
+                                  <p className="font-medium text-gray-900">
+                                    {project.name}
+                                  </p>
+                                </div>
+                                {project.clientName && (
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Client: {project.clientName}
+                                  </p>
+                                )}
+                              </div>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <p className="text-sm text-amber-800">
+                        Unable to load projects. Please verify your Clockify
+                        setup and selected client.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setCurrentStep(3)}
+                      className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                      Back
+                    </button>
+                    <button
+                      onClick={handleConfigureTrackedProjects}
+                      disabled={
+                        isLoadingProjects ||
+                        !availableProjects?.success ||
+                        !availableProjects.projects?.length
+                      }
+                      className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      Continue
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Review & Save */}
+            {!isInitializing && currentStep === 5 && (
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <CheckCircle2 className="w-6 h-6 text-indigo-600" />
@@ -784,6 +1023,15 @@ function ClockifySetupWizard() {
 
                     <div>
                       <p className="text-sm font-medium text-gray-500">
+                        Tracked Projects
+                      </p>
+                      <p className="text-gray-900">
+                        {selectedProjectIds.length} selected
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">
                         Regular Hours Per Week
                       </p>
                       <p className="text-gray-900">
@@ -816,7 +1064,7 @@ function ClockifySetupWizard() {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setCurrentStep(3)}
+                      onClick={() => setCurrentStep(4)}
                       className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                     >
                       <ChevronLeft className="w-5 h-5" />
