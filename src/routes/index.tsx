@@ -351,9 +351,6 @@ function DashboardView() {
                       cumulativeOvertimeQuery.data?.data
                         ?.cumulativeOvertimeSeconds ?? 0
                     }
-                    weeksIncluded={
-                      cumulativeOvertimeQuery.data?.data?.weeksIncluded ?? 0
-                    }
                     error={
                       cumulativeOvertimeQuery.data?.success === false
                         ? cumulativeOvertimeQuery.data?.error
@@ -573,4 +570,3 @@ function FeatureCard({
     </div>
   );
 }
-

@@ -6,7 +6,6 @@ export interface CumulativeOvertimeSummaryProps {
   hasStartDate: boolean;
   startDate?: string;
   cumulativeOvertimeSeconds: number;
-  weeksIncluded: number;
   error?: string;
   estimatedWeeksTotal?: number;
   fromCache?: boolean;
@@ -17,7 +16,6 @@ export function CumulativeOvertimeSummary({
   hasStartDate,
   startDate,
   cumulativeOvertimeSeconds,
-  weeksIncluded,
   error,
   estimatedWeeksTotal,
   fromCache,
@@ -109,9 +107,6 @@ export function CumulativeOvertimeSummary({
                 : "N/A"}
             </span>
           </div>
-          <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">
-            {weeksIncluded} weeks
-          </p>
           {fromCache !== undefined && (
             <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 justify-end">
               {fromCache ? (
