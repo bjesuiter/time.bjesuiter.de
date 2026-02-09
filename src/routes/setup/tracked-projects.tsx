@@ -96,6 +96,7 @@ function TrackedProjectsSetup() {
       queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
       queryClient.invalidateQueries({ queryKey: ["config-history"] });
       queryClient.invalidateQueries({ queryKey: ["current-config"] });
+      queryClient.invalidateQueries({ queryKey: ["clockify-setup"] });
       navigate({ to: "/settings" });
     },
     onError: (error: Error) => {

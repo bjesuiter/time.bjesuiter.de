@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ChevronRight,
@@ -52,6 +52,7 @@ interface SetupState {
 function ClockifySetupWizard() {
   const navigate = useNavigate();
   const { data: session } = authClient.useSession();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -295,6 +296,8 @@ function ClockifySetupWizard() {
         setError(result.error || "Failed to save configuration");
         return;
       }
+
+      queryClient.invalidateQueries({ queryKey: ["clockify-setup"] });
 
       if (setupStatus && !setupStatus.steps.hasTrackedProjects) {
         navigate({ to: "/setup/tracked-projects" });

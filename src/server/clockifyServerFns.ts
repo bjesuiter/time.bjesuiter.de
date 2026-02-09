@@ -276,11 +276,15 @@ export const checkClockifySetup = createServerFn({ method: "GET" }).handler(
     const hasWorkspace = !!config?.clockifyWorkspaceId;
     const hasClient = !!config?.selectedClientId;
 
+    const now = new Date();
     const trackedProjectsConfig = await db.query.configChronic.findFirst({
       where: and(
         eq(configChronic.userId, userId),
         eq(configChronic.configType, "tracked_projects"),
+        lte(configChronic.validFrom, now),
+        or(isNull(configChronic.validUntil), gt(configChronic.validUntil, now)),
       ),
+      orderBy: (table, { desc }) => [desc(table.validFrom)],
     });
 
     let hasTrackedProjects = false;

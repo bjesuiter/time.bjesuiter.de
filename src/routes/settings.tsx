@@ -154,6 +154,7 @@ function SettingsPage() {
         queryKey: ["config-history", "tracked_projects"],
       });
       queryClient.invalidateQueries({ queryKey: ["current-config"] });
+      queryClient.invalidateQueries({ queryKey: ["clockify-setup"] });
       setEditingConfigId(null);
       setEditingProjectsConfigId(null);
       setEditValidFrom("");
@@ -170,6 +171,7 @@ function SettingsPage() {
         queryKey: ["config-history", "tracked_projects"],
       });
       queryClient.invalidateQueries({ queryKey: ["tracked-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["clockify-setup"] });
     },
   });
 
