@@ -239,10 +239,17 @@ function ClockifySetupWizard() {
               : prev.cumulativeOvertimeStartDate,
         }));
 
+        const usesAllClients =
+          configResult.success && !configResult.config.selectedClientId;
+
         if (!setupStatus.steps.hasApiKey) {
           setCurrentStep(1);
         } else if (!setupStatus.steps.hasWorkspace) {
           setCurrentStep(2);
+        } else if (usesAllClients && !setupStatus.steps.hasTrackedProjects) {
+          // Client filter is optional; when "All clients" is selected, resume at
+          // tracked projects instead of forcing users back to settings.
+          setCurrentStep(4);
         } else if (!setupStatus.steps.hasClient) {
           setCurrentStep(3);
         } else if (!setupStatus.steps.hasTrackedProjects) {
