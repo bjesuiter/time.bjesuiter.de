@@ -117,6 +117,32 @@ function ClockifySetupWizard() {
       currentStep >= 4,
   });
 
+  const filteredProjects =
+    availableProjects?.success && availableProjects.projects
+      ? availableProjects.projects.filter((project) => {
+          if (!state.selectedClientId && !state.selectedClientName) {
+            return true;
+          }
+
+          if (
+            state.selectedClientId &&
+            project.clientId === state.selectedClientId
+          ) {
+            return true;
+          }
+
+          if (
+            state.selectedClientName &&
+            project.clientName.toLowerCase() ===
+              state.selectedClientName.toLowerCase()
+          ) {
+            return true;
+          }
+
+          return false;
+        })
+      : [];
+
   useEffect(() => {
     hasInitializedProjectSelectionRef.current = false;
     setSelectedProjectIds([]);
@@ -127,13 +153,11 @@ function ClockifySetupWizard() {
       return;
     }
 
-    if (!availableProjects?.success || !availableProjects.projects) {
+    if (!availableProjects?.success) {
       return;
     }
 
-    const availableProjectIdSet = new Set(
-      availableProjects.projects.map((project) => project.id),
-    );
+    const availableProjectIdSet = new Set(filteredProjects.map((project) => project.id));
     const preselectedIds =
       currentConfig?.success && currentConfig.config
         ? currentConfig.config.value.projectIds.filter((projectId) =>
@@ -143,7 +167,7 @@ function ClockifySetupWizard() {
 
     setSelectedProjectIds(preselectedIds);
     hasInitializedProjectSelectionRef.current = true;
-  }, [availableProjects, currentConfig]);
+  }, [availableProjects, currentConfig, filteredProjects]);
 
   useEffect(() => {
     if (!session?.user) {
@@ -350,8 +374,13 @@ function ClockifySetupWizard() {
   const handleConfigureTrackedProjects = () => {
     setError(null);
 
-    if (!availableProjects?.success || !availableProjects.projects) {
+    if (!availableProjects?.success) {
       setError("Unable to load projects for the selected client");
+      return;
+    }
+
+    if (filteredProjects.length === 0) {
+      setError("No projects found for the selected client");
       return;
     }
 
@@ -390,12 +419,12 @@ function ClockifySetupWizard() {
         return;
       }
 
-      if (!availableProjects?.success || !availableProjects.projects) {
+      if (!availableProjects?.success) {
         setError("Unable to load projects for the selected client");
         return;
       }
 
-      const selectedProjects = availableProjects.projects.filter((project) =>
+      const selectedProjects = filteredProjects.filter((project) =>
         selectedProjectIds.includes(project.id),
       );
 
@@ -872,19 +901,19 @@ function ClockifySetupWizard() {
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
                       Loading projects...
                     </div>
-                  ) : availableProjects?.success && availableProjects.projects ? (
+                  ) : availableProjects?.success ? (
                     <div>
                       <p className="text-sm text-gray-600 mb-4">
                         Choose projects ({selectedProjectIds.length} selected):
                       </p>
 
                       <div className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg">
-                        {availableProjects.projects.length === 0 ? (
+                        {filteredProjects.length === 0 ? (
                           <div className="p-4 text-center text-gray-500">
                             No projects found for the selected client.
                           </div>
                         ) : (
-                          availableProjects.projects.map((project) => (
+                          filteredProjects.map((project) => (
                             <label
                               key={project.id}
                               className={`flex items-start gap-3 p-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${
@@ -944,7 +973,7 @@ function ClockifySetupWizard() {
                       disabled={
                         isLoadingProjects ||
                         !availableProjects?.success ||
-                        !availableProjects.projects?.length
+                        !filteredProjects.length
                       }
                       className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
                     >
