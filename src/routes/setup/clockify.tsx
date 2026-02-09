@@ -113,28 +113,25 @@ function ClockifySetupWizard() {
     enabled:
       !!session?.user &&
       !!state.selectedWorkspaceId &&
+      !!state.selectedClientId &&
       !isInitializing &&
       currentStep >= 4,
   });
 
   const filteredProjects =
-    availableProjects?.success && availableProjects.projects
+    availableProjects?.success &&
+    availableProjects.projects &&
+    !!state.selectedClientId
       ? availableProjects.projects.filter((project) => {
-          if (!state.selectedClientId && !state.selectedClientName) {
-            return true;
-          }
-
-          if (
-            state.selectedClientId &&
-            project.clientId === state.selectedClientId
-          ) {
+          if (project.clientId === state.selectedClientId) {
             return true;
           }
 
           if (
             state.selectedClientName &&
-            project.clientName.toLowerCase() ===
+            project.clientName.toLowerCase().includes(
               state.selectedClientName.toLowerCase()
+            )
           ) {
             return true;
           }
@@ -213,6 +210,21 @@ function ClockifySetupWizard() {
             : { success: false as const };
 
         const clients = clientsResult.success ? (clientsResult.clients ?? []) : [];
+        const resolvedSelectedClientId =
+          configResult.success && configResult.config.selectedClientId
+            ? configResult.config.selectedClientId
+            : configResult.success && configResult.config.selectedClientName
+              ? (clients.find(
+                  (client) =>
+                    client.name.toLowerCase() ===
+                    configResult.config.selectedClientName?.toLowerCase(),
+                )?.id ?? null)
+              : null;
+        const resolvedSelectedClientName =
+          configResult.success && configResult.config.selectedClientName
+            ? configResult.config.selectedClientName
+            : clients.find((client) => client.id === resolvedSelectedClientId)
+                ?.name ?? null;
 
         setState((prev) => ({
           ...prev,
@@ -220,12 +232,8 @@ function ClockifySetupWizard() {
           workspaces,
           selectedWorkspaceId,
           clients,
-          selectedClientId:
-            (configResult.success ? configResult.config.selectedClientId : null) ??
-            null,
-          selectedClientName:
-            (configResult.success ? configResult.config.selectedClientName : null) ??
-            null,
+          selectedClientId: resolvedSelectedClientId,
+          selectedClientName: resolvedSelectedClientName,
           regularHoursPerWeek: configResult.success
             ? configResult.config.regularHoursPerWeek
             : prev.regularHoursPerWeek,
@@ -239,18 +247,13 @@ function ClockifySetupWizard() {
               : prev.cumulativeOvertimeStartDate,
         }));
 
-        const usesAllClients =
-          configResult.success && !configResult.config.selectedClientId;
+        const hasConfiguredClient = !!resolvedSelectedClientId;
 
         if (!setupStatus.steps.hasApiKey) {
           setCurrentStep(1);
         } else if (!setupStatus.steps.hasWorkspace) {
           setCurrentStep(2);
-        } else if (usesAllClients && !setupStatus.steps.hasTrackedProjects) {
-          // Client filter is optional; when "All clients" is selected, resume at
-          // tracked projects instead of forcing users back to settings.
-          setCurrentStep(4);
-        } else if (!setupStatus.steps.hasClient) {
+        } else if (!hasConfiguredClient) {
           setCurrentStep(3);
         } else if (!setupStatus.steps.hasTrackedProjects) {
           setCurrentStep(4);
@@ -366,6 +369,22 @@ function ClockifySetupWizard() {
 
   // Step 3: Configure settings
   const handleConfigureSettings = () => {
+    if (!state.selectedClientId) {
+      setError("Please select a client");
+      return;
+    }
+
+    const selectedClient = state.clients.find(
+      (client) => client.id === state.selectedClientId,
+    );
+    if (selectedClient && selectedClient.name !== state.selectedClientName) {
+      setState((prev) => ({
+        ...prev,
+        selectedClientName: selectedClient.name,
+      }));
+    }
+
+    setError(null);
     setCurrentStep(4);
   };
 
@@ -748,13 +767,13 @@ function ClockifySetupWizard() {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Client Filter */}
+                  {/* Client */}
                   <div>
                     <label
                       htmlFor="client"
                       className="block text-sm font-medium text-gray-700 mb-2"
                     >
-                      Client Filter (Optional)
+                      Client
                     </label>
                     <select
                       id="client"
@@ -772,7 +791,7 @@ function ClockifySetupWizard() {
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
-                      <option value="">All clients</option>
+                      <option value="">Select a client</option>
                       {state.clients.map((client) => (
                         <option key={client.id} value={client.id}>
                           {client.name}
@@ -780,8 +799,7 @@ function ClockifySetupWizard() {
                       ))}
                     </select>
                     <p className="text-xs text-gray-500 mt-1">
-                      Filter time entries to only show data from a specific
-                      client
+                      Choose the client whose projects you want to track
                     </p>
                   </div>
 
@@ -877,6 +895,7 @@ function ClockifySetupWizard() {
                     </button>
                     <button
                       onClick={handleConfigureSettings}
+                      disabled={!state.selectedClientId}
                       className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
                     >
                       Continue
@@ -1050,10 +1069,10 @@ function ClockifySetupWizard() {
 
                     <div>
                       <p className="text-sm font-medium text-gray-500">
-                        Client Filter
+                        Client
                       </p>
                       <p className="text-gray-900">
-                        {state.selectedClientName || "All clients"}
+                        {state.selectedClientName || "Not selected"}
                       </p>
                     </div>
 
