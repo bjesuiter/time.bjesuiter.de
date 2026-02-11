@@ -20,6 +20,6 @@ Added timestamp showing when data was last fetched from Clockify.
 
 ## User Experience
 
-- Desktop: Visible clock icon with timestamp (e.g., '14:30') 
+- Desktop: Visible clock icon with timestamp (e.g., '14:30')
 - Mobile: Timestamp visible in refresh button tooltip
 - Updates automatically when data is refetched

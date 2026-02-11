@@ -12,12 +12,14 @@ parent: time.bjesuiter.de-lbhw
 Add loading indicators throughout the app.
 
 ## Requirements
+
 - Skeleton loaders for table data
 - Spinner/loading indicator for buttons
 - Progressive loading for large datasets
 - Avoid layout shift during loading
 
 ## Checklist
+
 - [x] Create TableSkeleton component
 - [x] Create generic Skeleton primitive component
 - [x] Add skeleton to WeeklyTimeTable loading state
@@ -25,6 +27,7 @@ Add loading indicators throughout the app.
 - [x] Review and improve button loading states
 
 ## Implementation
+
 - Created src/components/ui/Skeleton.tsx - base skeleton primitives
 - Created src/components/ui/TableSkeleton.tsx - matches WeeklyTimeTable layout
 - Created src/components/ui/OvertimeSkeleton.tsx - matches overtime summaries
@@ -32,4 +35,5 @@ Add loading indicators throughout the app.
 - Prevents layout shift by matching exact dimensions
 
 ## Context
+
 Part of Phase 5 - Polish & Features

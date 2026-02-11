@@ -12,6 +12,7 @@ parent: time.bjesuiter.de-v3k9
 Create database tables for caching daily and weekly time sums.
 
 ## Tables to Create
+
 1. **cached_daily_project_sums**
    - userId, date, projectId, projectName, seconds, clientId
    - calculatedAt, invalidatedAt timestamps
@@ -29,6 +30,7 @@ Create database tables for caching daily and weekly time sums.
    - detectedAt, resolvedAt, resolution
 
 ## Checklist
+
 - [x] Create cached_daily_project_sums table schema
 - [x] Create cached_weekly_sums table schema
 - [x] Create weekly_discrepancies table schema
@@ -37,4 +39,5 @@ Create database tables for caching daily and weekly time sums.
 - [x] Generate and apply migration
 
 ## Context
+
 Part of Phase 4 - Caching Layer & Optimization

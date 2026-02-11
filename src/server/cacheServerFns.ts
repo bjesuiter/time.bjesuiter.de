@@ -3,10 +3,7 @@ import { db } from "@/db";
 import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { userClockifyConfig } from "@/db/schema/clockify";
 import { configChronic } from "@/db/schema/config";
-import {
-  cachedDailyProjectSums,
-  cachedWeeklySums,
-} from "@/db/schema/cache";
+import { cachedDailyProjectSums, cachedWeeklySums } from "@/db/schema/cache";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
 import { addDays } from "date-fns";
@@ -254,7 +251,9 @@ async function calculateWeeklySumsFromDaily(
 }
 
 export const getCachedWeeklySummary = createServerFn({ method: "POST" })
-  .inputValidator((data: { weekStartDate: string; forceRefresh?: boolean }) => data)
+  .inputValidator(
+    (data: { weekStartDate: string; forceRefresh?: boolean }) => data,
+  )
   .handler(async ({ data }) => {
     const userId = await getAuthenticatedUserId();
 
@@ -285,7 +284,8 @@ export const getCachedWeeklySummary = createServerFn({ method: "POST" })
     if (!data.forceRefresh) {
       return {
         success: false,
-        error: "No cached data available. Use forceRefresh to fetch from Clockify.",
+        error:
+          "No cached data available. Use forceRefresh to fetch from Clockify.",
       };
     }
 
@@ -336,12 +336,7 @@ export type RefreshProgressUpdate = {
  * Recalculates daily and weekly sums from Clockify API.
  */
 export const refreshConfigTimeRange = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      startDate: string;
-      endDate: string | null;
-    }) => data,
-  )
+  .inputValidator((data: { startDate: string; endDate: string | null }) => data)
   .handler(async ({ data }) => {
     const userId = await getAuthenticatedUserId();
 

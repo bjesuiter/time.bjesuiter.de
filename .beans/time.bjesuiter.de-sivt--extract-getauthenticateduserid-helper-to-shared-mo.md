@@ -11,16 +11,19 @@ updated_at: 2026-01-22T05:09:26Z
 The getAuthenticatedUserId function is duplicated across multiple server function files.
 
 ## Files Affected
+
 - src/server/clockifyServerFns.ts (lines 72-86)
 - src/server/configServerFns.ts (lines 8-22)
 - Likely duplicated in other server files too
 
 ## Issues
+
 - Same helper function duplicated in multiple files
 - Changes need to be made in multiple places
 - Violates DRY (Don't Repeat Yourself) principle
 
 ## Checklist
+
 - [x] Create src/server/authHelpers.ts or similar shared module
 - [x] Extract getAuthenticatedUserId function to shared module (as getAuthUserId to avoid naming conflicts)
 - [x] Update clockifyServerFns.ts to import getAuthUserId from shared module (headers parameter)

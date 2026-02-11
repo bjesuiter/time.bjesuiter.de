@@ -11,6 +11,7 @@ updated_at: 2026-01-26T20:51:41Z
 Resolve existing TypeScript errors reported by bunx tsc --noEmit so verification can pass.
 
 ## Verification
+
 - Build: `bun run build` (ok)
 - Typecheck: `bunx tsc --noEmit` (ok)
 - Unit tests: `bun test tests/unit` (ok)

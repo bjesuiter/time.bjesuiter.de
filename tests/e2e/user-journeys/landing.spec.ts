@@ -1,7 +1,10 @@
 import { expect, test } from "../fixtures/test";
 
 test.describe("Landing Page and Navigation", () => {
-  test("landing page displays correctly for unauthenticated users", async ({ page, serverUrl }) => {
+  test("landing page displays correctly for unauthenticated users", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(serverUrl);
     await page.waitForLoadState("networkidle");
 
@@ -18,16 +21,29 @@ test.describe("Landing Page and Navigation", () => {
     await expect(page.getByTestId("landingpage-sign-in-link")).toBeVisible();
 
     // Check feature cards
-    await expect(page.getByTestId("landingpage-feature-clockify")).toBeVisible();
-    await expect(page.getByTestId("landingpage-feature-weekly-summaries")).toBeVisible();
-    await expect(page.getByTestId("landingpage-feature-overtime")).toBeVisible();
+    await expect(
+      page.getByTestId("landingpage-feature-clockify"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("landingpage-feature-weekly-summaries"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("landingpage-feature-overtime"),
+    ).toBeVisible();
 
     // Check footer links
-    await expect(page.getByTestId("landingpage-create-account-link")).toBeVisible();
-    await expect(page.getByTestId("landingpage-admin-registration-link")).toBeVisible();
+    await expect(
+      page.getByTestId("landingpage-create-account-link"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("landingpage-admin-registration-link"),
+    ).toBeVisible();
   });
 
-  test("navigation links work from landing page", async ({ page, serverUrl }) => {
+  test("navigation links work from landing page", async ({
+    page,
+    serverUrl,
+  }) => {
     await page.goto(serverUrl);
     await page.waitForLoadState("networkidle");
 
@@ -73,7 +89,10 @@ test.describe("Landing Page and Navigation", () => {
     // but we verify they exist and have correct hrefs
   });
 
-  test("page is responsive and mobile-friendly", async ({ page, serverUrl }) => {
+  test("page is responsive and mobile-friendly", async ({
+    page,
+    serverUrl,
+  }) => {
     // Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto(serverUrl);

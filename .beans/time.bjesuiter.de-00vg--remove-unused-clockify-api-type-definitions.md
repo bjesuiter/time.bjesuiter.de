@@ -11,12 +11,14 @@ updated_at: 2026-01-22T11:08:21Z
 The src/lib/clockify/types.ts file contains many type definitions that may not be fully used.
 
 ## Issues
+
 - ClockifyUserSettings interface has many unused fields (20+ properties)
 - ClockifyWorkspaceSettings interface is very large (20+ properties)
 - ClockifyProject interface has many unused properties (estimate, timeEstimate, budgetEstimate, etc.)
 - These are generated from Clockify API but most fields are never used in the app
 
 ## Checklist
+
 - [ ] Audit which Clockify types are actually used in the codebase
 - [ ] Remove unused fields from ClockifyUserSettings
 - [ ] Remove unused fields from ClockifyWorkspaceSettings

@@ -8,9 +8,11 @@ updated_at: 2026-01-20T22:31:02Z
 ---
 
 ## Summary
+
 Add try/catch around DB ops and JSON parsing in server functions/helpers.
 
 ## Checklist
+
 - [ ] Wrap `cacheHelpers` DB updates with try/catch
 - [ ] Ensure cache/config helpers throw Response on failure
 - [ ] Add safe JSON parsing for tracked project config

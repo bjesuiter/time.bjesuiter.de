@@ -1,6 +1,6 @@
 ---
 # time.bjesuiter.de-ob1k
-title: 'Phase 3: Configuration Management & Versioning'
+title: "Phase 3: Configuration Management & Versioning"
 status: completed
 type: milestone
 priority: normal
@@ -11,9 +11,11 @@ updated_at: 2026-01-19T19:19:57Z
 Complete the final remaining task for configuration versioning.
 
 ## Scope
+
 Minor polish work - only one task remaining.
 
 ## Already Complete
+
 - config_chronic table and logic
 - Tracked projects setup page
 - Temporal queries
@@ -22,4 +24,5 @@ Minor polish work - only one task remaining.
 - Inline date editing with validation
 
 ## Remaining
+
 - Manual refresh button for Clockify settings in settings page

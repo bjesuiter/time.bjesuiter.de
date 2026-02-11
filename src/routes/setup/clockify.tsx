@@ -31,7 +31,11 @@ import {
   getClockifyClients,
   getClockifyProjects,
 } from "@/server/clockifyServerFns";
-import { createConfig, getCurrentConfig, updateConfig } from "@/server/configServerFns";
+import {
+  createConfig,
+  getCurrentConfig,
+  updateConfig,
+} from "@/server/configServerFns";
 
 export const Route = createFileRoute("/setup/clockify")({
   component: ClockifySetupWizard,
@@ -129,9 +133,9 @@ function ClockifySetupWizard() {
 
           if (
             state.selectedClientName &&
-            project.clientName.toLowerCase().includes(
-              state.selectedClientName.toLowerCase()
-            )
+            project.clientName
+              .toLowerCase()
+              .includes(state.selectedClientName.toLowerCase())
           ) {
             return true;
           }
@@ -154,7 +158,9 @@ function ClockifySetupWizard() {
       return;
     }
 
-    const availableProjectIdSet = new Set(filteredProjects.map((project) => project.id));
+    const availableProjectIdSet = new Set(
+      filteredProjects.map((project) => project.id),
+    );
     const preselectedIds =
       currentConfig?.success && currentConfig.config
         ? currentConfig.config.value.projectIds.filter((projectId) =>
@@ -206,10 +212,14 @@ function ClockifySetupWizard() {
 
         const clientsResult =
           hasApiKey && selectedWorkspaceId
-            ? await getClockifyClients({ data: { workspaceId: selectedWorkspaceId } })
+            ? await getClockifyClients({
+                data: { workspaceId: selectedWorkspaceId },
+              })
             : { success: false as const };
 
-        const clients = clientsResult.success ? (clientsResult.clients ?? []) : [];
+        const clients = clientsResult.success
+          ? (clientsResult.clients ?? [])
+          : [];
         const resolvedSelectedClientId =
           configResult.success && configResult.config.selectedClientId
             ? configResult.config.selectedClientId
@@ -223,12 +233,14 @@ function ClockifySetupWizard() {
         const resolvedSelectedClientName =
           configResult.success && configResult.config.selectedClientName
             ? configResult.config.selectedClientName
-            : clients.find((client) => client.id === resolvedSelectedClientId)
-                ?.name ?? null;
+            : (clients.find((client) => client.id === resolvedSelectedClientId)
+                ?.name ?? null);
 
         setState((prev) => ({
           ...prev,
-          validatedUser: detailsResult.success ? detailsResult.clockifyUser : null,
+          validatedUser: detailsResult.success
+            ? detailsResult.clockifyUser
+            : null,
           workspaces,
           selectedWorkspaceId,
           clients,
@@ -318,7 +330,9 @@ function ClockifySetupWizard() {
         validatedUser: validatedUser ?? prev.validatedUser,
         workspaces: workspacesResult.workspaces || [],
         selectedWorkspaceId:
-          prev.selectedWorkspaceId || workspacesResult.workspaces?.[0]?.id || "",
+          prev.selectedWorkspaceId ||
+          workspacesResult.workspaces?.[0]?.id ||
+          "",
       }));
 
       setCurrentStep(2);
@@ -527,7 +541,10 @@ function ClockifySetupWizard() {
                   { step: 5, label: "Review" },
                 ] as const
               ).map(({ step, label }, index) => (
-                <div key={step} className="flex items-start flex-1 last:flex-none">
+                <div
+                  key={step}
+                  className="flex items-start flex-1 last:flex-none"
+                >
                   <div className="flex flex-col items-center">
                     <div
                       className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
@@ -950,7 +967,9 @@ function ClockifySetupWizard() {
                             >
                               <input
                                 type="checkbox"
-                                checked={selectedProjectIds.includes(project.id)}
+                                checked={selectedProjectIds.includes(
+                                  project.id,
+                                )}
                                 onChange={() =>
                                   toggleProjectSelection(project.id)
                                 }

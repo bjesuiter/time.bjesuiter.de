@@ -29,10 +29,11 @@ trustedOrigins: [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://time.bjesuiter.de",
-]
+];
 ```
 
 **Evidence** ([source](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/reference/security.mdx)):
+
 - Trusted origins prevent CSRF attacks and block open redirects
 - Requests from origins not on this list are automatically blocked
 - Default base URL is automatically trusted
@@ -54,8 +55,8 @@ trustedOrigins: [
 export const auth = betterAuth({
   // ... existing config
   session: {
-    expiresIn: 60 * 60 * 24 * 7,  // 7 days (explicit, matches default)
-    updateAge: 60 * 60 * 24,       // 1 day (refresh session daily)
+    expiresIn: 60 * 60 * 24 * 7, // 7 days (explicit, matches default)
+    updateAge: 60 * 60 * 24, // 1 day (refresh session daily)
     // Optional: disable automatic refresh for stricter security
     // disableSessionRefresh: false (default)
   },
@@ -64,17 +65,20 @@ export const auth = betterAuth({
 ```
 
 **Evidence** ([source](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/concepts/session-management.mdx)):
+
 - `expiresIn`: Total session duration before expiration
 - `updateAge`: Interval after which session expiration is refreshed upon use
 - Default: 7 days expiration, 1 day update age
 - Sessions are stored in database to prevent unauthorized access
 
 **Security Rationale**:
+
 - **7 days**: Reasonable for a time-tracking app (users log in regularly)
 - **1 day update age**: Extends session on each use, preventing mid-week logouts
 - **Explicit config**: Makes security intent clear to future maintainers
 
 **Considerations**:
+
 - For higher security: Reduce to 3-4 days expiration
 - For higher security: Reduce updateAge to 12 hours
 - Current settings are appropriate for internal tool
@@ -96,16 +100,16 @@ export const auth = betterAuth({
   advanced: {
     // Explicitly enable secure cookies (auto-enabled in production, but be explicit)
     useSecureCookies: true,
-    
+
     // Default cookie attributes for ALL cookies
     defaultCookieAttributes: {
-      httpOnly: true,      // Prevent JavaScript access (XSS protection)
-      secure: true,        // HTTPS only (set automatically in production)
-      sameSite: "lax",     // CSRF protection (default, but explicit)
+      httpOnly: true, // Prevent JavaScript access (XSS protection)
+      secure: true, // HTTPS only (set automatically in production)
+      sameSite: "lax", // CSRF protection (default, but explicit)
       // Note: "strict" is too restrictive for OAuth flows
       // "lax" is recommended for most applications
     },
-    
+
     // Session token specific configuration
     cookies: {
       session_token: {
@@ -114,8 +118,8 @@ export const auth = betterAuth({
           httpOnly: true,
           secure: true,
           sameSite: "lax",
-        }
-      }
+        },
+      },
     },
   },
   // ... rest of config
@@ -123,6 +127,7 @@ export const auth = betterAuth({
 ```
 
 **Evidence** ([source](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/reference/security.mdx)):
+
 - `httpOnly`: Prevents client-side JavaScript from accessing the cookie (XSS protection)
 - `secure`: Only sent over HTTPS connections
 - `sameSite: "lax"`: Prevents cross-site request forgery attacks
@@ -130,20 +135,22 @@ export const auth = betterAuth({
 
 **Cookie Attributes Explained**:
 
-| Attribute | Value | Purpose |
-|-----------|-------|---------|
-| `httpOnly` | `true` | Prevents XSS attacks by blocking JavaScript access |
-| `secure` | `true` | Only sent over HTTPS (automatic in production) |
-| `sameSite` | `"lax"` | CSRF protection; allows top-level navigation |
+| Attribute  | Value      | Purpose                                             |
+| ---------- | ---------- | --------------------------------------------------- |
+| `httpOnly` | `true`     | Prevents XSS attacks by blocking JavaScript access  |
+| `secure`   | `true`     | Only sent over HTTPS (automatic in production)      |
+| `sameSite` | `"lax"`    | CSRF protection; allows top-level navigation        |
 | `sameSite` | `"strict"` | Stricter CSRF; breaks OAuth flows (not recommended) |
-| `sameSite` | `"none"` | Cross-domain cookies; requires `secure: true` |
+| `sameSite` | `"none"`   | Cross-domain cookies; requires `secure: true`       |
 
 **Current Default Behavior**:
+
 - ✅ `httpOnly`: Enabled by default
 - ✅ `secure`: Enabled automatically in production
 - ✅ `sameSite: "lax"`: Default setting
 
 **Why Explicit Configuration Matters**:
+
 - Makes security intent clear
 - Easier to audit and maintain
 - Prevents accidental downgrades
@@ -165,23 +172,25 @@ export const auth = betterAuth({
   advanced: {
     // CSRF protection is enabled by default
     // Explicitly set to false only if you have a specific reason
-    disableCSRFCheck: false,  // ✅ CSRF protection ENABLED
-    
+    disableCSRFCheck: false, // ✅ CSRF protection ENABLED
+
     // Origin validation is enabled by default
     // Blocks requests from untrusted origins
-    disableOriginCheck: false,  // ✅ Origin validation ENABLED
+    disableOriginCheck: false, // ✅ Origin validation ENABLED
   },
   // ... rest of config
 });
 ```
 
 **Evidence** ([source](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/reference/security.mdx)):
+
 - Each request's `Origin` header is verified against trusted origins
 - Requests from untrusted origins are rejected
 - Default base URL is automatically trusted
 - Additional origins can be specified via `trustedOrigins`
 
 **How CSRF Protection Works**:
+
 1. Request arrives with `Origin` header
 2. Better Auth checks if origin is in `trustedOrigins` list
 3. If not in list, request is rejected
@@ -209,11 +218,11 @@ export const auth = betterAuth({
       ipAddressHeaders: [
         "x-client-ip",
         "x-forwarded-for",
-        "cf-connecting-ip",  // Cloudflare
-        "x-real-ip",         // Nginx
+        "cf-connecting-ip", // Cloudflare
+        "x-real-ip", // Nginx
       ],
       // Enable IP tracking for security auditing
-      disableIpTracking: false,  // ✅ IP tracking ENABLED
+      disableIpTracking: false, // ✅ IP tracking ENABLED
     },
   },
   // ... rest of config
@@ -221,16 +230,19 @@ export const auth = betterAuth({
 ```
 
 **Evidence** ([source](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/reference/options.mdx)):
+
 - IP tracking stores client IP with session data
 - Useful for detecting suspicious login patterns
 - Can be disabled if privacy is a concern
 
 **Benefits**:
+
 - Detect unusual login locations
 - Identify potential account compromise
 - Audit trail for security investigations
 
 **Privacy Consideration**:
+
 - IP addresses are stored in database
 - Consider privacy policy implications
 - Can be disabled with `disableIpTracking: true`
@@ -251,30 +263,30 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
-  
+
   // ✅ Trusted origins for CSRF protection
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://time.bjesuiter.de",
   ],
-  
+
   emailAndPassword: {
     enabled: true,
   },
-  
+
   // ✅ Session configuration
   session: {
-    expiresIn: 60 * 60 * 24 * 7,  // 7 days
-    updateAge: 60 * 60 * 24,       // 1 day
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // 1 day
   },
-  
+
   // ✅ Advanced security settings
   advanced: {
     // CSRF and origin validation
     disableCSRFCheck: false,
     disableOriginCheck: false,
-    
+
     // Cookie security
     useSecureCookies: true,
     defaultCookieAttributes: {
@@ -282,7 +294,7 @@ export const auth = betterAuth({
       secure: true,
       sameSite: "lax",
     },
-    
+
     // IP tracking for security auditing
     ipAddress: {
       ipAddressHeaders: [
@@ -294,10 +306,8 @@ export const auth = betterAuth({
       disableIpTracking: false,
     },
   },
-  
-  plugins: [
-    reactStartCookies(),
-  ],
+
+  plugins: [reactStartCookies()],
 });
 ```
 
@@ -305,33 +315,36 @@ export const auth = betterAuth({
 
 ## Security Checklist
 
-| Feature | Current | Recommended | Status |
-|---------|---------|-------------|--------|
-| Trusted Origins | ✅ Configured | Keep as-is | ✅ Good |
-| Session Expiration | Default (7d) | Explicit config | 🟡 Add |
-| Session Update Age | Default (1d) | Explicit config | 🟡 Add |
-| Cookie httpOnly | Default ✅ | Explicit config | 🟡 Add |
-| Cookie Secure | Default ✅ | Explicit config | 🟡 Add |
-| Cookie SameSite | Default (lax) | Explicit config | 🟡 Add |
-| CSRF Protection | Default ✅ | Verify enabled | 🟡 Add |
-| Origin Validation | Default ✅ | Verify enabled | 🟡 Add |
-| IP Tracking | Not configured | Enable | 🔴 Missing |
+| Feature            | Current        | Recommended     | Status     |
+| ------------------ | -------------- | --------------- | ---------- |
+| Trusted Origins    | ✅ Configured  | Keep as-is      | ✅ Good    |
+| Session Expiration | Default (7d)   | Explicit config | 🟡 Add     |
+| Session Update Age | Default (1d)   | Explicit config | 🟡 Add     |
+| Cookie httpOnly    | Default ✅     | Explicit config | 🟡 Add     |
+| Cookie Secure      | Default ✅     | Explicit config | 🟡 Add     |
+| Cookie SameSite    | Default (lax)  | Explicit config | 🟡 Add     |
+| CSRF Protection    | Default ✅     | Verify enabled  | 🟡 Add     |
+| Origin Validation  | Default ✅     | Verify enabled  | 🟡 Add     |
+| IP Tracking        | Not configured | Enable          | 🔴 Missing |
 
 ---
 
 ## Implementation Priority
 
 ### Phase 1: CRITICAL (Do First)
+
 1. Add explicit session configuration
 2. Add explicit cookie security attributes
 3. Add IP tracking configuration
 
 ### Phase 2: VERIFICATION (Do Second)
+
 1. Verify CSRF protection is enabled
 2. Verify origin validation is enabled
 3. Document security settings
 
 ### Phase 3: MONITORING (Do Later)
+
 1. Set up alerts for suspicious login patterns
 2. Monitor IP changes
 3. Review session logs regularly
@@ -341,6 +354,7 @@ export const auth = betterAuth({
 ## Testing Recommendations
 
 ### 1. Verify CSRF Protection
+
 ```bash
 # Test that requests from untrusted origins are blocked
 curl -X POST http://localhost:3000/api/auth/sign-in \
@@ -351,6 +365,7 @@ curl -X POST http://localhost:3000/api/auth/sign-in \
 ```
 
 ### 2. Verify Cookie Attributes
+
 ```bash
 # Check cookie attributes in browser DevTools
 # Application → Cookies → localhost:3000
@@ -358,6 +373,7 @@ curl -X POST http://localhost:3000/api/auth/sign-in \
 ```
 
 ### 3. Verify Session Expiration
+
 ```bash
 # Create a session and wait for updateAge threshold
 # Session should be refreshed after 1 day of use
@@ -369,26 +385,32 @@ curl -X POST http://localhost:3000/api/auth/sign-in \
 ## Additional Security Considerations
 
 ### 1. Environment Variables
+
 **Current**: `BETTER_AUTH_SECRET` is set in `.env`
 
-**Recommendation**: 
+**Recommendation**:
+
 - ✅ Good: Secret is configured
 - ⚠️ Warning: Ensure `.env` is in `.gitignore`
 - ⚠️ Warning: Use strong random secret (current one looks good)
 - 🟡 Consider: Rotate secret periodically in production
 
 ### 2. Admin Registration
+
 **Current**: Admin credentials in `.env`
 
 **Recommendation**:
+
 - ✅ Good: Admin setup is protected
 - 🟡 Consider: Remove admin credentials after first setup
 - 🟡 Consider: Use environment-specific setup
 
 ### 3. User Signup
+
 **Current**: `ALLOW_USER_SIGNUP="true"`
 
 **Recommendation**:
+
 - ⚠️ Warning: Allows anyone to sign up
 - 🟡 Consider: Set to `"false"` for internal tool
 - 🟡 Consider: Implement email domain whitelist
@@ -411,4 +433,3 @@ curl -X POST http://localhost:3000/api/auth/sign-in \
 3. **Test** security settings using provided test commands
 4. **Document** security settings in your codebase
 5. **Monitor** session and login activity in production
-

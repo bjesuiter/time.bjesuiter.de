@@ -56,8 +56,6 @@ export default function Header() {
             <Home size={20} />
             <span className="font-medium">Home</span>
           </Link>
-
-
         </nav>
       </aside>
     </>

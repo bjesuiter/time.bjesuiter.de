@@ -50,9 +50,7 @@ export function calculateWeeklyOvertime(
   let totalWorkedSeconds = 0;
   let eligibleWorkdayCount = 0;
 
-  const configStart = configStartDate
-    ? parseLocalDate(configStartDate)
-    : null;
+  const configStart = configStartDate ? parseLocalDate(configStartDate) : null;
   const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(23, 59, 59, 999);
 
@@ -65,7 +63,9 @@ export function calculateWeeklyOvertime(
     const date = parseLocalDate(dateStr);
     const dayOfWeek = getDay(date);
     const isWeekend = isWeekendDay(date);
-    const isBeforeConfigStart = configStart ? isBefore(date, configStart) : false;
+    const isBeforeConfigStart = configStart
+      ? isBefore(date, configStart)
+      : false;
     const isFutureDay = isAfter(date, today);
     const workedSeconds = dayData?.totalSeconds || 0;
 

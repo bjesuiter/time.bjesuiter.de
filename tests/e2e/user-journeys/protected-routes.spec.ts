@@ -31,7 +31,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
@@ -54,7 +56,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
@@ -84,7 +88,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
@@ -127,7 +133,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await expect(page.getByTestId("signup-heading")).toBeVisible();
     await expect(page.getByTestId("signup-email-input")).toBeVisible();
     await expect(page.getByTestId("signup-password-input")).toBeVisible();
-    await expect(page.getByTestId("signup-confirm-password-input")).toBeVisible();
+    await expect(
+      page.getByTestId("signup-confirm-password-input"),
+    ).toBeVisible();
   });
 
   test("unauthenticated user can access admin registration page", async ({
@@ -151,7 +159,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
@@ -177,7 +187,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard
@@ -244,7 +256,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Should be redirected to dashboard
@@ -264,7 +278,9 @@ test.describe("Protected Routes and Redirect Behavior", () => {
     await page.getByTestId("signup-name-input").fill(testUser.name);
     await page.getByTestId("signup-email-input").fill(testUser.email);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(testUser.password);
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
     await page.getByTestId("signup-submit-button").click();
 
     // Wait for redirect to dashboard

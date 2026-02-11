@@ -12,6 +12,7 @@ parent: uvmr
 Create clear separation between different types of cache operations.
 
 ## Cache Types
+
 1. **Weekly Time Data Cache** (daily project sums, weekly totals)
    - Source: Clockify API
    - Invalidation trigger: User clicks refresh
@@ -25,10 +26,12 @@ Create clear separation between different types of cache operations.
    - Effect: Recalculate from cached weekly data (NO Clockify call)
 
 ## Operations
+
 - `refreshWeekFromClockify(week)`: Fetches fresh data, recalculates weekly, then cumulative
 - `recalculateCumulative(week)`: Uses cached weekly data, only recalculates cumulative
 
 ## Checklist
+
 - [x] Create clear function separation for these operations
   - Added `recalculateCumulativeOvertimeFromCache` in cacheHelpers.ts
   - Added `invalidateCumulativeOvertimeAfterWeek` in cacheHelpers.ts

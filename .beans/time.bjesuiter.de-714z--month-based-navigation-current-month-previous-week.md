@@ -12,10 +12,12 @@ parent: time.bjesuiter.de-1ft8
 Implement navigation for the weekly time display.
 
 ## Requirements
+
 - Show weeks within the current month
 - Include previous week even if in prior month
 - Navigation controls (prev/next month)
 - Visual indication of current week
 
 ## Context
+
 Part of Phase 2 - Clockify Integration & Basic Display

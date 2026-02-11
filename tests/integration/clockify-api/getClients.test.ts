@@ -42,7 +42,7 @@ test("getClients-002: returns error for invalid workspace ID", async () => {
   expect(result.success).toBe(false);
   if (!result.success) {
     expect(result.error).toBeDefined();
-    
+
     const error = result.error;
     expect(error.message).toBeDefined();
     expect(typeof error.message).toBe("string");
@@ -96,7 +96,7 @@ test("getClients-004: handles empty client list correctly", async () => {
   if (result.success) {
     expect(result.data).toBeDefined();
     expect(Array.isArray(result.data)).toBe(true);
-    
+
     // Empty array is valid response
     expect(result.data.length).toBeGreaterThanOrEqual(0);
   }

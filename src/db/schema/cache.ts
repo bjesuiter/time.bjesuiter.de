@@ -1,4 +1,10 @@
-import { integer, real, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import {
+  integer,
+  real,
+  sqliteTable,
+  text,
+  index,
+} from "drizzle-orm/sqlite-core";
 import { user } from "./better-auth";
 
 export const cachedDailyProjectSums = sqliteTable(
@@ -21,13 +27,18 @@ export const cachedDailyProjectSums = sqliteTable(
     invalidatedAt: integer("invalidated_at", { mode: "timestamp_ms" }),
   },
   (table) => ({
-    userDateIdx: index("cached_daily_user_date_idx").on(table.userId, table.date),
+    userDateIdx: index("cached_daily_user_date_idx").on(
+      table.userId,
+      table.date,
+    ),
     userProjectIdx: index("cached_daily_user_project_idx").on(
       table.userId,
       table.projectId,
       table.date,
     ),
-    invalidatedIdx: index("cached_daily_invalidated_idx").on(table.invalidatedAt),
+    invalidatedIdx: index("cached_daily_invalidated_idx").on(
+      table.invalidatedAt,
+    ),
   }),
 );
 
@@ -63,7 +74,9 @@ export const cachedWeeklySums = sqliteTable(
       table.weekStart,
     ),
     statusIdx: index("cached_weekly_status_idx").on(table.userId, table.status),
-    invalidatedIdx: index("cached_weekly_invalidated_idx").on(table.invalidatedAt),
+    invalidatedIdx: index("cached_weekly_invalidated_idx").on(
+      table.invalidatedAt,
+    ),
   }),
 );
 

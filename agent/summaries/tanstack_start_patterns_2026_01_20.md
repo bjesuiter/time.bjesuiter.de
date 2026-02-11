@@ -21,6 +21,7 @@ src/utils/
 ```
 
 **Why this works:**
+
 - **`.functions.ts`** exports `createServerFn` wrappers → safe to import anywhere (build process handles tree-shaking)
 - **`.server.ts`** contains server-only code → only imported inside server function handlers
 - **`.ts`** (no suffix) contains client-safe code (types, schemas, constants)
@@ -34,51 +35,56 @@ src/utils/
 TanStack Start offers **two approaches** for server-side logic:
 
 #### Approach A: Server Functions (`createServerFn`)
+
 ```typescript
 // users.functions.ts
-import { createServerFn } from '@tanstack/react-start'
-import { findUserById } from './users.server'
+import { createServerFn } from "@tanstack/react-start";
+import { findUserById } from "./users.server";
 
-export const getUser = createServerFn({ method: 'GET' })
+export const getUser = createServerFn({ method: "GET" })
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    return findUserById(data.id)
-  })
+    return findUserById(data.id);
+  });
 ```
 
 **Advantages:**
+
 - Callable from anywhere (components, loaders, other server functions)
 - Type-safe across network boundary
 - Automatic RPC stub generation for client
 - Built-in validation support
 
 #### Approach B: Route Handlers (`createFileRoute` with `server.handlers`)
+
 ```typescript
 // routes/api/hello.ts
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/api/hello')({
+export const Route = createFileRoute("/api/hello")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        return new Response('Hello, World!')
+        return new Response("Hello, World!");
       },
       POST: async ({ request }) => {
-        const body = await request.json()
-        return Response.json({ message: `Hello, ${body.name}!` })
-      }
-    }
-  }
-})
+        const body = await request.json();
+        return Response.json({ message: `Hello, ${body.name}!` });
+      },
+    },
+  },
+});
 ```
 
 **Advantages:**
+
 - Traditional HTTP handler pattern
 - Direct access to `request` object
 - Full control over response
 - Familiar for REST API developers
 
 **Recommendation**: Use **server functions** for most cases (better type safety, more flexible), reserve **route handlers** for:
+
 - Raw binary responses
 - Custom content types
 - Direct request/response manipulation
@@ -90,13 +96,13 @@ export const Route = createFileRoute('/api/hello')({
 
 ```typescript
 // ✅ CORRECT: Static import in client component
-import { getUser } from '~/utils/users.functions'
+import { getUser } from "~/utils/users.functions";
 
 function UserProfile({ id }) {
   const { data } = useQuery({
-    queryKey: ['user', id],
+    queryKey: ["user", id],
     queryFn: () => getUser({ data: { id } }),
-  })
+  });
 }
 ```
 
@@ -111,20 +117,20 @@ function UserProfile({ id }) {
 Use Zod for runtime validation:
 
 ```typescript
-import { createServerFn } from '@tanstack/react-start'
-import { z } from 'zod'
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 
 const UserSchema = z.object({
   name: z.string().min(1),
   age: z.number().min(0),
-})
+});
 
-export const createUser = createServerFn({ method: 'POST' })
+export const createUser = createServerFn({ method: "POST" })
   .inputValidator(UserSchema)
   .handler(async ({ data }) => {
     // data is fully typed and validated
-    return `Created user: ${data.name}, age ${data.age}`
-  })
+    return `Created user: ${data.name}, age ${data.age}`;
+  });
 ```
 
 ---
@@ -134,32 +140,33 @@ export const createUser = createServerFn({ method: 'POST' })
 Access request headers, cookies, and customize responses:
 
 ```typescript
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn } from "@tanstack/react-start";
 import {
   getRequest,
   getRequestHeader,
   setResponseHeaders,
   setResponseStatus,
-} from '@tanstack/react-start/server'
+} from "@tanstack/react-start/server";
 
-export const getCachedData = createServerFn({ method: 'GET' }).handler(
+export const getCachedData = createServerFn({ method: "GET" }).handler(
   async () => {
-    const request = getRequest()
-    const authHeader = getRequestHeader('Authorization')
+    const request = getRequest();
+    const authHeader = getRequestHeader("Authorization");
 
     setResponseHeaders(
       new Headers({
-        'Cache-Control': 'public, max-age=300',
+        "Cache-Control": "public, max-age=300",
       }),
-    )
+    );
 
-    setResponseStatus(200)
-    return fetchData()
+    setResponseStatus(200);
+    return fetchData();
   },
-)
+);
 ```
 
 **Available utilities:**
+
 - `getRequest()` - Full Request object
 - `getRequestHeader(name)` - Read specific header
 - `setResponseHeader(name, value)` - Set single header
@@ -171,36 +178,36 @@ export const getCachedData = createServerFn({ method: 'GET' }).handler(
 ### 6. **Error Handling & Redirects**
 
 ```typescript
-import { createServerFn } from '@tanstack/react-start'
-import { redirect, notFound } from '@tanstack/react-router'
+import { createServerFn } from "@tanstack/react-start";
+import { redirect, notFound } from "@tanstack/react-router";
 
 // Throw errors (serialized to client)
 export const riskyFunction = createServerFn().handler(async () => {
   if (Math.random() > 0.5) {
-    throw new Error('Something went wrong!')
+    throw new Error("Something went wrong!");
   }
-  return { success: true }
-})
+  return { success: true };
+});
 
 // Redirect on auth failure
 export const requireAuth = createServerFn().handler(async () => {
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
   if (!user) {
-    throw redirect({ to: '/login' })
+    throw redirect({ to: "/login" });
   }
-  return user
-})
+  return user;
+});
 
 // Throw not-found for missing resources
 export const getPost = createServerFn()
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    const post = await db.findPost(data.id)
+    const post = await db.findPost(data.id);
     if (!post) {
-      throw notFound()
+      throw notFound();
     }
-    return post
-  })
+    return post;
+  });
 ```
 
 ---
@@ -208,6 +215,7 @@ export const getPost = createServerFn()
 ## Recommended Patterns for Your Project
 
 ### Pattern 1: Domain-Based Organization
+
 ```
 src/
 ├── server/
@@ -232,6 +240,7 @@ src/
 ```
 
 ### Pattern 2: Server Function Composition
+
 ```typescript
 // time-entries.server.ts - Internal helpers
 export async function validateClockifyEntry(entry: any) {
@@ -239,71 +248,74 @@ export async function validateClockifyEntry(entry: any) {
 }
 
 export async function saveTimeEntry(data: TimeEntry) {
-  return db.insert(timeEntries).values(data)
+  return db.insert(timeEntries).values(data);
 }
 
 // time-entries.functions.ts - Public API
-export const createTimeEntry = createServerFn({ method: 'POST' })
+export const createTimeEntry = createServerFn({ method: "POST" })
   .inputValidator(TimeEntrySchema)
   .handler(async ({ data }) => {
-    await validateClockifyEntry(data)
-    return saveTimeEntry(data)
-  })
+    await validateClockifyEntry(data);
+    return saveTimeEntry(data);
+  });
 
-export const getTimeEntries = createServerFn({ method: 'GET' })
+export const getTimeEntries = createServerFn({ method: "GET" })
   .inputValidator((data: { userId: string }) => data)
   .handler(async ({ data }) => {
     return db.query.timeEntries.findMany({
-      where: eq(timeEntries.userId, data.userId)
-    })
-  })
+      where: eq(timeEntries.userId, data.userId),
+    });
+  });
 ```
 
 ### Pattern 3: Middleware for Cross-Cutting Concerns
+
 ```typescript
 // middleware.ts
 export function withAuth(fn: ServerFn) {
   return async (context: any) => {
-    const user = await getCurrentUser()
-    if (!user) throw redirect({ to: '/login' })
-    return fn({ ...context, user })
-  }
+    const user = await getCurrentUser();
+    if (!user) throw redirect({ to: "/login" });
+    return fn({ ...context, user });
+  };
 }
 
 // usage
-export const protectedAction = createServerFn({ method: 'POST' })
-  .handler(withAuth(async ({ data, user }) => {
+export const protectedAction = createServerFn({ method: "POST" }).handler(
+  withAuth(async ({ data, user }) => {
     // user is guaranteed to exist
-  }))
+  }),
+);
 ```
 
 ---
 
 ## Key Takeaways
 
-| Aspect | Recommendation |
-|--------|-----------------|
-| **Server Logic** | Use `createServerFn` for most cases |
-| **API Routes** | Use `createFileRoute` with `server.handlers` for raw HTTP |
-| **File Organization** | Split into `.functions.ts` + `.server.ts` + `.schemas.ts` |
-| **Imports** | Static imports are safe; avoid dynamic imports |
-| **Validation** | Use Zod for runtime validation |
-| **Error Handling** | Throw errors/redirects; they serialize to client |
-| **Request Context** | Use `getRequest()`, `getRequestHeader()`, `setResponseHeaders()` |
-| **Type Safety** | Leverage TypeScript + Zod for end-to-end safety |
+| Aspect                | Recommendation                                                   |
+| --------------------- | ---------------------------------------------------------------- |
+| **Server Logic**      | Use `createServerFn` for most cases                              |
+| **API Routes**        | Use `createFileRoute` with `server.handlers` for raw HTTP        |
+| **File Organization** | Split into `.functions.ts` + `.server.ts` + `.schemas.ts`        |
+| **Imports**           | Static imports are safe; avoid dynamic imports                   |
+| **Validation**        | Use Zod for runtime validation                                   |
+| **Error Handling**    | Throw errors/redirects; they serialize to client                 |
+| **Request Context**   | Use `getRequest()`, `getRequestHeader()`, `setResponseHeaders()` |
+| **Type Safety**       | Leverage TypeScript + Zod for end-to-end safety                  |
 
 ---
 
 ## Applicable to Your Project
 
 Your current structure already follows good patterns:
+
 - ✅ Server functions in `src/server/`
 - ✅ Separation from routes
 - ✅ Database access in server-only modules
 
 **Suggested improvements:**
+
 1. Adopt `.functions.ts` + `.server.ts` naming convention for clarity
 2. Add Zod validation to all server function inputs
 3. Use `getRequest()` and `setResponseHeaders()` for Clockify webhook handling
 4. Consider middleware pattern for auth checks across multiple functions
-

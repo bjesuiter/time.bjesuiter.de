@@ -9,9 +9,11 @@ updated_at: 2026-01-22T11:08:21Z
 ---
 
 ## Summary
+
 Remove N+1 DB/API calls in cumulative overtime by batching configs and caching weekly results.
 
 ## Checklist
+
 - [ ] Preload tracked project configs for date range
 - [ ] Cache/reuse weekly report results
 - [ ] Reduce per-week DB/API calls

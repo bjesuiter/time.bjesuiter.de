@@ -11,17 +11,20 @@ updated_at: 2026-01-22T05:02:34Z
 Review and add database indexes to improve query performance.
 
 ## Current State
+
 - Database tables in src/db/schema/ may be missing indexes
 - Queries filtering by userId, date ranges, and config type
 - No explicit index definitions visible in schema files
 
 ## Potential Indexes Needed
+
 - user_clockify_config: userId, workspaceId
 - cached_daily_project_sums: userId, date, projectId
 - cached_weekly_sums: userId, weekStartDate
 - config_chronic: userId, configType, validFrom/validUntil
 
 ## Checklist
+
 - [x] Review all database queries for filtering patterns (tables already have indexes)
 - [x] Add indexes to user_clockify_config table (userIdx, workspaceIdx added)
 - [x] Add indexes to cached_daily_project_sums table (already has userDateIdx, userProjectIdx)

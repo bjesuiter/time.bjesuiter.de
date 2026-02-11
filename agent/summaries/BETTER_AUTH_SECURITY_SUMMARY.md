@@ -9,13 +9,13 @@
 
 Your Better Auth setup has **solid foundations** but needs **explicit security hardening**:
 
-| Area | Current | Issue | Priority |
-|------|---------|-------|----------|
-| **Trusted Origins** | ✅ Configured | None | ✅ Good |
-| **Session Config** | Using defaults | Not explicit | 🔴 HIGH |
-| **Cookie Security** | Using defaults | Not explicit | 🔴 HIGH |
+| Area                | Current            | Issue        | Priority  |
+| ------------------- | ------------------ | ------------ | --------- |
+| **Trusted Origins** | ✅ Configured      | None         | ✅ Good   |
+| **Session Config**  | Using defaults     | Not explicit | 🔴 HIGH   |
+| **Cookie Security** | Using defaults     | Not explicit | 🔴 HIGH   |
 | **CSRF Protection** | Enabled by default | Not verified | 🟡 MEDIUM |
-| **IP Tracking** | Not configured | Missing | 🟡 MEDIUM |
+| **IP Tracking**     | Not configured     | Missing      | 🟡 MEDIUM |
 
 ---
 
@@ -26,13 +26,13 @@ Add this to `src/lib/auth/auth.ts`:
 ```typescript
 export const auth = betterAuth({
   // ... existing config
-  
+
   // NEW: Session configuration
   session: {
-    expiresIn: 60 * 60 * 24 * 7,  // 7 days
-    updateAge: 60 * 60 * 24,       // 1 day
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // 1 day
   },
-  
+
   // NEW: Advanced security
   advanced: {
     disableCSRFCheck: false,
@@ -61,21 +61,25 @@ export const auth = betterAuth({
 ## 🔐 What Each Setting Does
 
 ### Session Configuration
+
 - **expiresIn (7 days)**: How long before user must log in again
 - **updateAge (1 day)**: How often to refresh session on use
 - **Rationale**: Good balance for internal tool; users log in regularly
 
 ### Cookie Security
+
 - **httpOnly**: Blocks JavaScript access (prevents XSS attacks)
 - **secure**: HTTPS only (automatic in production)
 - **sameSite: "lax"**: CSRF protection (allows top-level navigation)
 
 ### CSRF & Origin Protection
+
 - **disableCSRFCheck: false**: Verify requests come from trusted origins
 - **disableOriginCheck: false**: Block requests from untrusted domains
 - **Your trusted origins**: localhost:3000, localhost:3001, time.bjesuiter.de
 
 ### IP Tracking
+
 - **Stores client IP** with each session
 - **Detects suspicious logins** from unusual locations
 - **Privacy note**: Consider privacy policy implications
@@ -94,11 +98,13 @@ export const auth = betterAuth({
 ## ⚠️ Additional Considerations
 
 ### User Signup
+
 - **Current**: `ALLOW_USER_SIGNUP="true"` (anyone can sign up)
 - **Recommendation**: Set to `"false"` for internal tool
 - **Alternative**: Implement email domain whitelist
 
 ### Admin Credentials
+
 - **Current**: Stored in `.env`
 - **Recommendation**: Remove after first setup
 - **Security**: Ensure `.env` is in `.gitignore`
@@ -110,6 +116,7 @@ export const auth = betterAuth({
 See: `agent/summaries/better_auth_security_research.md`
 
 **Includes**:
+
 - Detailed security analysis
 - Testing commands
 - References to official docs
@@ -136,4 +143,3 @@ After implementation:
 - [Better Auth Security Docs](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/reference/security.mdx)
 - [Session Management](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/concepts/session-management.mdx)
 - [Cookie Configuration](https://github.com/better-auth/better-auth/blob/canary/docs/content/docs/concepts/cookies.mdx)
-

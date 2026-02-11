@@ -61,6 +61,7 @@ The `/registerAdmin` route provides automated admin user creation using environm
 - Useful for automated deployments and initial setup scripts
 
 To set up the admin user:
+
 1. Configure `ADMIN_EMAIL` and `ADMIN_PASSWORD` in your `.env` file
 2. Visit `/registerAdmin` and click the register button
 3. Use the "Force Re-register" option to reset an existing admin account

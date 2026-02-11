@@ -9,9 +9,11 @@ updated_at: 2026-01-21T22:10:59Z
 ---
 
 ## Summary
+
 Restrict admin registration to authenticated or setup-only flow to prevent account takeover.
 
 ## Checklist
+
 - [ ] Add auth/role guard to registerAdminUser or restrict to initial setup
 - [ ] Protect `/registerAdmin` route from unauthenticated access
 - [ ] Remove/limit `force` parameter behavior

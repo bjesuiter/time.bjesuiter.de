@@ -272,11 +272,7 @@ describe("getWeekStartsInRangeInTz", () => {
       "Europe/Berlin",
     );
 
-    expect(result).toEqual([
-      "2026-02-09",
-      "2026-02-16",
-      "2026-02-23",
-    ]);
+    expect(result).toEqual(["2026-02-09", "2026-02-16", "2026-02-23"]);
   });
 
   test("date-utils-039: returns empty array when range is invalid", () => {

@@ -130,7 +130,10 @@ function SignUpPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="signup-heading">
+          <h1
+            className="text-3xl font-bold text-gray-900 mb-2"
+            data-testid="signup-heading"
+          >
             Create Account
           </h1>
           <p className="text-gray-600">
@@ -143,7 +146,10 @@ function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* General Error */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3" data-testid="signup-general-error">
+              <div
+                className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3"
+                data-testid="signup-general-error"
+              >
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-800">{errors.general}</p>
               </div>
@@ -168,14 +174,19 @@ function SignUpPage() {
                   value={formData.name}
                   onChange={handleInputChange("name")}
                   className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  autoComplete='username'
+                  autoComplete="username"
                   placeholder="John Doe"
                   disabled={isLoading}
                   data-testid="signup-name-input"
                 />
               </div>
               {errors.name && (
-                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-name-error">{errors.name}</p>
+                <p
+                  className="mt-1.5 text-sm text-red-600"
+                  data-testid="signup-name-error"
+                >
+                  {errors.name}
+                </p>
               )}
             </div>
 
@@ -203,14 +214,19 @@ function SignUpPage() {
                       : "border-gray-300 focus:border-indigo-500"
                   }`}
                   placeholder="you@example.com"
-                  autoComplete='email'
+                  autoComplete="email"
                   disabled={isLoading}
                   required
                   data-testid="signup-email-input"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-email-error">{errors.email}</p>
+                <p
+                  className="mt-1.5 text-sm text-red-600"
+                  data-testid="signup-email-error"
+                >
+                  {errors.email}
+                </p>
               )}
             </div>
 
@@ -238,14 +254,19 @@ function SignUpPage() {
                       : "border-gray-300 focus:border-indigo-500"
                   }`}
                   placeholder="At least 8 characters"
-                  autoComplete='new-password'
+                  autoComplete="new-password"
                   disabled={isLoading}
                   required
                   data-testid="signup-password-input"
                 />
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-password-error">{errors.password}</p>
+                <p
+                  className="mt-1.5 text-sm text-red-600"
+                  data-testid="signup-password-error"
+                >
+                  {errors.password}
+                </p>
               )}
             </div>
 
@@ -274,13 +295,16 @@ function SignUpPage() {
                   }`}
                   placeholder="Repeat your password"
                   disabled={isLoading}
-                  autoComplete='new-password'
+                  autoComplete="new-password"
                   required
                   data-testid="signup-confirm-password-input"
                 />
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1.5 text-sm text-red-600" data-testid="signup-confirm-password-error">
+                <p
+                  className="mt-1.5 text-sm text-red-600"
+                  data-testid="signup-confirm-password-error"
+                >
                   {errors.confirmPassword}
                 </p>
               )}

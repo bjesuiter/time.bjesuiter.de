@@ -27,13 +27,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [
-    reactStartCookies(),
-  ],
+  plugins: [reactStartCookies()],
 });
 ```
 
 **Issues**:
+
 - ❌ No explicit session configuration
 - ❌ No explicit cookie security settings
 - ❌ No CSRF/origin validation verification
@@ -54,48 +53,48 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
   }),
-  
+
   // ✅ CSRF & Open Redirect Protection
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://time.bjesuiter.de",
   ],
-  
+
   emailAndPassword: {
     enabled: true,
   },
-  
+
   // ✅ NEW: Session Configuration
   session: {
     // Total session lifetime before expiration
     expiresIn: 60 * 60 * 24 * 7, // 7 days
-    
+
     // How often to refresh session expiration on use
     updateAge: 60 * 60 * 24, // 1 day
-    
+
     // Optional: Disable automatic session refresh for stricter security
     // disableSessionRefresh: false, // default: false
   },
-  
+
   // ✅ NEW: Advanced Security Settings
   advanced: {
     // CSRF Protection
     disableCSRFCheck: false, // ✅ ENABLED (default)
-    
+
     // Origin Validation
     disableOriginCheck: false, // ✅ ENABLED (default)
-    
+
     // Secure Cookies
     useSecureCookies: true, // ✅ ENABLED (auto in production)
-    
+
     // Default cookie attributes for ALL cookies
     defaultCookieAttributes: {
-      httpOnly: true,  // Prevent XSS attacks
-      secure: true,    // HTTPS only
+      httpOnly: true, // Prevent XSS attacks
+      secure: true, // HTTPS only
       sameSite: "lax", // CSRF protection
     },
-    
+
     // Session token specific configuration
     cookies: {
       session_token: {
@@ -107,7 +106,7 @@ export const auth = betterAuth({
         },
       },
     },
-    
+
     // IP Tracking for Security Auditing
     ipAddress: {
       // Headers to check for client IP (in order of preference)
@@ -115,16 +114,14 @@ export const auth = betterAuth({
         "x-client-ip",
         "x-forwarded-for",
         "cf-connecting-ip", // Cloudflare
-        "x-real-ip",        // Nginx
+        "x-real-ip", // Nginx
       ],
       // Enable IP tracking
       disableIpTracking: false, // ✅ ENABLED
     },
   },
-  
-  plugins: [
-    reactStartCookies(),
-  ],
+
+  plugins: [reactStartCookies()],
 });
 ```
 
@@ -144,6 +141,7 @@ session: {
 ```
 
 **Why**:
+
 - Makes session timeout explicit and auditable
 - Matches Better Auth defaults but documents intent
 - Easy to adjust if security requirements change
@@ -231,63 +229,70 @@ git push
 
 ### Session Configuration
 
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| `expiresIn` | 7 days | Total session lifetime |
-| `updateAge` | 1 day | How often to refresh expiration |
+| Setting     | Value  | Purpose                         |
+| ----------- | ------ | ------------------------------- |
+| `expiresIn` | 7 days | Total session lifetime          |
+| `updateAge` | 1 day  | How often to refresh expiration |
 
 **How it works**:
+
 1. User logs in → session created with 7-day expiration
 2. User uses app → after 1 day, expiration is extended to 7 days from now
 3. User inactive for 7 days → session expires, must log in again
 
 **For higher security**:
+
 - Reduce `expiresIn` to 3-4 days
 - Reduce `updateAge` to 12 hours
 
 ### Cookie Security
 
-| Attribute | Value | Purpose |
-|-----------|-------|---------|
-| `httpOnly` | `true` | Blocks JavaScript access (XSS protection) |
-| `secure` | `true` | Only sent over HTTPS |
-| `sameSite` | `"lax"` | CSRF protection |
+| Attribute  | Value   | Purpose                                   |
+| ---------- | ------- | ----------------------------------------- |
+| `httpOnly` | `true`  | Blocks JavaScript access (XSS protection) |
+| `secure`   | `true`  | Only sent over HTTPS                      |
+| `sameSite` | `"lax"` | CSRF protection                           |
 
 **SameSite Values**:
+
 - `"lax"` (recommended): Allows top-level navigation, blocks cross-site requests
 - `"strict"`: Blocks all cross-site requests (breaks OAuth flows)
 - `"none"`: Allows cross-site requests (requires `secure: true`)
 
 ### CSRF & Origin Protection
 
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| `disableCSRFCheck` | `false` | Verify requests from trusted origins |
+| Setting              | Value   | Purpose                               |
+| -------------------- | ------- | ------------------------------------- |
+| `disableCSRFCheck`   | `false` | Verify requests from trusted origins  |
 | `disableOriginCheck` | `false` | Block requests from untrusted domains |
 
 **How it works**:
+
 1. Request arrives with `Origin` header
 2. Better Auth checks if origin is in `trustedOrigins`
 3. If not in list, request is rejected with 403 Forbidden
 
 **Your trusted origins**:
+
 - `http://localhost:3000` (dev)
 - `http://localhost:3001` (dev memory mode)
 - `https://time.bjesuiter.de` (production)
 
 ### IP Tracking
 
-| Setting | Value | Purpose |
-|---------|-------|---------|
+| Setting             | Value   | Purpose                      |
+| ------------------- | ------- | ---------------------------- |
 | `disableIpTracking` | `false` | Store client IP with session |
-| `ipAddressHeaders` | [...] | Headers to check for IP |
+| `ipAddressHeaders`  | [...]   | Headers to check for IP      |
 
 **Benefits**:
+
 - Detect unusual login locations
 - Identify potential account compromise
 - Audit trail for security investigations
 
 **Privacy Note**:
+
 - IP addresses are stored in database
 - Consider privacy policy implications
 - Can be disabled with `disableIpTracking: true`
@@ -406,4 +411,3 @@ BETTER_AUTH_SECRET=<new-secret>
 ## Questions?
 
 Refer to the full research document: `agent/summaries/better_auth_security_research.md`
-

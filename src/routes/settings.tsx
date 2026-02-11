@@ -351,8 +351,7 @@ function SettingsPage() {
       setRefreshConfigMessage({
         configId: variables.configId,
         type: "error",
-        text:
-          error instanceof Error ? error.message : "Failed to refresh data",
+        text: error instanceof Error ? error.message : "Failed to refresh data",
       });
       setTimeout(() => setRefreshConfigMessage(null), 5000);
     },
@@ -1187,7 +1186,6 @@ function SettingsPage() {
                                         </p>
                                       </div>
                                     )}
-
                                   </>
                                 )}
                               </div>

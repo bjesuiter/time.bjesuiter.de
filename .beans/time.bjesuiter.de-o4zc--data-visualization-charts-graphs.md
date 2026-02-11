@@ -12,15 +12,18 @@ parent: time.bjesuiter.de-lbhw
 Add visual representations of time data.
 
 ## Ideas
+
 - Weekly hours bar chart
 - Project breakdown pie chart
 - Overtime trend line graph
 - Month-over-month comparison
 
 ## Libraries to Consider
+
 - Recharts
 - Chart.js
 - Tremor (if using their components)
 
 ## Context
+
 Part of Phase 5 - Polish & Features

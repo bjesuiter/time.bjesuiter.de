@@ -44,7 +44,10 @@ test.describe("Authentication Flow", () => {
     await expect(page.locator("h1")).toContainText("Time Tracking");
   });
 
-  test("sign in fails with invalid credentials", async ({ page, serverUrl }) => {
+  test("sign in fails with invalid credentials", async ({
+    page,
+    serverUrl,
+  }) => {
     // First, register the admin user to ensure the system is set up
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");
@@ -143,7 +146,10 @@ test.describe("Authentication Flow", () => {
     await expect(page.getByTestId("dashboard-welcome-message")).toBeVisible();
   });
 
-  test("user menu is functional when authenticated", async ({ page, serverUrl }) => {
+  test("user menu is functional when authenticated", async ({
+    page,
+    serverUrl,
+  }) => {
     // First, register the admin user
     await page.goto(`${serverUrl}/registerAdmin`);
     await page.waitForLoadState("networkidle");

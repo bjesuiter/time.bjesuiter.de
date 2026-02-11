@@ -5,7 +5,7 @@ status: in-progress
 type: task
 priority: normal
 tags:
-    - blocked
+  - blocked
 created_at: 2026-01-26T15:23:47Z
 updated_at: 2026-01-26T21:02:04Z
 ---

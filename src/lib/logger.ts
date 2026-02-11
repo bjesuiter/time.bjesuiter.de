@@ -1,4 +1,5 @@
-const isDev = process.env.ENVIRONMENT === "dev" || process.env.ENVIRONMENT === "memory";
+const isDev =
+  process.env.ENVIRONMENT === "dev" || process.env.ENVIRONMENT === "memory";
 const isTest = process.env.ENVIRONMENT === "test";
 
 export const logger = {

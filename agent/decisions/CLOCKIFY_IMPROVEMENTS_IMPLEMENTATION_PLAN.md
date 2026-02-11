@@ -20,6 +20,7 @@ After researching Clockify API usage patterns and analyzing the current codebase
 ### Recommended Approach
 
 **Phase-based implementation** (4 weeks):
+
 - Week 1: Foundation (retries, backoff, error classification)
 - Week 2: Resilience (rate limiting, queuing, logging)
 - Week 3: Completeness (pagination, tests)
@@ -32,10 +33,12 @@ After researching Clockify API usage patterns and analyzing the current codebase
 ### Task 1.1: Enable POST Retries & Exponential Backoff
 
 **Files to modify:**
+
 - `src/lib/clockify/api-instance.ts`
 - `src/lib/clockify/reports-api-instance.ts`
 
 **Changes:**
+
 ```typescript
 // BEFORE
 retry: {
@@ -65,9 +68,11 @@ retry: {
 ### Task 1.2: Add Error Classification
 
 **File to modify:**
+
 - `src/lib/clockify/client.ts`
 
 **Changes:**
+
 ```typescript
 interface ErrorClassification {
   isRetryable: boolean;
@@ -98,9 +103,11 @@ function classifyError(code?: number): ErrorClassification {
 ### Task 2.1: Rate Limit Awareness
 
 **New file:**
+
 - `src/lib/clockify/rate-limiter.ts`
 
 **Implementation:**
+
 ```typescript
 class ClockifyRateLimiter {
   private state = {
@@ -126,6 +133,7 @@ export const rateLimiter = new ClockifyRateLimiter();
 ```
 
 **Integration points:**
+
 - Update `api-instance.ts` to call `rateLimiter.updateFromHeaders()`
 - Update `client.ts` functions to call `rateLimiter.waitIfNeeded()`
 
@@ -135,9 +143,11 @@ export const rateLimiter = new ClockifyRateLimiter();
 ### Task 2.2: Request Queuing
 
 **New file:**
+
 - `src/lib/clockify/request-queue.ts`
 
 **Implementation:**
+
 ```typescript
 class RequestQueue {
   private queue: Array<() => Promise<any>> = [];
@@ -157,6 +167,7 @@ export const requestQueue = new RequestQueue();
 ```
 
 **Integration points:**
+
 - Wrap API calls in `requestQueue.enqueue()`
 - Particularly important for `getWeeklyTimeReport()` parallel calls
 
@@ -166,9 +177,11 @@ export const requestQueue = new RequestQueue();
 ### Task 2.3: Observability & Logging
 
 **New file:**
+
 - `src/lib/clockify/logger.ts`
 
 **Implementation:**
+
 ```typescript
 class ClockifyLogger {
   private logs: RequestLog[] = [];
@@ -199,9 +212,11 @@ export const clockifyLogger = new ClockifyLogger();
 ### Task 3.1: Pagination Support
 
 **File to modify:**
+
 - `src/lib/clockify/client.ts`
 
 **New functions:**
+
 ```typescript
 export async function getAllClients(
   apiKey: string,
@@ -225,9 +240,11 @@ export async function getAllProjects(
 ### Task 3.2: Update Tests
 
 **Files to modify:**
+
 - `tests/integration/clockify-api/*.test.ts`
 
 **New tests:**
+
 - Pagination with large result sets
 - Rate limit header handling
 - Retry behavior under failures
@@ -242,9 +259,11 @@ export async function getAllProjects(
 ### Task 4.1: Load Testing
 
 **New file:**
+
 - `tests/load/clockify-api.load.ts`
 
 **Test scenarios:**
+
 - 10 concurrent `getWeeklyTimeReport()` calls
 - Verify no 429 errors
 - Measure queue depth
@@ -255,6 +274,7 @@ export async function getAllProjects(
 ### Task 4.2: Documentation
 
 **Updates:**
+
 - Update `src/lib/clockify/README.md` with new patterns
 - Add examples for rate limiting and pagination
 - Document monitoring metrics
@@ -266,16 +286,19 @@ export async function getAllProjects(
 ## Risk Assessment
 
 ### Low Risk
+
 - Exponential backoff (ky handles internally)
 - Error classification (additive, no breaking changes)
 - Logging (observability only)
 
 ### Medium Risk
+
 - Rate limiting (could delay requests)
 - Request queuing (could affect latency)
 - Pagination (changes API contract)
 
 ### Mitigation
+
 - Implement behind feature flags initially
 - Monitor metrics closely
 - Gradual rollout to production
@@ -286,6 +309,7 @@ export async function getAllProjects(
 ## Success Criteria
 
 After implementation, verify:
+
 - [ ] 429 error rate = 0 (was occasional before)
 - [ ] P99 latency < 10 seconds (was 5-30s before)
 - [ ] Retry count distribution (most requests 0 retries)
@@ -298,13 +322,13 @@ After implementation, verify:
 
 ## Timeline
 
-| Week | Tasks | Effort | Status |
-|------|-------|--------|--------|
-| 1 | Retries, backoff, error classification | 1-2 hrs | Planned |
-| 2 | Rate limiting, queuing, logging | 3-4 hrs | Planned |
-| 3 | Pagination, tests | 4-6 hrs | Planned |
-| 4 | Load testing, docs | 3-4 hrs | Planned |
-| **Total** | | **11-16 hrs** | |
+| Week      | Tasks                                  | Effort        | Status  |
+| --------- | -------------------------------------- | ------------- | ------- |
+| 1         | Retries, backoff, error classification | 1-2 hrs       | Planned |
+| 2         | Rate limiting, queuing, logging        | 3-4 hrs       | Planned |
+| 3         | Pagination, tests                      | 4-6 hrs       | Planned |
+| 4         | Load testing, docs                     | 3-4 hrs       | Planned |
+| **Total** |                                        | **11-16 hrs** |         |
 
 ---
 
@@ -320,6 +344,7 @@ After implementation, verify:
 ## Rollback Plan
 
 If issues arise:
+
 1. Revert to previous commit
 2. Disable new features via feature flags
 3. Investigate in staging environment
@@ -343,4 +368,3 @@ If issues arise:
 - Quick reference: `agent/summaries/CLOCKIFY_IMPROVEMENTS_SUMMARY.md`
 - Clockify API: https://docs.clockify.me/
 - Exponential backoff: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
-

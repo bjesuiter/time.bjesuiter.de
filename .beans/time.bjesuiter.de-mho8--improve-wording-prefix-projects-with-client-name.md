@@ -1,6 +1,6 @@
 ---
 # time.bjesuiter.de-mho8
-title: 'Improve wording: prefix projects with client name'
+title: "Improve wording: prefix projects with client name"
 status: completed
 type: task
 priority: normal
@@ -26,4 +26,5 @@ Add the client name in front of project names in the weekly time table for bette
 - [x] Applied prefix to all project names and Extra Work label
 
 ## Context
+
 Part of Phase 2 - Clockify Integration & Basic Display

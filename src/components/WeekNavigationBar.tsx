@@ -92,23 +92,28 @@ export function WeekNavigationBar({
   };
 
   const nowWeek = toISODate(getWeekStartForDate(new Date(), weekStart));
-  const starts = timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
-  const ends = timelineBoundaries?.ends ?? (configValidUntil ? [configValidUntil] : []);
-  const earliestStartWeek = starts.length > 0 ? getWeekForDate(starts[0]) : null;
-  
-  const nextEndAfterCurrent = ends.find(endDate => {
+  const starts =
+    timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
+  const ends =
+    timelineBoundaries?.ends ?? (configValidUntil ? [configValidUntil] : []);
+  const earliestStartWeek =
+    starts.length > 0 ? getWeekForDate(starts[0]) : null;
+
+  const nextEndAfterCurrent = ends.find((endDate) => {
     const endWeek = getWeekForDate(endDate);
     return endWeek > selectedWeek && endWeek <= nowWeek;
   });
   const showEndLabel = !!nextEndAfterCurrent;
-  
-  const isStartDisabled = !earliestStartWeek || selectedWeek <= earliestStartWeek;
+
+  const isStartDisabled =
+    !earliestStartWeek || selectedWeek <= earliestStartWeek;
   const isEndDisabled = selectedWeek >= nowWeek;
 
   const handleJumpToConfigStart = () => {
     if (!timelineBoundaries?.starts.length && !configValidFrom) return;
 
-    const starts = timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
+    const starts =
+      timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
     const currentWeekStart = selectedWeek;
 
     for (let i = starts.length - 1; i >= 0; i--) {
@@ -134,7 +139,9 @@ export function WeekNavigationBar({
       if (endWeek > currentWeekStart) {
         const targetWeek = endWeek > nowWeek ? nowWeek : endWeek;
         if (targetWeek !== currentWeekStart) {
-          navigateToDate(parseLocalDate(endWeek > nowWeek ? toISODate(new Date()) : endDate));
+          navigateToDate(
+            parseLocalDate(endWeek > nowWeek ? toISODate(new Date()) : endDate),
+          );
           return;
         }
       }

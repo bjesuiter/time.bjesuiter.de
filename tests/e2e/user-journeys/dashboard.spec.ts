@@ -20,9 +20,9 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     )}`;
     await page.getByTestId("signup-email-input").fill(uniqueEmail);
     await page.getByTestId("signup-password-input").fill(testUser.password);
-    await page.getByTestId("signup-confirm-password-input").fill(
-      testUser.password,
-    );
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill(testUser.password);
 
     // Submit the form
     await page.getByTestId("signup-submit-button").click();
@@ -36,7 +36,9 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     const signupResult = await Promise.race([
       page.waitForURL(dashboardUrl, { timeout: 10000 }).then(() => "dashboard"),
       page.waitForURL(settingsUrl, { timeout: 10000 }).then(() => "settings"),
-      signupError.waitFor({ state: "visible", timeout: 10000 }).then(() => "error"),
+      signupError
+        .waitFor({ state: "visible", timeout: 10000 })
+        .then(() => "error"),
     ]);
 
     if (signupResult !== "dashboard") {
@@ -51,7 +53,9 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     }
   });
 
-  test("dashboard displays correctly for authenticated users", async ({ page }) => {
+  test("dashboard displays correctly for authenticated users", async ({
+    page,
+  }) => {
     // Check dashboard heading
     await expect(
       page.getByRole("heading", { name: "Dashboard" }),
@@ -84,7 +88,9 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await expect(page.locator("h1")).toContainText("Time Tracking");
   });
 
-  test("toolbar shows user information when authenticated", async ({ page }) => {
+  test("toolbar shows user information when authenticated", async ({
+    page,
+  }) => {
     // Check toolbar is present
     const toolbar = page.locator("header");
     await expect(toolbar).toBeVisible();
@@ -109,7 +115,9 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await expect(page.getByText("Complete Your Setup")).toBeVisible();
   });
 
-  test("dashboard is responsive on different screen sizes", async ({ page }) => {
+  test("dashboard is responsive on different screen sizes", async ({
+    page,
+  }) => {
     // Test mobile view
     await page.setViewportSize({ width: 375, height: 667 });
     await page.reload();
@@ -139,7 +147,10 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     ).toBeVisible();
   });
 
-  test("authenticated user can access signup page", async ({ page, serverUrl }) => {
+  test("authenticated user can access signup page", async ({
+    page,
+    serverUrl,
+  }) => {
     // Navigate to signup while authenticated
     const signupUrl = `${serverUrl}/signup`;
     await page.goto(signupUrl, { waitUntil: "domcontentloaded" });
@@ -154,7 +165,10 @@ test.describe("Dashboard and Authenticated User Experience", () => {
     await expect(page.getByTestId("signup-heading")).toBeVisible();
   });
 
-  test("authenticated user can access signin page", async ({ page, serverUrl }) => {
+  test("authenticated user can access signin page", async ({
+    page,
+    serverUrl,
+  }) => {
     // Navigate to signin while authenticated
     const signinUrl = `${serverUrl}/signin`;
     await page.goto(signinUrl, { waitUntil: "domcontentloaded" });

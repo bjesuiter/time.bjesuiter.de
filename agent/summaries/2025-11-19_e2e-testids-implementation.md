@@ -11,7 +11,7 @@ Successfully added comprehensive data-testid attributes across the application t
 
 1. `src/routes/index.tsx` - Landing page and dashboard components
 2. `src/routes/signin.tsx` - Sign in form
-3. `src/routes/signup.tsx` - Sign up form  
+3. `src/routes/signup.tsx` - Sign up form
 4. `src/routes/registerAdmin.tsx` - Admin registration page
 5. `src/components/UserMenu.tsx` - User menu dropdown
 6. `src/components/Toolbar.tsx` - Navigation toolbar
@@ -19,6 +19,7 @@ Successfully added comprehensive data-testid attributes across the application t
 ## Data-TestID Attributes Added
 
 ### Landing Page (`src/routes/index.tsx`)
+
 - `landingpage-sign-in-link` (already existed)
 - `landingpage-create-account-link`
 - `landingpage-admin-registration-link`
@@ -27,11 +28,13 @@ Successfully added comprehensive data-testid attributes across the application t
 - `landingpage-feature-overtime`
 
 ### Dashboard (`src/routes/index.tsx`)
+
 - `dashboard-heading`
 - `dashboard-welcome-message`
 - `dashboard-coming-soon-section`
 
 ### Sign In Form (`src/routes/signin.tsx`)
+
 - `signin-heading`
 - `signin-general-error`
 - `signin-email-input`
@@ -41,6 +44,7 @@ Successfully added comprehensive data-testid attributes across the application t
 - `signin-submit-button`
 
 ### Sign Up Form (`src/routes/signup.tsx`)
+
 - `signup-heading`
 - `signup-general-error`
 - `signup-name-input`
@@ -54,6 +58,7 @@ Successfully added comprehensive data-testid attributes across the application t
 - `signup-submit-button`
 
 ### Admin Registration (`src/routes/registerAdmin.tsx`)
+
 - `admin-registration-heading`
 - `admin-registration-success-message`
 - `admin-registration-error-message`
@@ -62,11 +67,13 @@ Successfully added comprehensive data-testid attributes across the application t
 - `admin-registration-go-to-home-button`
 
 ### User Menu (`src/components/UserMenu.tsx`)
+
 - `user-menu-button`
 - `user-menu-settings-link`
 - `user-menu-sign-out-button`
 
 ### Toolbar (`src/components/Toolbar.tsx`)
+
 - `toolbar-dashboard-link`
 - `toolbar-settings-link`
 - `toolbar-signin-link`
@@ -77,6 +84,7 @@ Used consistent kebab-case naming following the pattern:
 `{page/component}-{element-type}-{specific-element}`
 
 Examples:
+
 - `signin-email-input` (page + field type + field name)
 - `landingpage-create-account-link` (page + action + element type)
 - `user-menu-sign-out-button` (component + action + element type)
@@ -92,12 +100,14 @@ Examples:
 ## Test Usage Examples
 
 Before:
+
 ```typescript
 await page.click('a:has-text("Sign In")');
 await expect(page.locator("h1")).toContainText("Dashboard");
 ```
 
 After:
+
 ```typescript
 await page.getByTestId("landingpage-sign-in-link").click();
 await expect(page.getByTestId("dashboard-heading")).toBeVisible();
@@ -106,6 +116,7 @@ await expect(page.getByTestId("dashboard-heading")).toBeVisible();
 ## Impact on E2E Test Files
 
 The following test files can now be updated to use these data-testid attributes:
+
 - `tests/e2e/user-journeys/landing.spec.ts`
 - `tests/e2e/user-journeys/auth.spec.ts`
 - `tests/e2e/user-journeys/dashboard.spec.ts`

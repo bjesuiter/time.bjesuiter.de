@@ -58,7 +58,9 @@ export function createClockifyReportsApi(apiKey: string) {
           const request = "request" in error ? error.request : undefined;
           const response = "response" in error ? error.response : undefined;
           const options = "options" in error ? error.options : undefined;
-          const startedAt = options ? requestStartTimes.get(options) : undefined;
+          const startedAt = options
+            ? requestStartTimes.get(options)
+            : undefined;
           const durationMs = startedAt ? Date.now() - startedAt : undefined;
           logClockify("Clockify Reports API error", {
             method: request?.method,

@@ -1,4 +1,11 @@
-import { TrendingUp, TrendingDown, Calendar, Loader2, Database, RefreshCw } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Loader2,
+  Database,
+  RefreshCw,
+} from "lucide-react";
 import { formatOvertimeDisplay } from "@/lib/overtime-utils";
 
 export interface CumulativeOvertimeSummaryProps {

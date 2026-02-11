@@ -5,6 +5,7 @@
 Your codebase has a solid Clockify API integration with basic retry logic and error handling. However, there are several opportunities for improvement around rate limiting, pagination, exponential backoff, and resilience patterns.
 
 **Key Findings:**
+
 - ✅ Basic retry logic implemented (2 retries for GET requests)
 - ✅ Proper error handling with HTTPError parsing
 - ⚠️ No exponential backoff (fixed retry delays)
@@ -18,11 +19,13 @@ Your codebase has a solid Clockify API integration with basic retry logic and er
 ## Clockify API Rate Limiting
 
 ### Official Limits
+
 - **50 requests per second** (per addon on one workspace) when using X-Addon-Token
 - **No documented limit for X-Api-Key** (personal API keys)
 - Rate limit exceeded returns: **429 Too Many Requests**
 
 ### Current Implementation
+
 ```typescript
 // src/lib/clockify/api-instance.ts
 retry: {
@@ -33,6 +36,7 @@ retry: {
 ```
 
 **Issues:**
+
 1. Only retries GET requests (POST requests to Reports API not retried)
 2. No exponential backoff (ky uses fixed delays)
 3. No rate limit headers inspection
@@ -43,6 +47,7 @@ retry: {
 ## Pagination Patterns
 
 ### Clockify API Pagination Support
+
 The Clockify API supports pagination on several endpoints:
 
 ```
@@ -58,6 +63,7 @@ GET /v1/workspaces/{workspaceId}/projects
 ```
 
 ### Current Implementation
+
 ```typescript
 // src/lib/clockify/client.ts - getClients()
 const clients = await api
@@ -66,6 +72,7 @@ const clients = await api
 ```
 
 **Issues:**
+
 1. No pagination handling - assumes all results fit in one response
 2. Large workspaces with 100+ clients/projects will get truncated
 3. No cursor-based or offset-based pagination
@@ -77,12 +84,16 @@ const clients = await api
 ### 1. **Retry Strategy Issues**
 
 **Pitfall:** Fixed retry delays
+
 ```typescript
 // ky default: 100ms between retries (not exponential)
-retry: { limit: 2 }
+retry: {
+  limit: 2;
+}
 ```
 
 **Best Practice:** Exponential backoff with jitter
+
 ```typescript
 // Retry delays: 100ms, 200ms, 400ms, 800ms...
 // With jitter: 50-150ms, 100-300ms, 200-600ms...
@@ -91,6 +102,7 @@ retry: { limit: 2 }
 ### 2. **Rate Limit Handling**
 
 **Pitfall:** No awareness of rate limit headers
+
 ```
 X-RateLimit-Limit: 50
 X-RateLimit-Remaining: 45
@@ -98,6 +110,7 @@ X-RateLimit-Reset: 1234567890
 ```
 
 **Best Practice:** Inspect headers and throttle proactively
+
 ```typescript
 if (remaining < 5) {
   // Wait before next request
@@ -108,6 +121,7 @@ if (remaining < 5) {
 ### 3. **Concurrent Request Storms**
 
 **Pitfall:** `getWeeklyTimeReport()` makes 3 parallel API calls
+
 ```typescript
 const [totalTime, trackedProjects, allProjects] = await Promise.all([
   reportsApi.post(...),
@@ -122,6 +136,7 @@ const [totalTime, trackedProjects, allProjects] = await Promise.all([
 ### 4. **Error Classification**
 
 **Pitfall:** All errors treated the same
+
 ```typescript
 if (error instanceof HTTPError) {
   return { message: error.message, code: error.response.status };
@@ -129,6 +144,7 @@ if (error instanceof HTTPError) {
 ```
 
 **Best Practice:** Distinguish retryable vs non-retryable errors
+
 ```typescript
 // Retryable: 429, 500, 502, 503, 504, 408, 413
 // Non-retryable: 400, 401, 403, 404
@@ -137,11 +153,13 @@ if (error instanceof HTTPError) {
 ### 5. **Timeout Configuration**
 
 **Current:** 30 seconds (reasonable)
+
 ```typescript
-timeout: 30000
+timeout: 30000;
 ```
 
 **Consideration:** Reports API can be slow for large date ranges
+
 - Consider longer timeout for POST /reports/summary
 - Implement request-level timeout overrides
 
@@ -220,7 +238,7 @@ class ClockifyRateLimiter {
       const delay = this.state.resetAt.getTime() - Date.now();
       if (delay > 0) {
         console.warn(`Rate limit approaching. Waiting ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay + 100));
+        await new Promise((resolve) => setTimeout(resolve, delay + 100));
       }
     }
   }
@@ -349,7 +367,9 @@ function classifyError(code?: number): ErrorClassification {
   };
 }
 
-async function handleError(error: unknown): Promise<ClockifyError & ErrorClassification> {
+async function handleError(
+  error: unknown,
+): Promise<ClockifyError & ErrorClassification> {
   if (error instanceof HTTPError) {
     const classification = classifyError(error.response.status);
     try {
@@ -397,17 +417,19 @@ class ClockifyLogger {
 
   logRequest(log: RequestLog): void {
     this.logs.push(log);
-    
+
     // Log to console in development
     if (process.env.NODE_ENV === "development") {
       console.log(
-        `[Clockify] ${log.method} ${log.endpoint} - ${log.status || "pending"} (${log.duration}ms, retries: ${log.retries})`
+        `[Clockify] ${log.method} ${log.endpoint} - ${log.status || "pending"} (${log.duration}ms, retries: ${log.retries})`,
       );
     }
 
     // Alert on slow requests
     if (log.duration > 5000) {
-      console.warn(`[Clockify] Slow request: ${log.endpoint} took ${log.duration}ms`);
+      console.warn(
+        `[Clockify] Slow request: ${log.endpoint} took ${log.duration}ms`,
+      );
     }
   }
 
@@ -417,9 +439,10 @@ class ClockifyLogger {
     errorRate: number;
   } {
     const total = this.logs.length;
-    const avgDuration = this.logs.reduce((sum, log) => sum + log.duration, 0) / total;
-    const errors = this.logs.filter(log => (log.status || 0) >= 400).length;
-    
+    const avgDuration =
+      this.logs.reduce((sum, log) => sum + log.duration, 0) / total;
+    const errors = this.logs.filter((log) => (log.status || 0) >= 400).length;
+
     return {
       totalRequests: total,
       avgDuration,
@@ -436,21 +459,25 @@ export const clockifyLogger = new ClockifyLogger();
 ## Implementation Roadmap
 
 ### Phase 1 (Week 1): Foundation
+
 - [ ] Add exponential backoff with jitter
 - [ ] Enable POST retries for Reports API
 - [ ] Add error classification
 
 ### Phase 2 (Week 2): Rate Limiting
+
 - [ ] Implement rate limit awareness
 - [ ] Add request queue for concurrency control
 - [ ] Add observability/logging
 
 ### Phase 3 (Week 3): Pagination
+
 - [ ] Implement pagination for clients/projects
 - [ ] Add getAllClients() and getAllProjects()
 - [ ] Update tests for pagination
 
 ### Phase 4 (Week 4): Testing & Optimization
+
 - [ ] Add integration tests for rate limiting
 - [ ] Performance testing under load
 - [ ] Documentation updates
@@ -460,6 +487,7 @@ export const clockifyLogger = new ClockifyLogger();
 ## Testing Recommendations
 
 ### Unit Tests
+
 ```typescript
 // Test exponential backoff calculation
 test("exponential backoff increases delay", () => {
@@ -470,11 +498,13 @@ test("exponential backoff increases delay", () => {
 // Test rate limiter
 test("rate limiter waits when remaining < 5", async () => {
   const limiter = new ClockifyRateLimiter();
-  limiter.updateFromHeaders(new Headers({
-    "x-ratelimit-remaining": "3",
-    "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + 1),
-  }));
-  
+  limiter.updateFromHeaders(
+    new Headers({
+      "x-ratelimit-remaining": "3",
+      "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + 1),
+    }),
+  );
+
   const start = Date.now();
   await limiter.waitIfNeeded();
   expect(Date.now() - start).toBeGreaterThan(900);
@@ -482,6 +512,7 @@ test("rate limiter waits when remaining < 5", async () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 // Test pagination with real API
 test("getAllClients handles pagination", async () => {
@@ -499,6 +530,7 @@ test("getAllClients handles pagination", async () => {
 ## Monitoring & Alerts
 
 ### Metrics to Track
+
 1. **Request latency** - P50, P95, P99
 2. **Error rate** - By status code
 3. **Rate limit hits** - Count of 429 responses
@@ -506,6 +538,7 @@ test("getAllClients handles pagination", async () => {
 5. **Queue depth** - Pending requests in queue
 
 ### Alert Thresholds
+
 - Error rate > 5%
 - Rate limit hits > 10/hour
 - P99 latency > 10s
@@ -520,4 +553,3 @@ test("getAllClients handles pagination", async () => {
 - Pagination: https://docs.clockify.me/#tag/User/operation/getUsersOfWorkspace
 - ky HTTP client: https://github.com/sindresorhus/ky
 - Exponential backoff: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
-

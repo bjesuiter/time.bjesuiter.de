@@ -15,6 +15,7 @@ calculations.
 ## 1.5 Testing Strategy
 
 **Decisions**:
+
 - [Decision: E2E Test Strategy](decisions/2025_11_13_e2e_test_strategy.md) (2025-11-13)
 - [Decision: Test Strategy Update - Bun Test Runner Integration](decisions/2025_11_19_test_strategy_update.md) (2025-11-19 - Latest)
 

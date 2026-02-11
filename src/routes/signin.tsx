@@ -98,7 +98,10 @@ function SignInPage() {
           <div className="flex justify-center mb-4">
             <LogIn className="w-12 h-12 text-indigo-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2" data-testid="signin-heading">
+          <h1
+            className="text-3xl font-bold text-gray-900 mb-2"
+            data-testid="signin-heading"
+          >
             Welcome Back
           </h1>
           <p className="text-gray-600">
@@ -111,7 +114,10 @@ function SignInPage() {
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* General Error */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3" data-testid="signin-general-error">
+              <div
+                className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3"
+                data-testid="signin-general-error"
+              >
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-red-800">{errors.general}</p>
               </div>
@@ -148,7 +154,12 @@ function SignInPage() {
                 />
               </div>
               {errors.email && (
-                <p className="mt-1.5 text-sm text-red-600" data-testid="signin-email-error">{errors.email}</p>
+                <p
+                  className="mt-1.5 text-sm text-red-600"
+                  data-testid="signin-email-error"
+                >
+                  {errors.email}
+                </p>
               )}
             </div>
 
@@ -183,7 +194,12 @@ function SignInPage() {
                 />
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-sm text-red-600" data-testid="signin-password-error">{errors.password}</p>
+                <p
+                  className="mt-1.5 text-sm text-red-600"
+                  data-testid="signin-password-error"
+                >
+                  {errors.password}
+                </p>
               )}
             </div>
 

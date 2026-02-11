@@ -38,7 +38,7 @@ test.describe("Form Validation and Error Handling", () => {
       // Skip validation test if signup is disabled
       await expect(signupDisabled).toBeVisible();
     } else {
-        const invalidEmails = [
+      const invalidEmails = [
         "invalid-email",
         "user@",
         "@domain.com",
@@ -48,8 +48,12 @@ test.describe("Form Validation and Error Handling", () => {
 
       for (const email of invalidEmails) {
         await page.getByTestId("signup-email-input").fill(email);
-        await page.getByTestId("signup-password-input").fill("validpassword123");
-        await page.getByTestId("signup-confirm-password-input").fill("validpassword123");
+        await page
+          .getByTestId("signup-password-input")
+          .fill("validpassword123");
+        await page
+          .getByTestId("signup-confirm-password-input")
+          .fill("validpassword123");
         await page.getByTestId("signup-submit-button").click();
 
         await expect(page.getByTestId("signup-email-error")).toBeVisible();
@@ -106,10 +110,14 @@ test.describe("Form Validation and Error Handling", () => {
 
     await page.getByTestId("signup-email-input").fill("test@example.com");
     await page.getByTestId("signup-password-input").fill("validpassword123");
-    await page.getByTestId("signup-confirm-password-input").fill("differentpassword");
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill("differentpassword");
     await page.getByTestId("signup-submit-button").click();
 
-    await expect(page.getByTestId("signup-confirm-password-error")).toBeVisible();
+    await expect(
+      page.getByTestId("signup-confirm-password-error"),
+    ).toBeVisible();
   });
 
   test("clears signup field errors on input", async ({ page, serverUrl }) => {
@@ -143,13 +151,17 @@ test.describe("Form Validation and Error Handling", () => {
     await page.getByTestId("signup-name-input").fill("Test User");
     await page.getByTestId("signup-email-input").fill("validuser@example.com");
     await page.getByTestId("signup-password-input").fill("validpassword123");
-    await page.getByTestId("signup-confirm-password-input").fill("validpassword123");
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill("validpassword123");
 
     // Submit form
     await page.getByTestId("signup-submit-button").click();
 
     await page.waitForURL(`${serverUrl}/`);
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
   });
 
   test("validates signin required fields", async ({ page, serverUrl }) => {
@@ -181,7 +193,9 @@ test.describe("Form Validation and Error Handling", () => {
     await page.goto(`${serverUrl}/signin`);
     await page.waitForLoadState("networkidle");
 
-    await page.getByTestId("signin-email-input").fill("nonexistent@example.com");
+    await page
+      .getByTestId("signin-email-input")
+      .fill("nonexistent@example.com");
     await page.getByTestId("signin-password-input").fill("wrongpassword");
     await page.getByTestId("signin-submit-button").click();
 
@@ -289,9 +303,13 @@ test.describe("Form Validation and Error Handling", () => {
 
     // Fill form with valid data
     await page.getByTestId("signup-name-input").fill("Test User");
-    await page.getByTestId("signup-email-input").fill("loadingtest@example.com");
+    await page
+      .getByTestId("signup-email-input")
+      .fill("loadingtest@example.com");
     await page.getByTestId("signup-password-input").fill("validpassword123");
-    await page.getByTestId("signup-confirm-password-input").fill("validpassword123");
+    await page
+      .getByTestId("signup-confirm-password-input")
+      .fill("validpassword123");
 
     // Submit and check for loading state
     await page.getByTestId("signup-submit-button").click();

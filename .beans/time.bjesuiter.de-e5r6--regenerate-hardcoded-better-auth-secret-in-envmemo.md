@@ -11,11 +11,13 @@ updated_at: 2026-01-22T00:00:21Z
 The .env.memory file contains a hardcoded BETTER_AUTH_SECRET that was generated at some point and should be regenerated for security.
 
 ## Security Concern
+
 - The secret in .env.memory is S85KVyZ5LzgkG37TaJfj7eeN6B6ezAzH
 - This secret should be unique and not committed to version control
 - Hardcoded secrets in template files are a security risk
 
 ## Checklist
+
 - [x] Generate a new random secret: openssl rand -base64 32
 - [x] Update .env.memory with new secret
 - [x] Verify .env.memory is in .gitignore (it is)

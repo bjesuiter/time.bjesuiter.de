@@ -8,9 +8,11 @@ updated_at: 2026-01-20T22:30:11Z
 ---
 
 ## Summary
+
 Implement pagination for Clockify list endpoints to avoid truncated results.
 
 ## Checklist
+
 - [ ] Add paginated fetch helpers for clients and projects
 - [ ] Use page-size max and loop until empty
 - [ ] Add unit/integration coverage for pagination

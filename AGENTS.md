@@ -18,7 +18,7 @@ bun e2e <filename>             # Fuzzy match in tests/e2e/user-journeys/
 
 # Testing - All
 bun test:unit                  # All unit tests
-bun test:integration           # All integration tests  
+bun test:integration           # All integration tests
 bun run e2e                    # All E2E tests (Playwright)
 bun run test:all               # Run all test layers
 
@@ -63,6 +63,7 @@ bun run auth-schema            # Regenerate better-auth schema
 ### Imports
 
 Order imports consistently:
+
 1. External packages (`react`, `@tanstack/*`, etc.)
 2. Internal aliases (`@/server/*`, `@/lib/*`, `@/components/*`)
 3. Relative imports
@@ -79,15 +80,15 @@ import { MyComponent } from "@/components/MyComponent";
 
 ### Naming
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Components | PascalCase | `UserMenu.tsx`, `function UserMenu()` |
-| Utilities/hooks | camelCase | `useAuth.ts`, `formatDate.ts` |
-| Server functions | camelCase | `getUserData`, `checkClockifySetup` |
-| DB tables | snake_case | `user_clockify_config` |
-| DB columns | snake_case | `clockify_api_key` |
-| Test files | `*.test.ts` | `validateApiKey.test.ts` |
-| E2E test files | `*.spec.ts` | `auth.spec.ts` |
+| Type             | Convention  | Example                               |
+| ---------------- | ----------- | ------------------------------------- |
+| Components       | PascalCase  | `UserMenu.tsx`, `function UserMenu()` |
+| Utilities/hooks  | camelCase   | `useAuth.ts`, `formatDate.ts`         |
+| Server functions | camelCase   | `getUserData`, `checkClockifySetup`   |
+| DB tables        | snake_case  | `user_clockify_config`                |
+| DB columns       | snake_case  | `clockify_api_key`                    |
+| Test files       | `*.test.ts` | `validateApiKey.test.ts`              |
+| E2E test files   | `*.spec.ts` | `auth.spec.ts`                        |
 
 ### TypeScript
 
@@ -157,13 +158,13 @@ These modules must ONLY be imported in `src/server/` files:
 // src/server/myServerFns.ts
 import { createServerFn } from "@tanstack/react-start";
 import { envStore } from "@/lib/env/envStore"; // OK - server file
-import { db } from "@/db";                       // OK - server file
+import { db } from "@/db"; // OK - server file
 
 export const getData = createServerFn({ method: "GET" }).handler(async () => {
   return await db.query.myTable.findFirst();
 });
 
-// src/routes/myroute.tsx  
+// src/routes/myroute.tsx
 import { getData } from "@/server/myServerFns"; // OK - imports function only
 // import { db } from "@/db";                   // WRONG - will fail in browser
 ```
@@ -171,6 +172,7 @@ import { getData } from "@/server/myServerFns"; // OK - imports function only
 ### Client-Safe Modules
 
 Can be imported anywhere:
+
 - `@/client/auth-client`
 - `@tanstack/react-router`, `@tanstack/react-start`
 - `react`, `lucide-react`
@@ -203,6 +205,7 @@ Can be imported anywhere:
 ## Environment Variables
 
 Validated with Zod in `src/lib/env/envStore.ts`:
+
 - `ENVIRONMENT` - App mode: `dev`, `prod`, `test`, or `memory`
 - `DATABASE_URL` - SQLite connection string
 - `ALLOW_USER_SIGNUP` - Enable public signup (`true`/`false`)
@@ -215,6 +218,7 @@ To add new variables: Update envStore schema, add to `.env`, document here.
 ## Agent Workspace
 
 The `agent/` folder is for LLM workspace:
+
 - **Decisions**: `agent/decisions/YYYY_MM_DD_topic.md`
 - **Summaries**: `agent/summaries/`
 - **Temporary**: `agent/tmp/` (not committed)
@@ -227,28 +231,32 @@ Use `context7` tools for documentation lookups: resolve library ID first, then f
 
 Be concise. One-sentence summaries after tasks. No code examples unless requested.
 
-## Work on next ticket 
+## Work on next ticket
+
 If the user tells you to "work on the next ticket" or "next step" or "next phase", get the most important ticket from your perspective from beans and work on it. Work ONLY on one ticket at the same time.
-If you realize you need to do another thing, create a new ticket for this. 
-When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards. 
+If you realize you need to do another thing, create a new ticket for this.
+When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards.
 Use ultrawork.
 
-## Default Ralp-Loop Prompt 
+## Default Ralp-Loop Prompt
+
 Get the most important ticket from your perspective from beans and work on it. Work ONLY on one ticket at the same time.
-If you realize you need to do another thing, create a new ticket for this. 
-When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards. 
+If you realize you need to do another thing, create a new ticket for this.
+When you finish a ticket successfully, mark the ticket as done in beans and Commit and Push afterwards.
 You're done when all tickets are implemented or if the user stops you explicitely.
 Use ultrawork.
 When using `beansloop`, always use the `agent-browser` skill for testing.
 
-## Integration Testing Ralph-Loop 
+## Integration Testing Ralph-Loop
+
 Look at the served website via playwrighter. Caution: you do not have exclusive access to playwrighter! ALWAYS verify that you use the right tab with your website in it (basically based on the port number, or the header on the page).
-Test every ticket in beans, which is marked as done and validate it as a user would. 
+Test every ticket in beans, which is marked as done and validate it as a user would.
 If the test works, add this result to the ticket and mark it as "ai verified".
-If it does not, create a new ticket in beans as a bug for later inspection, 
+If it does not, create a new ticket in beans as a bug for later inspection,
 mark the ticket as "broken" and store the followup inspection ticket as a link, then go on to test the next ticket.
 You're done if every ticket which is currently marked as done is marked as "ai verified" or "broken".
 Use ultrawork.
 
 ## Bean Management
+
 Always commit and push after creating one or multiple beans. This ensures beans are tracked in version control immediately.

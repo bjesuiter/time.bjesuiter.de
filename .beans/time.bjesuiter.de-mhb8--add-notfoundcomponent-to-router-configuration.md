@@ -15,11 +15,14 @@ Warning: A notFoundError was encountered on the route with ID "__root__", but a 
 ```
 
 ## Fix
+
 Configure either:
+
 - A `notFoundComponent` on the root route, OR
 - A `defaultNotFoundComponent` at the router level
 
 ## Checklist
+
 - [x] Create a custom NotFound component
 - [x] Configure it in the router or root route
 - [x] Verify warning is gone (build passes)

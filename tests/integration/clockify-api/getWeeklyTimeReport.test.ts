@@ -7,17 +7,17 @@ const validWorkspaceId = process.env.CLOCKIFY_TEST_WORKSPACE_ID;
 
 /**
  * Integration tests for getWeeklyTimeReport function
- * 
+ *
  * NOTE: These tests require actual data in your Clockify workspace.
  * You need to set up:
  * - CLOCKIFY_TEST_API_KEY: Your Clockify API key
  * - CLOCKIFY_TEST_WORKSPACE_ID: A workspace ID
  * - CLOCKIFY_TEST_CLIENT_ID: A client ID with time entries
  * - CLOCKIFY_TEST_PROJECT_IDS: Comma-separated list of project IDs (optional)
- * 
+ *
  * For the date range tests, ensure you have time entries logged in your workspace
  * within the test date ranges.
- * 
+ *
  * IMPORTANT: All duration values are in SECONDS (not milliseconds).
  * The Clockify API returns durations in seconds, despite some documentation
  * suggesting milliseconds.
@@ -26,7 +26,7 @@ const validWorkspaceId = process.env.CLOCKIFY_TEST_WORKSPACE_ID;
 test("getWeeklyTimeReport-001: successfully fetches weekly time report with valid parameters", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -35,7 +35,7 @@ test("getWeeklyTimeReport-001: successfully fetches weekly time report with vali
   const lastWeekStart = new Date(now);
   lastWeekStart.setDate(now.getDate() - 7);
   lastWeekStart.setHours(0, 0, 0, 0);
-  
+
   const lastWeekEnd = new Date(lastWeekStart);
   lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
   lastWeekEnd.setHours(23, 59, 59, 999);
@@ -66,7 +66,7 @@ test("getWeeklyTimeReport-001: successfully fetches weekly time report with vali
 test("getWeeklyTimeReport-002: daily breakdown structure contains expected fields", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -74,7 +74,7 @@ test("getWeeklyTimeReport-002: daily breakdown structure contains expected field
   const lastWeekStart = new Date(now);
   lastWeekStart.setDate(now.getDate() - 7);
   lastWeekStart.setHours(0, 0, 0, 0);
-  
+
   const lastWeekEnd = new Date(lastWeekStart);
   lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
   lastWeekEnd.setHours(23, 59, 59, 999);
@@ -96,7 +96,7 @@ test("getWeeklyTimeReport-002: daily breakdown structure contains expected field
   expect(result.success).toBe(true);
   if (result.success) {
     const breakdown = result.data.dailyBreakdown;
-    
+
     // Check structure of each day (if any days have data)
     const dates = Object.keys(breakdown);
     if (dates.length > 0) {
@@ -130,7 +130,7 @@ test("getWeeklyTimeReport-002: daily breakdown structure contains expected field
 test("getWeeklyTimeReport-003: tracked projects structure is correct when projects exist", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -146,7 +146,7 @@ test("getWeeklyTimeReport-003: tracked projects structure is correct when projec
   const lastWeekStart = new Date(now);
   lastWeekStart.setDate(now.getDate() - 7);
   lastWeekStart.setHours(0, 0, 0, 0);
-  
+
   const lastWeekEnd = new Date(lastWeekStart);
   lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
   lastWeekEnd.setHours(23, 59, 59, 999);
@@ -165,7 +165,7 @@ test("getWeeklyTimeReport-003: tracked projects structure is correct when projec
   expect(result.success).toBe(true);
   if (result.success) {
     const breakdown = result.data.dailyBreakdown;
-    
+
     // Find a day with tracked projects
     for (const date in breakdown) {
       const dayData = breakdown[date];
@@ -200,7 +200,7 @@ test("getWeeklyTimeReport-003: tracked projects structure is correct when projec
 test("getWeeklyTimeReport-004: extra work calculation is correct", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -211,7 +211,7 @@ test("getWeeklyTimeReport-004: extra work calculation is correct", async () => {
   const lastWeekStart = new Date(now);
   lastWeekStart.setDate(now.getDate() - 7);
   lastWeekStart.setHours(0, 0, 0, 0);
-  
+
   const lastWeekEnd = new Date(lastWeekStart);
   lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
   lastWeekEnd.setHours(23, 59, 59, 999);
@@ -230,11 +230,11 @@ test("getWeeklyTimeReport-004: extra work calculation is correct", async () => {
   expect(result.success).toBe(true);
   if (result.success) {
     const breakdown = result.data.dailyBreakdown;
-    
+
     // Verify calculation for each day
     for (const date in breakdown) {
       const dayData = breakdown[date];
-      
+
       // Calculate sum of tracked projects
       let trackedSum = 0;
       for (const projectId in dayData.trackedProjects) {
@@ -257,7 +257,7 @@ test("getWeeklyTimeReport-004: extra work calculation is correct", async () => {
 test("getWeeklyTimeReport-005: handles empty date range (no time entries)", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -280,7 +280,7 @@ test("getWeeklyTimeReport-005: handles empty date range (no time entries)", asyn
   if (result.success) {
     expect(result.data).toBeDefined();
     expect(result.data.dailyBreakdown).toBeDefined();
-    
+
     // Daily breakdown should be empty or have all zeros
     const dates = Object.keys(result.data.dailyBreakdown);
     if (dates.length > 0) {
@@ -296,7 +296,7 @@ test("getWeeklyTimeReport-005: handles empty date range (no time entries)", asyn
 
 test("getWeeklyTimeReport-006: handles invalid workspace ID", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID || "test-client-id";
   const invalidWorkspaceId = "invalid-workspace-id-12345";
 
@@ -318,7 +318,7 @@ test("getWeeklyTimeReport-006: handles invalid workspace ID", async () => {
     expect(result.error).toBeDefined();
     expect(result.error.message).toBeDefined();
     expect(typeof result.error.message).toBe("string");
-    
+
     if (result.error.code !== undefined) {
       // Should be 401 (Unauthorized), 403 (Forbidden), or 404 (Not Found)
       expect([401, 403, 404]).toContain(result.error.code);
@@ -329,7 +329,7 @@ test("getWeeklyTimeReport-006: handles invalid workspace ID", async () => {
 test("getWeeklyTimeReport-007: handles empty project IDs array", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -337,7 +337,7 @@ test("getWeeklyTimeReport-007: handles empty project IDs array", async () => {
   const lastWeekStart = new Date(now);
   lastWeekStart.setDate(now.getDate() - 7);
   lastWeekStart.setHours(0, 0, 0, 0);
-  
+
   const lastWeekEnd = new Date(lastWeekStart);
   lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
   lastWeekEnd.setHours(23, 59, 59, 999);
@@ -356,14 +356,14 @@ test("getWeeklyTimeReport-007: handles empty project IDs array", async () => {
   expect(result.success).toBe(true);
   if (result.success) {
     const breakdown = result.data.dailyBreakdown;
-    
+
     // All work should be "extra work" since no projects are tracked
     for (const date in breakdown) {
       const dayData = breakdown[date];
-      
+
       // No tracked projects
       expect(Object.keys(dayData.trackedProjects).length).toBe(0);
-      
+
       // All time should be extra work
       expect(dayData.extraWorkSeconds).toBe(dayData.totalSeconds);
     }
@@ -373,7 +373,7 @@ test("getWeeklyTimeReport-007: handles empty project IDs array", async () => {
 test("getWeeklyTimeReport-008: date keys are in correct format (YYYY-MM-DD)", async () => {
   expectString(validApiKey, "CLOCKIFY_TEST_API_KEY not set");
   expectString(validWorkspaceId, "CLOCKIFY_TEST_WORKSPACE_ID not set");
-  
+
   const clientId = process.env.CLOCKIFY_TEST_CLIENT_ID;
   expectString(clientId, "CLOCKIFY_TEST_CLIENT_ID not set");
 
@@ -381,7 +381,7 @@ test("getWeeklyTimeReport-008: date keys are in correct format (YYYY-MM-DD)", as
   const lastWeekStart = new Date(now);
   lastWeekStart.setDate(now.getDate() - 7);
   lastWeekStart.setHours(0, 0, 0, 0);
-  
+
   const lastWeekEnd = new Date(lastWeekStart);
   lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
   lastWeekEnd.setHours(23, 59, 59, 999);
@@ -408,11 +408,11 @@ test("getWeeklyTimeReport-008: date keys are in correct format (YYYY-MM-DD)", as
     for (const date of dates) {
       // Check date format (YYYY-MM-DD)
       expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      
+
       // Verify it's a valid date
       const parsedDate = new Date(date);
       expect(isNaN(parsedDate.getTime())).toBe(false);
-      
+
       // Verify date field matches the key
       expect(breakdown[date].date).toBe(date);
     }

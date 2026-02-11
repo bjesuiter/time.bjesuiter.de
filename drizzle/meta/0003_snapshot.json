@@ -102,9 +102,7 @@
       "indexes": {
         "account_user_id_idx": {
           "name": "account_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -113,12 +111,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -190,16 +184,12 @@
       "indexes": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "session_user_id_idx": {
           "name": "session_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -208,12 +198,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -279,9 +265,7 @@
       "indexes": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -412,26 +396,17 @@
       "indexes": {
         "cached_daily_user_date_idx": {
           "name": "cached_daily_user_date_idx",
-          "columns": [
-            "user_id",
-            "date"
-          ],
+          "columns": ["user_id", "date"],
           "isUnique": false
         },
         "cached_daily_user_project_idx": {
           "name": "cached_daily_user_project_idx",
-          "columns": [
-            "user_id",
-            "project_id",
-            "date"
-          ],
+          "columns": ["user_id", "project_id", "date"],
           "isUnique": false
         },
         "cached_daily_invalidated_idx": {
           "name": "cached_daily_invalidated_idx",
-          "columns": [
-            "invalidated_at"
-          ],
+          "columns": ["invalidated_at"],
           "isUnique": false
         }
       },
@@ -440,12 +415,8 @@
           "name": "cached_daily_project_sums_user_id_user_id_fk",
           "tableFrom": "cached_daily_project_sums",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -560,25 +531,17 @@
       "indexes": {
         "cached_weekly_user_week_idx": {
           "name": "cached_weekly_user_week_idx",
-          "columns": [
-            "user_id",
-            "week_start"
-          ],
+          "columns": ["user_id", "week_start"],
           "isUnique": false
         },
         "cached_weekly_status_idx": {
           "name": "cached_weekly_status_idx",
-          "columns": [
-            "user_id",
-            "status"
-          ],
+          "columns": ["user_id", "status"],
           "isUnique": false
         },
         "cached_weekly_invalidated_idx": {
           "name": "cached_weekly_invalidated_idx",
-          "columns": [
-            "invalidated_at"
-          ],
+          "columns": ["invalidated_at"],
           "isUnique": false
         }
       },
@@ -587,12 +550,8 @@
           "name": "cached_weekly_sums_user_id_user_id_fk",
           "tableFrom": "cached_weekly_sums",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -671,18 +630,12 @@
       "indexes": {
         "discrepancy_user_week_idx": {
           "name": "discrepancy_user_week_idx",
-          "columns": [
-            "user_id",
-            "week_start"
-          ],
+          "columns": ["user_id", "week_start"],
           "isUnique": false
         },
         "discrepancy_unresolved_idx": {
           "name": "discrepancy_unresolved_idx",
-          "columns": [
-            "user_id",
-            "resolved_at"
-          ],
+          "columns": ["user_id", "resolved_at"],
           "isUnique": false
         }
       },
@@ -691,12 +644,8 @@
           "name": "weekly_discrepancies_user_id_user_id_fk",
           "tableFrom": "weekly_discrepancies",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -812,9 +761,7 @@
       "indexes": {
         "user_clockify_config_user_id_unique": {
           "name": "user_clockify_config_user_id_unique",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         }
       },
@@ -823,12 +770,8 @@
           "name": "user_clockify_config_user_id_user_id_fk",
           "tableFrom": "user_clockify_config",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -893,12 +836,7 @@
       "indexes": {
         "config_chronic_temporal_idx": {
           "name": "config_chronic_temporal_idx",
-          "columns": [
-            "user_id",
-            "config_type",
-            "valid_from",
-            "valid_until"
-          ],
+          "columns": ["user_id", "config_type", "valid_from", "valid_until"],
           "isUnique": false
         }
       },
@@ -907,12 +845,8 @@
           "name": "config_chronic_user_id_user_id_fk",
           "tableFrom": "config_chronic",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

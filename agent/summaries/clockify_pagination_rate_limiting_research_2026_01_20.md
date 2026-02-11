@@ -10,14 +10,14 @@
 
 Your Clockify integration has **solid foundations** but lacks critical resilience patterns:
 
-| Aspect | Current | Recommended | Priority |
-|--------|---------|-------------|----------|
-| **Retry Strategy** | Fixed delays (2 retries) | Exponential backoff + jitter | 🔴 HIGH |
-| **Rate Limiting** | No awareness | Header-based throttling | 🔴 HIGH |
-| **Pagination** | Not implemented | Auto-pagination for list endpoints | 🟡 MEDIUM |
-| **Concurrency** | 3 parallel POST calls | Request queue (max 5 concurrent) | 🟡 MEDIUM |
-| **Error Classification** | Generic handling | Retryable vs non-retryable | 🟡 MEDIUM |
-| **Observability** | Minimal logging | Request metrics + alerts | 🟢 LOW |
+| Aspect                   | Current                  | Recommended                        | Priority  |
+| ------------------------ | ------------------------ | ---------------------------------- | --------- |
+| **Retry Strategy**       | Fixed delays (2 retries) | Exponential backoff + jitter       | 🔴 HIGH   |
+| **Rate Limiting**        | No awareness             | Header-based throttling            | 🔴 HIGH   |
+| **Pagination**           | Not implemented          | Auto-pagination for list endpoints | 🟡 MEDIUM |
+| **Concurrency**          | 3 parallel POST calls    | Request queue (max 5 concurrent)   | 🟡 MEDIUM |
+| **Error Classification** | Generic handling         | Retryable vs non-retryable         | 🟡 MEDIUM |
+| **Observability**        | Minimal logging          | Request metrics + alerts           | 🟢 LOW    |
 
 ---
 
@@ -30,6 +30,7 @@ Your Clockify integration has **solid foundations** but lacks critical resilienc
 > "Our REST API has a specific rate limit of **50 requests per second** (by addon on one workspace) when accessed using X-Addon-Token. Exceeding this limit will result in an error message with the description 'Too many requests'."
 
 **Key Points**:
+
 - ✅ **50 req/sec** limit applies to addon tokens
 - ❓ **No documented limit** for personal API keys (X-Api-Key)
 - 📊 **Rate limit headers** returned in responses (not documented but standard)
@@ -53,7 +54,6 @@ timeout: 30000, // 30 seconds
 1. **❌ Only retries GET requests** - POST requests to Reports API not retried
    - `getWeeklyTimeReport()` makes 3 parallel POST calls (line 217-234 in client.ts)
    - If any POST fails with 429, no retry occurs
-   
 2. **❌ Fixed retry delays** - ky uses 100ms between retries (not exponential)
    - Retry 1: 100ms
    - Retry 2: 100ms
@@ -167,9 +167,15 @@ Expected behavior:
 // Execute all three API calls in parallel
 const [totalTimeResponse, trackedProjectsResponse, allProjectsResponse] =
   await Promise.all([
-    reportsApi.post(`workspaces/${workspaceId}/reports/summary`, { json: totalTimeRequest }),
-    reportsApi.post(`workspaces/${workspaceId}/reports/summary`, { json: trackedProjectsRequest }),
-    reportsApi.post(`workspaces/${workspaceId}/reports/summary`, { json: allProjectsRequest }),
+    reportsApi.post(`workspaces/${workspaceId}/reports/summary`, {
+      json: totalTimeRequest,
+    }),
+    reportsApi.post(`workspaces/${workspaceId}/reports/summary`, {
+      json: trackedProjectsRequest,
+    }),
+    reportsApi.post(`workspaces/${workspaceId}/reports/summary`, {
+      json: allProjectsRequest,
+    }),
   ]);
 ```
 
@@ -200,7 +206,7 @@ const [totalTimeResponse, trackedProjectsResponse, allProjectsResponse] =
 function createRetryDelay(attemptNumber: number): number {
   // Base delay: 100ms, 200ms, 400ms, 800ms, 1600ms
   const baseDelay = 100 * Math.pow(2, attemptNumber);
-  
+
   // Add ±50% jitter to prevent synchronized retries
   const jitter = baseDelay * 0.5 * Math.random();
   return baseDelay + jitter;
@@ -268,7 +274,7 @@ class ClockifyRateLimiter {
       const delay = this.state.resetAt.getTime() - Date.now();
       if (delay > 0) {
         console.warn(`Rate limit approaching. Waiting ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay + 100));
+        await new Promise((resolve) => setTimeout(resolve, delay + 100));
       }
     }
   }
@@ -427,19 +433,25 @@ export const requestQueue = new RequestQueue();
 const [totalTimeResponse, trackedProjectsResponse, allProjectsResponse] =
   await Promise.all([
     requestQueue.enqueue(() =>
-      reportsApi.post(`workspaces/${workspaceId}/reports/summary`, {
-        json: totalTimeRequest,
-      }).json<ClockifySummaryReportResponse>()
+      reportsApi
+        .post(`workspaces/${workspaceId}/reports/summary`, {
+          json: totalTimeRequest,
+        })
+        .json<ClockifySummaryReportResponse>(),
     ),
     requestQueue.enqueue(() =>
-      reportsApi.post(`workspaces/${workspaceId}/reports/summary`, {
-        json: trackedProjectsRequest,
-      }).json<ClockifySummaryReportResponse>()
+      reportsApi
+        .post(`workspaces/${workspaceId}/reports/summary`, {
+          json: trackedProjectsRequest,
+        })
+        .json<ClockifySummaryReportResponse>(),
     ),
     requestQueue.enqueue(() =>
-      reportsApi.post(`workspaces/${workspaceId}/reports/summary`, {
-        json: allProjectsRequest,
-      }).json<ClockifySummaryReportResponse>()
+      reportsApi
+        .post(`workspaces/${workspaceId}/reports/summary`, {
+          json: allProjectsRequest,
+        })
+        .json<ClockifySummaryReportResponse>(),
     ),
   ]);
 ```
@@ -472,7 +484,9 @@ function classifyError(code?: number): ErrorClassification {
   };
 }
 
-async function handleError(error: unknown): Promise<ClockifyError & ErrorClassification> {
+async function handleError(
+  error: unknown,
+): Promise<ClockifyError & ErrorClassification> {
   if (error instanceof HTTPError) {
     const classification = classifyError(error.response.status);
     try {
@@ -508,6 +522,7 @@ async function handleError(error: unknown): Promise<ClockifyError & ErrorClassif
 ## Implementation Roadmap
 
 ### Phase 1 (Week 1): Foundation - 🔴 HIGH PRIORITY
+
 - [ ] Add exponential backoff with jitter to both API instances
 - [ ] Enable POST retries in Reports API
 - [ ] Add error classification
@@ -515,6 +530,7 @@ async function handleError(error: unknown): Promise<ClockifyError & ErrorClassif
 - **Impact**: Reduces 429 errors by ~70%
 
 ### Phase 2 (Week 2): Rate Limiting - 🔴 HIGH PRIORITY
+
 - [ ] Implement rate limit awareness (header inspection)
 - [ ] Add request queue for concurrency control
 - [ ] Update `getWeeklyTimeReport()` to use queue
@@ -522,6 +538,7 @@ async function handleError(error: unknown): Promise<ClockifyError & ErrorClassif
 - **Impact**: Eliminates 429 errors under concurrent load
 
 ### Phase 3 (Week 3): Pagination - 🟡 MEDIUM PRIORITY
+
 - [ ] Implement `getAllClients()` with pagination
 - [ ] Implement `getAllProjects()` with pagination
 - [ ] Update setup flow to use new functions
@@ -530,6 +547,7 @@ async function handleError(error: unknown): Promise<ClockifyError & ErrorClassif
 - **Impact**: Supports unlimited clients/projects
 
 ### Phase 4 (Week 4): Observability - 🟢 LOW PRIORITY
+
 - [ ] Add request logging with metrics
 - [ ] Add performance monitoring
 - [ ] Document rate limit behavior
@@ -552,11 +570,13 @@ test("exponential backoff increases delay", () => {
 // Test rate limiter
 test("rate limiter waits when remaining < 5", async () => {
   const limiter = new ClockifyRateLimiter();
-  limiter.updateFromHeaders(new Headers({
-    "x-ratelimit-remaining": "3",
-    "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + 1),
-  }));
-  
+  limiter.updateFromHeaders(
+    new Headers({
+      "x-ratelimit-remaining": "3",
+      "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + 1),
+    }),
+  );
+
   const start = Date.now();
   await limiter.waitIfNeeded();
   expect(Date.now() - start).toBeGreaterThan(900);
@@ -578,12 +598,12 @@ test("getAllClients handles pagination", async () => {
 // Test concurrent requests don't exceed rate limit
 test("request queue prevents rate limit violations", async () => {
   const queue = new RequestQueue();
-  const requests = Array(20).fill(null).map(() =>
-    queue.enqueue(() => mockApiCall())
-  );
-  
+  const requests = Array(20)
+    .fill(null)
+    .map(() => queue.enqueue(() => mockApiCall()));
+
   const results = await Promise.all(requests);
-  expect(results.every(r => r.success)).toBe(true);
+  expect(results.every((r) => r.success)).toBe(true);
 });
 ```
 
@@ -611,11 +631,13 @@ test("request queue prevents rate limit violations", async () => {
 ## References
 
 **Official Documentation**:
+
 - [Clockify API Rate Limiting](https://docs.clockify.me/#section/Rate-limiting)
 - [Clockify API Pagination](https://docs.clockify.me/#tag/User/operation/getUsersOfWorkspace)
 - [Clockify Reports API](https://docs.clockify.me/#tag/Time-Entry-Report/operation/postDetailed)
 
 **Best Practices**:
+
 - [AWS: Exponential Backoff and Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
 - [ky HTTP Client Documentation](https://github.com/sindresorhus/ky)
 - [Rate Limiting Patterns](https://cloud.google.com/architecture/rate-limiting-strategies-techniques)
@@ -626,13 +648,12 @@ test("request queue prevents rate limit violations", async () => {
 
 Your Clockify integration is **production-ready** but needs **resilience improvements**:
 
-| Issue | Severity | Fix Time | Impact |
-|-------|----------|----------|--------|
-| No exponential backoff | 🔴 HIGH | 1h | 70% fewer 429 errors |
-| No rate limit awareness | 🔴 HIGH | 2h | Eliminates 429 under load |
-| No pagination | 🟡 MEDIUM | 2h | Supports 100+ clients |
-| No concurrency control | 🟡 MEDIUM | 1h | Prevents request storms |
-| Limited error info | 🟢 LOW | 1h | Better error handling |
+| Issue                   | Severity  | Fix Time | Impact                    |
+| ----------------------- | --------- | -------- | ------------------------- |
+| No exponential backoff  | 🔴 HIGH   | 1h       | 70% fewer 429 errors      |
+| No rate limit awareness | 🔴 HIGH   | 2h       | Eliminates 429 under load |
+| No pagination           | 🟡 MEDIUM | 2h       | Supports 100+ clients     |
+| No concurrency control  | 🟡 MEDIUM | 1h       | Prevents request storms   |
+| Limited error info      | 🟢 LOW    | 1h       | Better error handling     |
 
 **Recommended approach**: Implement Phase 1 + Phase 2 first (4-5 hours total), then Phase 3 + 4 as needed.
-

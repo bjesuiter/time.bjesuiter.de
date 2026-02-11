@@ -11,6 +11,7 @@ updated_at: 2026-01-22T11:08:20Z
 Utility functions are scattered across lib/ and could be better organized.
 
 ## Current Utility Files
+
 - src/lib/date-utils.ts (408 lines)
 - src/lib/overtime-utils.ts (129 lines)
 - src/lib/clockify/client.ts (347 lines)
@@ -20,11 +21,13 @@ Utility functions are scattered across lib/ and could be better organized.
 - src/lib/auth/auth.ts (auth configuration)
 
 ## Issues
+
 - Mix of utilities, API clients, and configuration
 - No clear separation between different types of utilities
 - Harder to discover and reuse utilities
 
 ## Checklist
+
 - [ ] Create src/utils/ directory
 - [ ] Move date-utils.ts to src/utils/date-utils.ts
 - [ ] Move overtime-utils.ts to src/utils/overtime-utils.ts

@@ -15,8 +15,10 @@ Console warning:
 ```
 
 ## Fix
+
 Run: `bun add -D baseline-browser-mapping@latest`
 
 ## Checklist
+
 - [ ] Update baseline-browser-mapping to latest version
 - [ ] Verify warning is gone

@@ -9,9 +9,11 @@ updated_at: 2026-01-20T20:45:36Z
 ---
 
 ## Summary
+
 Add |« and »| buttons to jump to the start and end of a tracked projects config period.
 
 ## Checklist
+
 - [x] Add `configValidFrom` and `configValidUntil` to `getWeeklyTimeSummary` response
 - [x] Add new props to `WeekNavigationBar` component
 - [x] Add jump handlers in `WeekNavigationBar`

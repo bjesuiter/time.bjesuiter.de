@@ -9,9 +9,11 @@ updated_at: 2026-01-21T22:42:32Z
 ---
 
 ## Summary
+
 Add indexes for auth and cache tables based on query patterns.
 
 ## Checklist
+
 - [x] Add indexes to better-auth session/account userId
   - `session.userId` - queried when looking up user sessions
   - `account.userId` - queried when looking up user accounts

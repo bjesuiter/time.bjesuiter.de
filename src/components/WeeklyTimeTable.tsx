@@ -27,7 +27,9 @@ function getUniqueExtraWorkProjects(
     const dayData = dailyBreakdown[date];
     if (!dayData?.extraWorkProjects) continue;
 
-    for (const [projectId, project] of Object.entries(dayData.extraWorkProjects)) {
+    for (const [projectId, project] of Object.entries(
+      dayData.extraWorkProjects,
+    )) {
       if (!projectMap.has(projectId)) {
         projectMap.set(projectId, { ...project, seconds: 0 });
       }

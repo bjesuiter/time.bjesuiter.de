@@ -11,6 +11,7 @@
 **DECISION: Replace Vitest with Bun's native test runner for unit and integration tests, while keeping Playwright for E2E tests.**
 
 We've simplified our testing stack by:
+
 1. Using **Bun Test Runner** for unit tests (with mocked HTTP responses)
 2. Using **Bun Test Runner** for integration tests (with real Clockify API calls)
 3. Keeping **Playwright** for E2E tests (full-stack user journeys)
@@ -26,6 +27,7 @@ This eliminates Vitest as a dependency and leverages Bun's built-in testing capa
 **Purpose**: Fast, isolated function/module tests with mocked HTTP responses
 
 **Key Characteristics:**
+
 - Native Bun test runner - zero additional dependencies
 - Built-in mocking via `mock()` module
 - Tests business logic, utilities, and error handling
@@ -33,6 +35,7 @@ This eliminates Vitest as a dependency and leverages Bun's built-in testing capa
 - Run: `bun test tests/unit`
 
 **Focus Areas:**
+
 - Business logic and data transformations
 - Utility functions and helpers
 - Error handling scenarios with mocked HTTP responses
@@ -40,28 +43,25 @@ This eliminates Vitest as a dependency and leverages Bun's built-in testing capa
 - Pure functions without external dependencies
 
 **Example:**
+
 ```typescript
 // tests/unit/clockify-client.test.ts
 import { test, expect, mock } from "bun:test";
 import { getWorkspaces } from "@/lib/clockify/client";
 
 test("getWorkspaces formats response correctly", async () => {
-  const mockFetch = mock(() => 
+  const mockFetch = mock(() =>
     Promise.resolve({
       ok: true,
-      json: () => Promise.resolve([
-        { id: "w1", name: "Workspace 1" }
-      ])
-    })
+      json: () => Promise.resolve([{ id: "w1", name: "Workspace 1" }]),
+    }),
   );
-  
+
   global.fetch = mockFetch;
-  
+
   const result = await getWorkspaces("test-key");
-  
-  expect(result).toEqual([
-    { id: "w1", name: "Workspace 1" }
-  ]);
+
+  expect(result).toEqual([{ id: "w1", name: "Workspace 1" }]);
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 ```
@@ -71,6 +71,7 @@ test("getWorkspaces formats response correctly", async () => {
 **Purpose**: Validate integration with real external APIs (Clockify)
 
 **Key Characteristics:**
+
 - Uses actual API keys from environment variables
 - Tests against real Clockify API endpoints
 - Validates core API integration works correctly
@@ -78,6 +79,7 @@ test("getWorkspaces formats response correctly", async () => {
 - Run: `bun test tests/integration`
 
 **Focus Areas:**
+
 - Clockify API client functions with real API calls
 - API key validation
 - Workspace, client, and project fetching
@@ -85,10 +87,12 @@ test("getWorkspaces formats response correctly", async () => {
 - Real error responses from Clockify API
 
 **Required Environment Variables:**
+
 - `CLOCKIFY_TEST_API_KEY` - Valid Clockify API key for testing
 - `CLOCKIFY_TEST_WORKSPACE_ID` - Workspace ID to test against
 
 **Example:**
+
 ```typescript
 // tests/integration/clockify-api.test.ts
 import { test, expect } from "bun:test";
@@ -99,9 +103,9 @@ test("getWorkspaces returns real workspaces", async () => {
   if (!apiKey) {
     throw new Error("CLOCKIFY_TEST_API_KEY not set");
   }
-  
+
   const workspaces = await getWorkspaces(apiKey);
-  
+
   expect(workspaces).toBeArray();
   expect(workspaces.length).toBeGreaterThan(0);
   expect(workspaces[0]).toHaveProperty("id");
@@ -114,6 +118,7 @@ test("getWorkspaces returns real workspaces", async () => {
 **Purpose**: Complete user workflows with real server + browser + database
 
 **No changes from original E2E strategy:**
+
 - Each test function gets isolated server instance with in-memory DB
 - Tests full stack including UI, server functions, and database
 - API-first testing approach (no direct server code imports)
@@ -129,11 +134,13 @@ See [Decision: E2E Test Strategy](2025_11_13_e2e_test_strategy.md) for full deta
 ### Removed: Vitest for Unit and Browser Tests
 
 **Original Strategy:**
+
 - Unit Tests: Vitest (Node Mode)
 - Browser Component Tests: Vitest (Browser Mode with Playwright)
 - E2E Tests: Playwright
 
 **Updated Strategy:**
+
 - Unit Tests: **Bun Test Runner** (with mocked HTTP)
 - Integration Tests: **Bun Test Runner** (with real APIs)
 - E2E Tests: Playwright (unchanged)
@@ -141,12 +148,14 @@ See [Decision: E2E Test Strategy](2025_11_13_e2e_test_strategy.md) for full deta
 ### Why Drop Vitest?
 
 **Problems with Vitest:**
+
 1. Additional dependency (vitest + @vitest/browser-playwright)
 2. Configuration overhead (separate vitest.config.ts files)
 3. Duplicated test runner when Bun has built-in testing
 4. Browser mode unclear value for this project (React components tested in E2E)
 
 **Benefits of Bun Test Runner:**
+
 1. ✅ **Zero config** - Built into Bun runtime
 2. ✅ **Ultra-fast** - Native performance
 3. ✅ **Native mocking** - `mock()` module included
@@ -158,10 +167,12 @@ See [Decision: E2E Test Strategy](2025_11_13_e2e_test_strategy.md) for full deta
 **Why Add Integration Tests?**
 
 The original strategy had a gap:
+
 - Unit tests mock everything → Don't validate real API behavior
 - E2E tests test full stack → Slow, complex to debug API issues
 
 Integration tests fill this gap:
+
 - Test against **real Clockify API**
 - Catch API changes early
 - Validate request/response formats
@@ -169,6 +180,7 @@ Integration tests fill this gap:
 - More confidence than mocked unit tests
 
 **Use Cases:**
+
 - Ensure Clockify API client works with real API
 - Validate API authentication
 - Test edge cases (rate limits, malformed responses)
@@ -194,10 +206,12 @@ Integration tests fill this gap:
 ```
 
 **Script Naming Pattern:**
+
 - `test:*` - Run tests once in normal mode
 - `testw:*` - Run tests in watch mode (continuous)
 
 **Key Changes:**
+
 - `test:unit` now uses `bun test` instead of `vitest`
 - Watch mode uses `testw:unit` instead of `test:unit:watch`
 - Added `test:integration` and `testw:integration` for real API tests
@@ -239,11 +253,13 @@ tests/
 ## Key Benefits of Updated Strategy
 
 ### 1. Simpler Stack
+
 - Only **Bun + Playwright** (no Vitest)
 - Fewer configuration files
 - Less to learn and maintain
 
 ### 2. Three-Layer Confidence
+
 ```
 Unit Tests (mocked)
     ↓ Fast feedback on logic
@@ -254,17 +270,20 @@ E2E Tests (full stack)
 ```
 
 ### 3. Maximum Isolation
+
 - Unit: No external dependencies
 - Integration: Real API, no UI/DB
 - E2E: Isolated server per test
 
 ### 4. Fast Execution
+
 - Bun's native test runner is extremely fast
 - Built-in mocking avoids setup overhead
 - Integration tests skip UI rendering
 - E2E tests use in-memory DB
 
 ### 5. Real API Validation
+
 - Integration tests catch Clockify API changes
 - Ensures our client code works with actual API
 - More confidence than mocked tests alone
@@ -276,6 +295,7 @@ E2E Tests (full stack)
 ### When to Write Each Type of Test
 
 **Unit Tests (Bun):**
+
 - ✅ Pure functions
 - ✅ Business logic
 - ✅ Data transformations
@@ -285,6 +305,7 @@ E2E Tests (full stack)
 - ❌ Database queries (use E2E instead)
 
 **Integration Tests (Bun):**
+
 - ✅ Clockify API client functions
 - ✅ External API integrations
 - ✅ API authentication flows
@@ -293,6 +314,7 @@ E2E Tests (full stack)
 - ❌ Database operations (use E2E instead)
 
 **E2E Tests (Playwright):**
+
 - ✅ Complete user journeys
 - ✅ Authentication flows (signup, login)
 - ✅ Multi-step workflows
@@ -324,6 +346,7 @@ E2E Tests (full stack)
 ## Migration Path (Completed)
 
 ### ✅ Phase 1: Remove Vitest Dependencies
+
 - [x] Remove `vitest` from package.json
 - [x] Remove `@vitest/browser-playwright` from package.json
 - [x] Delete `vitest.config.ts`
@@ -331,18 +354,21 @@ E2E Tests (full stack)
 - [x] Delete `tests/browser/` directory (if it existed)
 
 ### ✅ Phase 2: Update Existing Unit Tests
+
 - [x] Migrate existing unit tests from Vitest to Bun Test Runner
 - [x] Update imports: `import { test, expect } from "bun:test"`
 - [x] Update mocking syntax to use Bun's `mock()` module
 - [x] Add `tests/unit/README.md` with guidelines
 
 ### ✅ Phase 3: Add Integration Test Layer
+
 - [x] Create `tests/integration/` directory
 - [x] Add example Clockify API integration test
 - [x] Document required environment variables
 - [x] Add `tests/integration/README.md`
 
 ### ✅ Phase 4: Update Documentation
+
 - [x] Update `ARCHITECTURE.md` with new test strategy
 - [x] Update npm scripts in `package.json`
 - [x] Create this decision document
@@ -355,11 +381,13 @@ E2E Tests (full stack)
 ### Bun Test Runner Limitations
 
 **Maturity:**
+
 - Bun's test runner is newer than Vitest
 - Smaller ecosystem and community
 - May have fewer features
 
 **Mitigation:**
+
 - Bun test runner is stable for our use case
 - We only need basic testing features (mocking, assertions)
 - Can revisit if we hit limitations
@@ -367,19 +395,23 @@ E2E Tests (full stack)
 ### Integration Test Costs
 
 **API Rate Limits:**
+
 - Real API calls count against Clockify rate limits
 - Could hit limits during development
 
 **Mitigation:**
+
 - Run integration tests less frequently (not on every save)
 - Use `bun test tests/unit` for rapid iteration
 - Only run `bun test tests/integration` before commits
 
 **API Key Management:**
+
 - Need valid Clockify test credentials
 - Must be careful not to commit API keys
 
 **Mitigation:**
+
 - Use environment variables (`.env.test.local`)
 - Document setup clearly in `tests/integration/README.md`
 - Add `.env.test.local` to `.gitignore`
@@ -389,17 +421,20 @@ E2E Tests (full stack)
 ## Success Metrics
 
 ### Test Coverage Goals
+
 - Unit tests: 80%+ coverage of business logic
 - Integration tests: Cover all Clockify API endpoints we use
 - E2E tests: Cover all critical user journeys
 
 ### Test Performance Targets
+
 - Unit tests: < 5 seconds for entire suite
 - Integration tests: < 30 seconds for entire suite
 - E2E tests: < 5 minutes for entire suite
 - Total test time: < 6 minutes
 
 ### Maintenance Burden
+
 - Minimal configuration (Bun handles most setup)
 - Clear separation between test types
 - Easy to identify which tests to run during development

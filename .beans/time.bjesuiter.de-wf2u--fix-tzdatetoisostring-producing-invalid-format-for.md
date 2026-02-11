@@ -21,6 +21,7 @@ In clockifyServerFns.ts, getWeeklyTimeSummary() and getCumulativeOvertime() call
 ## Solution
 
 Convert TZDate to regular Date before calling toISOString():
+
 - new Date(tzDate.getTime()).toISOString()
 
 Or add a utility function toUTCISOString() in date-utils.ts.

@@ -12,6 +12,7 @@ parent: uvmr
 Remove the locked/committed weeks feature as it adds complexity without clear benefit.
 
 ## What to Remove
+
 - `status` field usage ('committed' vs 'pending') in cachedWeeklySums
 - `committedAt` field usage
 - commitWeek / uncommitWeek server functions
@@ -21,10 +22,12 @@ Remove the locked/committed weeks feature as it adds complexity without clear be
 - Special handling for committed weeks in refresh logic
 
 ## What to Keep
+
 - Basic cache validity (invalidatedAt for actual cache invalidation)
 - Refresh functionality (but simplified - same for all weeks)
 
 ## Checklist
+
 - [x] Remove status/committedAt logic from cacheServerFns.ts
 - [x] Remove commitWeek, uncommitWeek, refreshCommittedWeek functions
 - [x] Remove weeklyDiscrepancies related code

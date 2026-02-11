@@ -11,11 +11,13 @@ updated_at: 2026-01-22T11:08:20Z
 The settings.tsx component is very large (1311 lines) and could benefit from being broken down.
 
 ## Issues
+
 - src/routes/settings.tsx has 1311 lines
 - Likely multiple concerns in single component
 - Harder to maintain and test
 
 ## Checklist
+
 - [ ] Review settings.tsx for extraction opportunities
 - [ ] Extract sub-components for different settings sections
 - [ ] Extract form logic to custom hooks

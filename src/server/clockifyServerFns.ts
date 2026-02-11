@@ -17,7 +17,10 @@ import {
   toUTCISOString,
   toISODate,
 } from "@/lib/date-utils";
-import { calculateCumulativeOvertime, invalidateCumulativeOvertimeAfterWeek } from "./cacheHelpers";
+import {
+  calculateCumulativeOvertime,
+  invalidateCumulativeOvertimeAfterWeek,
+} from "./cacheHelpers";
 import { getAuthenticatedUserId } from "@/server/authHelpers";
 
 function buildDailyBreakdownFromCache(
@@ -300,7 +303,8 @@ export const checkClockifySetup = createServerFn({ method: "GET" }).handler(
       }
     }
 
-    const hasSetup = hasApiKey && hasWorkspace && hasClient && hasTrackedProjects;
+    const hasSetup =
+      hasApiKey && hasWorkspace && hasClient && hasTrackedProjects;
 
     return {
       hasSetup,
@@ -421,7 +425,8 @@ export const getClockifyProjects = createServerFn({ method: "POST" })
     }
 
     // Fall back to the selected client in saved config when caller omits clientId.
-    const effectiveClientId = data.clientId ?? config?.selectedClientId ?? undefined;
+    const effectiveClientId =
+      data.clientId ?? config?.selectedClientId ?? undefined;
 
     const result = await clockifyClient.getProjects(
       apiKey,
@@ -628,7 +633,8 @@ export const getWeeklyTimeSummary = createServerFn({ method: "POST" })
       if (!data.forceRefresh) {
         return {
           success: false,
-          error: "No cached data available. Click refresh to fetch from Clockify.",
+          error:
+            "No cached data available. Click refresh to fetch from Clockify.",
         };
       }
 

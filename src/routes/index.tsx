@@ -1,4 +1,3 @@
-
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/client/auth-client";
@@ -256,7 +255,11 @@ function DashboardView() {
               selectedWeek={selectedWeek}
               configValidFrom={weeklyQuery.data?.data?.configValidFrom}
               configValidUntil={weeklyQuery.data?.data?.configValidUntil}
-              timelineBoundaries={boundariesQuery.data?.success ? boundariesQuery.data.boundaries : undefined}
+              timelineBoundaries={
+                boundariesQuery.data?.success
+                  ? boundariesQuery.data.boundaries
+                  : undefined
+              }
               weekStart={weekStart}
               onMonthChange={handleMonthChange}
               onWeekChange={handleWeekChange}
@@ -277,7 +280,6 @@ function DashboardView() {
                       {formatWeekRange(selectedWeek)}
                     </p>
                   </div>
-
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   <div className="hidden sm:flex items-center gap-3 text-[10px] sm:text-xs text-gray-400">
@@ -298,7 +300,9 @@ function DashboardView() {
                         title="Last fetched from server"
                       >
                         <Clock className="w-3 h-3" />
-                        <span>{formatLastUpdated(weeklyQuery.dataUpdatedAt)}</span>
+                        <span>
+                          {formatLastUpdated(weeklyQuery.dataUpdatedAt)}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -352,7 +356,8 @@ function DashboardView() {
                     <CumulativeOvertimeSummary
                       isLoading={cumulativeOvertimeQuery.isPending}
                       hasStartDate={
-                        cumulativeOvertimeQuery.data?.data?.hasStartDate ?? false
+                        cumulativeOvertimeQuery.data?.data?.hasStartDate ??
+                        false
                       }
                       startDate={cumulativeOvertimeQuery.data?.data?.startDate}
                       cumulativeOvertimeSeconds={
@@ -368,7 +373,8 @@ function DashboardView() {
                         configQuery.data?.success &&
                         configQuery.data.config.cumulativeOvertimeStartDate
                           ? countWeeksBetween(
-                              configQuery.data.config.cumulativeOvertimeStartDate,
+                              configQuery.data.config
+                                .cumulativeOvertimeStartDate,
                               selectedWeek,
                               weekStart,
                             )
@@ -395,7 +401,8 @@ function DashboardView() {
                     No Data Cached
                   </p>
                   <p className="text-gray-500 text-xs sm:text-sm text-center mb-4 max-w-md">
-                    This week hasn't been fetched from Clockify yet. Click the refresh button to load the data.
+                    This week hasn't been fetched from Clockify yet. Click the
+                    refresh button to load the data.
                   </p>
                   <button
                     onClick={() => forceRefreshMutation.mutate()}
@@ -405,7 +412,9 @@ function DashboardView() {
                     <RefreshCw
                       className={`w-4 h-4 ${forceRefreshMutation.isPending ? "animate-spin" : ""}`}
                     />
-                    {forceRefreshMutation.isPending ? "Fetching..." : "Fetch from Clockify"}
+                    {forceRefreshMutation.isPending
+                      ? "Fetching..."
+                      : "Fetch from Clockify"}
                   </button>
                 </div>
               ) : (
