@@ -36,6 +36,7 @@ import { getWeekStartsInRangeInTz, toISODate } from "@/lib/date-utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Toolbar } from "@/components/Toolbar";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
+import { BuildCompiledFooter } from "@/components/BuildCompiledFooter";
 import { useState } from "react";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
@@ -463,6 +464,7 @@ function SettingsPage() {
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-gray-600">Loading...</div>
         </div>
+        <BuildCompiledFooter />
       </>
     );
   }
@@ -487,6 +489,7 @@ function SettingsPage() {
             </Link>
           </div>
         </div>
+        <BuildCompiledFooter />
       </>
     );
   }
@@ -495,7 +498,7 @@ function SettingsPage() {
     <>
       <Toolbar user={session.user} />
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 lg:mb-8">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
@@ -1280,6 +1283,7 @@ function SettingsPage() {
           </div>
         </div>
       </div>
+      <BuildCompiledFooter />
     </>
   );
 }
