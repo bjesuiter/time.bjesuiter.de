@@ -54,36 +54,34 @@ export function WeekNavigationBar({
     onMonthChange(newMonth);
   };
 
+  const getMonthString = (date: Date): string => {
+    const month = date.getMonth() + 1;
+    return `${date.getFullYear()}-${String(month).padStart(2, "0")}`;
+  };
+
+  const getMonthChangeForWeek = (weekStartDate: string): string | undefined => {
+    const weekDate = parseLocalDate(weekStartDate);
+    const weekMonth = getMonthString(weekDate);
+    return weekMonth !== currentMonth ? weekMonth : undefined;
+  };
+
+  const navigateRelativeWeek = (direction: -1 | 1) => {
+    const newWeek = getAdjacentWeek(selectedWeek, direction);
+    onWeekChange(newWeek, getMonthChangeForWeek(newWeek));
+  };
+
   const handlePrevWeek = () => {
-    const newWeek = getAdjacentWeek(selectedWeek, -1);
-    const currentMonthNum = parseInt(currentMonth.split("-")[1], 10);
-    const newWeekDate = new Date(newWeek);
-    const newWeekMonth = newWeekDate.getMonth() + 1;
-    const newMonthStr =
-      newWeekMonth !== currentMonthNum
-        ? `${newWeekDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`
-        : undefined;
-    onWeekChange(newWeek, newMonthStr);
+    navigateRelativeWeek(-1);
   };
 
   const handleNextWeek = () => {
-    const newWeek = getAdjacentWeek(selectedWeek, 1);
-    const currentMonthNum = parseInt(currentMonth.split("-")[1], 10);
-    const newWeekDate = new Date(newWeek);
-    const newWeekMonth = newWeekDate.getMonth() + 1;
-    const newMonthStr =
-      newWeekMonth !== currentMonthNum
-        ? `${newWeekDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`
-        : undefined;
-    onWeekChange(newWeek, newMonthStr);
+    navigateRelativeWeek(1);
   };
 
   const navigateToDate = (targetDate: Date) => {
     const weekStartDate = getWeekStartForDate(targetDate, weekStart);
     const newWeek = toISODate(weekStartDate);
-    const newWeekMonth = weekStartDate.getMonth() + 1;
-    const newMonthStr = `${weekStartDate.getFullYear()}-${String(newWeekMonth).padStart(2, "0")}`;
-    onWeekChange(newWeek, newMonthStr);
+    onWeekChange(newWeek, getMonthString(weekStartDate));
   };
 
   const getWeekForDate = (dateStr: string) => {
@@ -110,45 +108,37 @@ export function WeekNavigationBar({
   const isEndDisabled = selectedWeek >= nowWeek;
 
   const handleJumpToConfigStart = () => {
-    if (!timelineBoundaries?.starts.length && !configValidFrom) return;
-
-    const starts =
-      timelineBoundaries?.starts ?? (configValidFrom ? [configValidFrom] : []);
-    const currentWeekStart = selectedWeek;
+    if (starts.length === 0) {
+      return;
+    }
 
     for (let i = starts.length - 1; i >= 0; i--) {
       const startWeek = getWeekForDate(starts[i]);
-      if (startWeek < currentWeekStart) {
+      if (startWeek < selectedWeek) {
         navigateToDate(parseLocalDate(starts[i]));
         return;
       }
     }
 
-    if (starts.length > 0) {
-      navigateToDate(parseLocalDate(starts[0]));
-    }
+    navigateToDate(parseLocalDate(starts[0]));
   };
 
   const handleJumpToConfigEnd = () => {
-    const ends = timelineBoundaries?.ends ?? [];
-    const currentWeekStart = selectedWeek;
-    const nowWeek = toISODate(getWeekStartForDate(new Date(), weekStart));
-
     for (const endDate of ends) {
       const endWeek = getWeekForDate(endDate);
-      if (endWeek > currentWeekStart) {
-        const targetWeek = endWeek > nowWeek ? nowWeek : endWeek;
-        if (targetWeek !== currentWeekStart) {
-          navigateToDate(
-            parseLocalDate(endWeek > nowWeek ? toISODate(new Date()) : endDate),
-          );
-          return;
-        }
+      if (endWeek <= selectedWeek) {
+        continue;
+      }
+
+      const targetWeek = endWeek > nowWeek ? nowWeek : endWeek;
+      if (targetWeek !== selectedWeek) {
+        navigateToDate(parseLocalDate(targetWeek));
+        return;
       }
     }
 
-    if (nowWeek > currentWeekStart) {
-      navigateToDate(new Date());
+    if (nowWeek > selectedWeek) {
+      navigateToDate(parseLocalDate(nowWeek));
     }
   };
 

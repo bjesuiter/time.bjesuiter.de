@@ -33,6 +33,36 @@ export interface WeekInfo {
   isCurrentWeek: boolean;
 }
 
+function getWeekStartsOn(weekStart: "MONDAY" | "SUNDAY"): 0 | 1 {
+  return weekStart === "MONDAY" ? 1 : 0;
+}
+
+function startOfDay<T extends Date>(date: T): T {
+  return setMilliseconds(
+    setSeconds(setMinutes(setHours(date, 0), 0), 0),
+    0,
+  ) as T;
+}
+
+function endOfDay<T extends Date>(date: T): T {
+  return setMilliseconds(
+    setSeconds(setMinutes(setHours(date, 23), 59), 59),
+    999,
+  ) as T;
+}
+
+function getDefaultWeekFromWeeks(weeks: WeekInfo[]): string {
+  const currentWeekInfo = weeks.find(
+    (w) => w.isCurrentWeek && !w.isInPreviousMonth,
+  );
+  if (currentWeekInfo) {
+    return currentWeekInfo.startDate;
+  }
+
+  const firstWeek = weeks.find((w) => !w.isInPreviousMonth);
+  return firstWeek?.startDate || weeks[0].startDate;
+}
+
 /**
  * Convert Date to YYYY-MM-DD string (local timezone safe)
  * Uses date-fns format to avoid timezone issues with toISOString()
@@ -54,8 +84,7 @@ export function toISOMonth(date: Date): string {
  */
 export function parseLocalDate(dateStr: string): Date {
   // parseISO handles the string correctly, but we need to ensure midnight local time
-  const parsed = parseISO(dateStr);
-  return setMilliseconds(setSeconds(setMinutes(setHours(parsed, 0), 0), 0), 0);
+  return startOfDay(parseISO(dateStr));
 }
 
 /**
@@ -65,10 +94,11 @@ export function getWeekStartForDate(
   date: Date,
   weekStart: "MONDAY" | "SUNDAY",
 ): Date {
-  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
-  const result = startOfWeek(date, { weekStartsOn });
+  const result = startOfWeek(date, {
+    weekStartsOn: getWeekStartsOn(weekStart),
+  });
   // Ensure midnight local time
-  return setMilliseconds(setSeconds(setMinutes(setHours(result, 0), 0), 0), 0);
+  return startOfDay(result);
 }
 
 /**
@@ -87,13 +117,8 @@ export function isCurrentWeek(weekStartDate: string): boolean {
   const weekEnd = endOfWeek(weekStart, {
     weekStartsOn: getDay(weekStart) === 1 ? 1 : 0,
   });
-  // Set weekEnd to end of day
-  const weekEndEOD = setMilliseconds(
-    setSeconds(setMinutes(setHours(weekEnd, 23), 59), 59),
-    999,
-  );
 
-  return isWithinInterval(today, { start: weekStart, end: weekEndEOD });
+  return isWithinInterval(today, { start: weekStart, end: endOfDay(weekEnd) });
 }
 
 /**
@@ -121,7 +146,7 @@ export function getWeeksForMonth(
   weekStart: "MONDAY" | "SUNDAY",
 ): WeekInfo[] {
   const weeks: WeekInfo[] = [];
-  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+  const weekStartsOn = getWeekStartsOn(weekStart);
 
   // 1. Get the first day of the month
   const firstOfMonth = new Date(year, month, 1);
@@ -214,18 +239,7 @@ export function getDefaultWeekForMonth(
 ): string {
   const { year, month } = parseMonthString(monthStr);
   const weeks = getWeeksForMonth(year, month, weekStart);
-
-  // Find current week if it exists in this month
-  const currentWeekInfo = weeks.find(
-    (w) => w.isCurrentWeek && !w.isInPreviousMonth,
-  );
-  if (currentWeekInfo) {
-    return currentWeekInfo.startDate;
-  }
-
-  // Otherwise return the first non-previous-month week
-  const firstWeek = weeks.find((w) => !w.isInPreviousMonth);
-  return firstWeek?.startDate || weeks[0].startDate;
+  return getDefaultWeekFromWeeks(weeks);
 }
 
 /**
@@ -280,14 +294,11 @@ export function getWeekStartForDateInTz(
   weekStart: "MONDAY" | "SUNDAY",
   timeZone: string,
 ): TZDate {
-  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+  const weekStartsOn = getWeekStartsOn(weekStart);
   const tzDate =
     date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
   const result = startOfWeek(tzDate, { weekStartsOn });
-  return setMilliseconds(
-    setSeconds(setMinutes(setHours(result, 0), 0), 0),
-    0,
-  ) as TZDate;
+  return startOfDay(result) as TZDate;
 }
 
 /**
@@ -340,12 +351,8 @@ export function isCurrentWeekInTz(
   const weekStart = parseLocalDateInTz(weekStartDate, timeZone);
   const weekStartsOn = getDay(weekStart) === 1 ? 1 : 0;
   const weekEnd = endOfWeek(weekStart, { weekStartsOn });
-  const weekEndEOD = setMilliseconds(
-    setSeconds(setMinutes(setHours(weekEnd, 23), 59), 59),
-    999,
-  );
 
-  return isWithinInterval(today, { start: weekStart, end: weekEndEOD });
+  return isWithinInterval(today, { start: weekStart, end: endOfDay(weekEnd) });
 }
 
 /**
@@ -354,10 +361,7 @@ export function isCurrentWeekInTz(
 export function endOfDayInTz(date: Date | TZDate, timeZone: string): TZDate {
   const tzDate =
     date instanceof TZDate ? date : TZDate.tz(timeZone, date.getTime());
-  return setMilliseconds(
-    setSeconds(setMinutes(setHours(tzDate, 23), 59), 59),
-    999,
-  ) as TZDate;
+  return endOfDay(tzDate) as TZDate;
 }
 
 /**
@@ -370,7 +374,7 @@ export function getWeeksForMonthInTz(
   timeZone: string,
 ): WeekInfo[] {
   const weeks: WeekInfo[] = [];
-  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+  const weekStartsOn = getWeekStartsOn(weekStart);
 
   const firstOfMonth = TZDate.tz(timeZone, year, month, 1, 0, 0, 0);
   const firstWeekStart = startOfWeek(firstOfMonth, { weekStartsOn });
@@ -411,16 +415,7 @@ export function getDefaultWeekForMonthInTz(
 ): string {
   const { year, month } = parseMonthString(monthStr);
   const weeks = getWeeksForMonthInTz(year, month, weekStart, timeZone);
-
-  const currentWeekInfo = weeks.find(
-    (w) => w.isCurrentWeek && !w.isInPreviousMonth,
-  );
-  if (currentWeekInfo) {
-    return currentWeekInfo.startDate;
-  }
-
-  const firstWeek = weeks.find((w) => !w.isInPreviousMonth);
-  return firstWeek?.startDate || weeks[0].startDate;
+  return getDefaultWeekFromWeeks(weeks);
 }
 
 /**
@@ -444,7 +439,7 @@ export function countWeeksBetween(
   endDateStr: string,
   weekStart: "MONDAY" | "SUNDAY",
 ): number {
-  const weekStartsOn = weekStart === "MONDAY" ? 1 : 0;
+  const weekStartsOn = getWeekStartsOn(weekStart);
 
   const startDate = parseLocalDate(startDateStr);
   const endDate = parseLocalDate(endDateStr);
