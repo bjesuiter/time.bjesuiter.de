@@ -12,6 +12,7 @@ import {
   formatMonthYear,
   parseMonthString,
   getDefaultWeekForMonth,
+  getWeekStartsInRangeInTz,
 } from "../../src/lib/date-utils";
 
 describe("toISODate", () => {
@@ -259,5 +260,33 @@ describe("toUTCISOString", () => {
 
     expect(result).toEndWith("Z");
     expect(result).toBe("2026-01-19T00:00:00.000Z");
+  });
+});
+
+describe("getWeekStartsInRangeInTz", () => {
+  test("date-utils-038: includes week containing start date then each following week", () => {
+    const result = getWeekStartsInRangeInTz(
+      "2026-02-10",
+      "2026-03-01",
+      "MONDAY",
+      "Europe/Berlin",
+    );
+
+    expect(result).toEqual([
+      "2026-02-09",
+      "2026-02-16",
+      "2026-02-23",
+    ]);
+  });
+
+  test("date-utils-039: returns empty array when range is invalid", () => {
+    const result = getWeekStartsInRangeInTz(
+      "2026-03-02",
+      "2026-03-01",
+      "MONDAY",
+      "Europe/Berlin",
+    );
+
+    expect(result).toEqual([]);
   });
 });

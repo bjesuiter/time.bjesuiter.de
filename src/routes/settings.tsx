@@ -23,15 +23,16 @@ import {
   checkClockifySetup,
   getClockifyDetails,
   getClockifyProjects,
+  getWeeklyTimeSummary,
   refreshClockifySettings,
 } from "@/server/clockifyServerFns";
-import { refreshConfigTimeRange } from "@/server/cacheServerFns";
 import {
   getConfigHistory,
   deleteConfigEntry,
   updateConfig,
   type ConfigHistoryEntry,
 } from "@/server/configServerFns";
+import { getWeekStartsInRangeInTz, toISODate } from "@/lib/date-utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Toolbar } from "@/components/Toolbar";
 import { ConfirmPopover } from "@/components/ui/ConfirmPopover";
@@ -231,22 +232,88 @@ function SettingsPage() {
       startDate: string;
       endDate: string | null;
     }) => {
+      if (!clockifyDetails?.success) {
+        throw new Error("Clockify configuration not available");
+      }
+
+      const endDate = params.endDate || toISODate(new Date());
+      const weekStarts = getWeekStartsInRangeInTz(
+        params.startDate,
+        endDate,
+        clockifyDetails.config.weekStart as "MONDAY" | "SUNDAY",
+        clockifyDetails.config.timeZone,
+      );
+
       setRefreshingConfigId(params.configId);
       setRefreshConfigMessage(null);
       setRefreshProgress({
         configId: params.configId,
-        totalWeeks: 0,
+        totalWeeks: weekStarts.length,
         completedWeeks: 0,
-        currentStatus: "Starting refresh...",
+        currentStatus:
+          weekStarts.length > 0
+            ? `Refreshing week 1/${weekStarts.length}: ${weekStarts[0]}`
+            : "No weeks in selected range",
       });
 
-      const result = await refreshConfigTimeRange({
+      const results: {
+        weekStartDate: string;
+        status: "success" | "error";
+        error?: string;
+      }[] = [];
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const [index, weekStartDate] of weekStarts.entries()) {
+        setRefreshProgress({
+          configId: params.configId,
+          totalWeeks: weekStarts.length,
+          completedWeeks: index,
+          currentStatus: `Refreshing week ${index + 1}/${weekStarts.length}: ${weekStartDate}`,
+        });
+
+        const weeklyResult = await getWeeklyTimeSummary({
+          data: { weekStartDate, forceRefresh: true },
+        });
+
+        if (weeklyResult.success) {
+          results.push({ weekStartDate, status: "success" });
+          successCount++;
+          setRefreshProgress({
+            configId: params.configId,
+            totalWeeks: weekStarts.length,
+            completedWeeks: index + 1,
+            currentStatus: `Completed week ${index + 1}/${weekStarts.length}: ${weekStartDate}`,
+          });
+          continue;
+        }
+
+        const errorMessage =
+          "error" in weeklyResult ? weeklyResult.error : "Refresh failed";
+        results.push({
+          weekStartDate,
+          status: "error",
+          error: errorMessage,
+        });
+        errorCount++;
+        setRefreshProgress({
+          configId: params.configId,
+          totalWeeks: weekStarts.length,
+          completedWeeks: index + 1,
+          currentStatus: `Failed week ${index + 1}/${weekStarts.length}: ${weekStartDate}`,
+        });
+      }
+
+      return {
+        success: true,
         data: {
-          startDate: params.startDate,
-          endDate: params.endDate,
+          totalWeeks: weekStarts.length,
+          successCount,
+          errorCount,
+          results,
         },
-      });
-      return { ...result, configId: params.configId };
+        configId: params.configId,
+      };
     },
     onSuccess: (result, variables) => {
       setRefreshingConfigId(null);
@@ -295,10 +362,8 @@ function SettingsPage() {
     validFrom: Date;
     validUntil: Date | null;
   }) => {
-    const startDate = entry.validFrom.toISOString().split("T")[0];
-    const endDate = entry.validUntil
-      ? entry.validUntil.toISOString().split("T")[0]
-      : null;
+    const startDate = toISODate(entry.validFrom);
+    const endDate = entry.validUntil ? toISODate(entry.validUntil) : null;
 
     refreshTimeRangeMutation.mutate({
       configId: entry.id,
@@ -1109,7 +1174,7 @@ function SettingsPage() {
                                           <div
                                             className="h-full bg-blue-600 transition-all duration-300"
                                             style={{
-                                              width: `${(refreshProgress.completedWeeks / refreshProgress.totalWeeks) * 100}%`,
+                                              width: `${refreshProgress.totalWeeks > 0 ? (refreshProgress.completedWeeks / refreshProgress.totalWeeks) * 100 : 0}%`,
                                             }}
                                           />
                                         </div>

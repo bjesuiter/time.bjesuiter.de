@@ -302,6 +302,34 @@ export function getCurrentWeekStartInTz(
 }
 
 /**
+ * Get all week start dates for a date range in a specific timezone.
+ * Includes the week containing startDate, then each following week until endDate.
+ */
+export function getWeekStartsInRangeInTz(
+  startDate: string,
+  endDate: string,
+  weekStart: "MONDAY" | "SUNDAY",
+  timeZone: string,
+): string[] {
+  const start = parseLocalDateInTz(startDate, timeZone);
+  const end = parseLocalDateInTz(endDate, timeZone);
+
+  if (start > end) {
+    return [];
+  }
+
+  const weekStarts: string[] = [];
+  let currentWeekStart = getWeekStartForDateInTz(start, weekStart, timeZone);
+
+  while (currentWeekStart <= end) {
+    weekStarts.push(toISODate(currentWeekStart));
+    currentWeekStart = addWeeks(currentWeekStart, 1) as typeof currentWeekStart;
+  }
+
+  return weekStarts;
+}
+
+/**
  * Check if a week contains today in a specific timezone.
  */
 export function isCurrentWeekInTz(

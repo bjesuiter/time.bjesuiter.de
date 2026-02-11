@@ -9,16 +9,17 @@ import {
 } from "@/db/schema/cache";
 import * as clockifyClient from "@/lib/clockify/client";
 import type { TrackedProjectsValue } from "./configServerFns";
-import { addDays, addWeeks } from "date-fns";
+import { addDays } from "date-fns";
 import {
   parseLocalDateInTz,
   endOfDayInTz,
   toUTCISOString,
   toISODate,
-  getWeekStartForDateInTz,
+  getWeekStartsInRangeInTz,
 } from "@/lib/date-utils";
 import { invalidateCumulativeOvertimeAfterWeek } from "./cacheHelpers";
 import { getAuthenticatedUserId } from "@/server/authHelpers";
+import { getWeeklyTimeSummary } from "./clockifyServerFns";
 
 export const calculateAndCacheDailySums = createServerFn({ method: "POST" })
   .inputValidator((data: { weekStartDate: string }) => data)
@@ -322,46 +323,6 @@ export const invalidateCache = createServerFn({ method: "POST" })
       },
     };
   });
-
-
-
-/**
- * Gets all week start dates within a date range.
- * Used to determine which weeks need to be refreshed for a config entry.
- */
-function getWeekStartsInRange(
-  startDate: string,
-  endDate: string,
-  weekStart: "MONDAY" | "SUNDAY",
-  timeZone: string,
-): string[] {
-  const start = parseLocalDateInTz(startDate, timeZone);
-  const end = parseLocalDateInTz(endDate, timeZone);
-
-  // Get the first week start that contains or comes after startDate
-  let currentWeekStart = getWeekStartForDateInTz(start, weekStart, timeZone);
-
-  // If currentWeekStart is before startDate, move to next week
-  if (currentWeekStart < start) {
-    currentWeekStart = addWeeks(currentWeekStart, 1) as typeof currentWeekStart;
-  }
-
-  const weekStarts: string[] = [];
-
-  // Include the week containing startDate even if week starts before startDate
-  const startingWeek = getWeekStartForDateInTz(start, weekStart, timeZone);
-  if (toISODate(startingWeek) !== toISODate(currentWeekStart)) {
-    weekStarts.push(toISODate(startingWeek));
-  }
-
-  while (currentWeekStart <= end) {
-    weekStarts.push(toISODate(currentWeekStart));
-    currentWeekStart = addWeeks(currentWeekStart, 1) as typeof currentWeekStart;
-  }
-
-  return weekStarts;
-}
-
 export type RefreshProgressUpdate = {
   currentWeek: number;
   totalWeeks: number;
@@ -393,7 +354,7 @@ export const refreshConfigTimeRange = createServerFn({ method: "POST" })
     }
 
     const endDate = data.endDate || toISODate(new Date());
-    const weekStarts = getWeekStartsInRange(
+    const weekStarts = getWeekStartsInRangeInTz(
       data.startDate,
       endDate,
       config.weekStart as "MONDAY" | "SUNDAY",
@@ -411,23 +372,9 @@ export const refreshConfigTimeRange = createServerFn({ method: "POST" })
 
     for (const weekStartDate of weekStarts) {
       try {
-        // Recalculate daily and weekly sums
-        const dailyResult = await calculateAndCacheDailySums({
-          data: { weekStartDate },
-        });
-
-        if (!dailyResult.success) {
-          results.push({
-            weekStartDate,
-            status: "error",
-            error: dailyResult.error,
-          });
-          errorCount++;
-          continue;
-        }
-
-        const weeklyResult = await calculateAndCacheWeeklySums({
-          data: { weekStartDate },
+        // Reuse the same refresh path as the dashboard refresh button.
+        const weeklyResult = await getWeeklyTimeSummary({
+          data: { weekStartDate, forceRefresh: true },
         });
 
         if (!weeklyResult.success) {
